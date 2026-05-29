@@ -1,0 +1,170 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import {
+  RiArrowDownSLine,
+  RiFundsBoxLine,
+  RiGlobalLine,
+  RiInformationLine,
+  RiLoginCircleLine,
+  RiMenu3Line,
+} from "react-icons/ri";
+
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Locale, locales, getLocalizedPath, isLocale } from "@/lib/i18n/config";
+import type { Dictionary } from "@/lib/i18n/dictionaries";
+
+type SiteHeaderProps = {
+  locale: Locale;
+  messages: Dictionary["header"];
+};
+
+function buildLocalizedHref(pathname: string, targetLocale: Locale) {
+  const segments = pathname.split("/").filter(Boolean);
+
+  if (segments.length > 0 && isLocale(segments[0])) {
+    segments[0] = targetLocale;
+    return `/${segments.join("/")}`;
+  }
+
+  return getLocalizedPath(targetLocale, pathname);
+}
+
+export function SiteHeader({ locale, messages }: SiteHeaderProps) {
+  const pathname = usePathname();
+  const router = useRouter();
+
+  const navItems = [
+    { label: messages.navigation.pricing, href: getLocalizedPath(locale, "/pricing") },
+    { label: messages.navigation.contacts, href: getLocalizedPath(locale, "/contacts") },
+    { label: messages.navigation.security, href: getLocalizedPath(locale, "/security") },
+  ];
+
+  const infoItems = [
+    { label: messages.infoMenu.about, href: getLocalizedPath(locale, "/about") },
+    { label: messages.infoMenu.faq, href: getLocalizedPath(locale, "/faq") },
+    { label: messages.infoMenu.roadmap, href: getLocalizedPath(locale, "/roadmap") },
+  ];
+
+  return (
+    <header className="sticky top-0 z-40 px-6 pt-6 sm:px-10 lg:px-12">
+      <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 rounded-[2rem] border border-white/8 bg-black/25 px-4 py-3 shadow-[0_18px_60px_rgba(0,0,0,0.22)] backdrop-blur-2xl sm:px-6">
+        <div className="flex items-center gap-4 lg:gap-8">
+          <Link
+            href={getLocalizedPath(locale, "/")}
+            className="inline-flex items-center gap-3 rounded-full border border-emerald-300/18 bg-emerald-300/10 px-4 py-2 text-sm font-semibold text-emerald-50 transition hover:border-emerald-300/28 hover:bg-emerald-300/14"
+          >
+            <span className="flex size-9 items-center justify-center rounded-full border border-emerald-300/20 bg-emerald-300/12 text-emerald-100">
+              <RiFundsBoxLine className="size-4.5" />
+            </span>
+            <span className="whitespace-nowrap">{messages.logo}</span>
+          </Link>
+
+          <nav className="hidden items-center gap-2 lg:flex">
+            {navItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="rounded-full px-4 py-2 text-sm font-medium text-zinc-300 transition hover:bg-white/6 hover:text-white"
+              >
+                {item.label}
+              </Link>
+            ))}
+
+            <DropdownMenu>
+              <DropdownMenuTrigger className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium text-zinc-300 transition hover:bg-white/6 hover:text-white">
+                <RiInformationLine className="size-4 text-emerald-200" />
+                {messages.navigation.info}
+                <RiArrowDownSLine className="size-4" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="surface-floating min-w-52 rounded-2xl text-zinc-100">
+                <DropdownMenuLabel>{messages.navigation.info}</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {infoItems.map((item) => (
+                  <DropdownMenuItem
+                    key={item.href}
+                    onClick={() => router.push(item.href)}
+                  >
+                    {item.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </nav>
+        </div>
+
+        <div className="flex items-center gap-2 sm:gap-3">
+          <DropdownMenu>
+            <DropdownMenuTrigger className="inline-flex size-11 items-center justify-center rounded-full border border-white/10 bg-white/5 text-zinc-100 transition hover:border-emerald-300/18 hover:bg-white/8 lg:hidden">
+              <RiMenu3Line className="size-5" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="surface-floating min-w-56 rounded-2xl text-zinc-100">
+              <DropdownMenuLabel>{messages.logo}</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {navItems.map((item) => (
+                <DropdownMenuItem
+                  key={item.href}
+                  onClick={() => router.push(item.href)}
+                >
+                  {item.label}
+                </DropdownMenuItem>
+              ))}
+              <DropdownMenuSeparator />
+              {infoItems.map((item) => (
+                <DropdownMenuItem
+                  key={item.href}
+                  onClick={() => router.push(item.href)}
+                >
+                  {item.label}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger className="inline-flex h-11 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 text-sm font-medium text-zinc-100 transition hover:border-emerald-300/18 hover:bg-white/8">
+              <RiGlobalLine className="size-4 text-emerald-200" />
+              <span className="hidden sm:inline">{messages.language.label}</span>
+              <span className="uppercase">{locale}</span>
+              <RiArrowDownSLine className="size-4" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="surface-floating min-w-48 rounded-2xl text-zinc-100">
+              <DropdownMenuLabel>{messages.language.label}</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {locales.map((targetLocale) => (
+                <DropdownMenuItem
+                  key={targetLocale}
+                  onClick={() =>
+                    router.push(buildLocalizedHref(pathname, targetLocale))
+                  }
+                >
+                  {{
+                    en: messages.language.en,
+                    ru: messages.language.ru,
+                    kg: messages.language.kg,
+                  }[targetLocale]}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <Link
+            href={getLocalizedPath(locale, "/login")}
+            className="inline-flex h-11 items-center gap-2 rounded-full border border-emerald-300/20 bg-linear-to-r from-emerald-300 via-emerald-400 to-lime-300 px-5 text-sm font-semibold whitespace-nowrap text-slate-950 shadow-[0_12px_32px_rgba(74,222,128,0.16)] transition hover:brightness-105"
+          >
+            <RiLoginCircleLine className="size-4" />
+            {messages.actions.login}
+          </Link>
+        </div>
+      </div>
+    </header>
+  );
+}

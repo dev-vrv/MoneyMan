@@ -5,13 +5,18 @@ import { ThemeProvider } from "next-themes";
 import { useState } from "react";
 import { Toaster } from "sonner";
 
+import { LocaleProvider } from "@/components/providers/locale-provider";
+import type { Locale } from "@/lib/i18n/config";
+import type { Dictionary } from "@/lib/i18n/dictionaries";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 type AppProvidersProps = {
   children: React.ReactNode;
+  locale: Locale;
+  messages: Dictionary;
 };
 
-export function AppProviders({ children }: AppProvidersProps) {
+export function AppProviders({ children, locale, messages }: AppProvidersProps) {
   const [queryClient] = useState(
     () =>
       new QueryClient({
@@ -26,13 +31,15 @@ export function AppProviders({ children }: AppProvidersProps) {
   );
 
   return (
-    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider delayDuration={120}>
-          {children}
-          <Toaster richColors position="top-right" />
-        </TooltipProvider>
-      </QueryClientProvider>
-    </ThemeProvider>
+    <LocaleProvider locale={locale} messages={messages}>
+      <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+        <QueryClientProvider client={queryClient}>
+          <TooltipProvider delayDuration={120}>
+            {children}
+            <Toaster richColors position="top-right" />
+          </TooltipProvider>
+        </QueryClientProvider>
+      </ThemeProvider>
+    </LocaleProvider>
   );
 }
