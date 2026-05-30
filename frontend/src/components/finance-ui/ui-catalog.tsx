@@ -141,10 +141,10 @@ export function UiCatalog() {
         <header className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-3">
-              <Badge className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-5 py-2 text-sm font-medium text-emerald-100 hover:bg-emerald-300/10">
+              <Badge className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-5 py-3 text-sm font-medium text-emerald-100 hover:bg-emerald-300/10">
                 {messages.badges.debug}
               </Badge>
-              <Badge className="rounded-full border border-white/10 bg-emerald-950/20 px-5 py-2 text-sm font-medium text-zinc-300 hover:bg-emerald-950/20">
+              <Badge className="rounded-full border border-white/10 bg-emerald-950/20 px-5 py-3 text-sm font-medium text-zinc-300 hover:bg-emerald-950/20">
                 {messages.badges.hidden}
               </Badge>
             </div>
@@ -160,7 +160,7 @@ export function UiCatalog() {
 
           <Link
             href={getLocalizedPath(locale, "/")}
-            className="inline-flex h-10 items-center gap-2 whitespace-nowrap rounded-full border border-white/10 bg-emerald-950/20 px-6 text-sm font-medium text-zinc-100 transition hover:border-emerald-300/20 hover:bg-emerald-900/30"
+            className="inline-flex h-11 items-center gap-2 whitespace-nowrap rounded-full border border-white/10 bg-emerald-950/20 px-6 text-sm font-medium text-zinc-100 transition hover:border-emerald-300/20 hover:bg-emerald-900/30"
           >
             {messages.backHome}
             <RiArrowRightUpLine className="size-4 shrink-0" />
@@ -329,7 +329,11 @@ export function UiCatalog() {
                     >
                       <RadioGroup
                         value={riskMode}
-                        onValueChange={setRiskMode}
+                        onValueChange={(value) => {
+                          if (value !== null) {
+                            setRiskMode(value);
+                          }
+                        }}
                         className="grid gap-3"
                       >
                         {[
@@ -368,7 +372,14 @@ export function UiCatalog() {
                           </span>
                           <span className="font-medium text-emerald-200">{reviewScore[0]}%</span>
                         </div>
-                        <Slider value={reviewScore} onValueChange={setReviewScore} max={100} step={1} />
+                        <Slider
+                          value={reviewScore}
+                          onValueChange={(value) => {
+                            setReviewScore(Array.isArray(value) ? [...value] : [value]);
+                          }}
+                          max={100}
+                          step={1}
+                        />
                       </div>
                     </FieldShell>
 
@@ -397,7 +408,9 @@ export function UiCatalog() {
                           </div>
                           <Switch
                             checked={item.checked}
-                            onCheckedChange={item.onCheckedChange}
+                            onCheckedChange={(checked) =>
+                              item.onCheckedChange(Boolean(checked))
+                            }
                           />
                         </div>
                       ))}
@@ -432,9 +445,7 @@ export function UiCatalog() {
                 </div>
 
                 <Accordion
-                  type="single"
-                  collapsible
-                  defaultValue="advanced"
+                  defaultValue={["advanced"]}
                   className="surface-panel rounded-[2rem] px-6"
                 >
                   <AccordionItem value="advanced" className="border-none">

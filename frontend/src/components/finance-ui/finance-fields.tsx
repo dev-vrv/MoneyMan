@@ -131,7 +131,14 @@ export function MoneyInput({
           className="h-11 text-sm"
         />
         <InputGroupAddon align="inline-end" className="pr-2">
-          <Select value={currency} onValueChange={onCurrencyChange}>
+          <Select
+            value={currency}
+            onValueChange={(value) => {
+              if (value !== null) {
+                onCurrencyChange(value);
+              }
+            }}
+          >
             <SelectTrigger className="h-8 rounded-xl border-white/10 bg-emerald-950/20 text-zinc-100">
               <SelectValue />
             </SelectTrigger>
@@ -207,8 +214,15 @@ export function TimePickerField({
   return (
     <FieldShell label={messages.label} description={messages.description}>
       <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3">
-        <Select value={hour} onValueChange={onHourChange}>
-          <SelectTrigger className="surface-field h-11 w-full rounded-2xl text-zinc-100">
+        <Select
+          value={hour}
+          onValueChange={(value) => {
+            if (value !== null) {
+              onHourChange(value);
+            }
+          }}
+        >
+          <SelectTrigger className="surface-field h-11 min-h-11 w-full rounded-2xl px-4 text-zinc-100">
             <SelectValue placeholder={messages.hourPlaceholder} />
           </SelectTrigger>
           <SelectContent className="surface-floating rounded-2xl text-zinc-100">
@@ -220,12 +234,19 @@ export function TimePickerField({
           </SelectContent>
         </Select>
 
-        <div className="flex h-11 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-emerald-950/20 text-lg font-semibold text-emerald-200">
+        <div className="flex h-11 w-9 shrink-0 items-center justify-center self-center rounded-2xl border border-white/10 bg-emerald-950/20 text-base font-semibold text-emerald-200">
           :
         </div>
 
-        <Select value={minute} onValueChange={onMinuteChange}>
-          <SelectTrigger className="surface-field h-11 w-full rounded-2xl text-zinc-100">
+        <Select
+          value={minute}
+          onValueChange={(value) => {
+            if (value !== null) {
+              onMinuteChange(value);
+            }
+          }}
+        >
+          <SelectTrigger className="surface-field h-11 min-h-11 w-full rounded-2xl px-4 text-zinc-100">
             <SelectValue placeholder={messages.minutePlaceholder} />
           </SelectTrigger>
           <SelectContent className="surface-floating rounded-2xl text-zinc-100">

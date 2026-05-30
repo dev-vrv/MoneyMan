@@ -1,3 +1,7 @@
+"use client";
+
+import { useEffect, useRef } from "react";
+
 import type { Dictionary } from "@/lib/i18n/dictionaries";
 
 type FinancialLoaderProps = {
@@ -12,8 +16,35 @@ const loaderBars = [
 ];
 
 export function FinancialLoader({ messages }: FinancialLoaderProps) {
+  const rootRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    const rootNode = rootRef.current;
+
+    return () => {
+      if (!rootNode || typeof document === "undefined") {
+        return;
+      }
+
+      const clone = rootNode.cloneNode(true) as HTMLElement;
+      clone.classList.add("finance-loader-exit-clone");
+      document.body.appendChild(clone);
+
+      window.requestAnimationFrame(() => {
+        clone.classList.add("finance-loader-exit-active");
+      });
+
+      window.setTimeout(() => {
+        clone.remove();
+      }, 320);
+    };
+  }, []);
+
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(34,197,94,0.16),_transparent_24%),linear-gradient(180deg,_#040806_0%,_#08110d_44%,_#040705_100%)] px-6">
+    <main
+      ref={rootRef}
+      className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(34,197,94,0.16),_transparent_24%),linear-gradient(180deg,_#040806_0%,_#08110d_44%,_#040705_100%)] px-6"
+    >
       <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:72px_72px] opacity-20" />
       <div className="absolute left-1/2 top-1/4 h-64 w-64 -translate-x-1/2 rounded-full bg-emerald-400/10 blur-3xl" />
 

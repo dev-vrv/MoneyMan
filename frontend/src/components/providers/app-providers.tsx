@@ -34,7 +34,7 @@ export function AppProviders({ children, locale, messages }: AppProvidersProps) 
     <LocaleProvider locale={locale} messages={messages}>
       <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
         <QueryClientProvider client={queryClient}>
-          <TooltipProvider delayDuration={120}>
+          <TooltipProvider delay={120}>
             {children}
             <Toaster richColors position="top-right" />
           </TooltipProvider>

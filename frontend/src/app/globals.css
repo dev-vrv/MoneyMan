@@ -127,8 +127,13 @@
   [role="button"],
   summary,
   select,
+  label:has([data-slot="checkbox"]),
+  label:has([data-slot="radio-group-item"]),
   [data-slot$="trigger"],
   [data-slot$="item"],
+  [data-slot="dropdown-menu-sub-trigger"],
+  [data-slot="select-scroll-up-button"],
+  [data-slot="select-scroll-down-button"],
   [data-slot="checkbox"],
   [data-slot="radio-group-item"],
   [data-slot="switch"],
@@ -207,6 +212,19 @@
   }
 }
 
+@keyframes finance-loader-exit {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.985);
+    filter: blur(8px);
+  }
+}
+
 @layer components {
   .surface-panel {
     @apply border border-white/8 backdrop-blur-xl;
@@ -257,5 +275,16 @@
   .finance-loader-ring-delayed {
     animation-direction: reverse;
     animation-duration: 5.4s;
+  }
+
+  .finance-loader-exit-clone {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    pointer-events: none;
+  }
+
+  .finance-loader-exit-active {
+    animation: finance-loader-exit 0.28s ease forwards;
   }
 }
