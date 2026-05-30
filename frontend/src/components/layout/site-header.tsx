@@ -14,6 +14,7 @@ import {
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -86,16 +87,20 @@ export function SiteHeader({ locale, messages }: SiteHeaderProps) {
                 <RiArrowDownSLine className="size-4" />
               </DropdownMenuTrigger>
               <DropdownMenuContent className="surface-floating min-w-52 rounded-2xl text-zinc-100">
-                <DropdownMenuLabel>{messages.navigation.info}</DropdownMenuLabel>
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel>{messages.navigation.info}</DropdownMenuLabel>
+                </DropdownMenuGroup>
                 <DropdownMenuSeparator />
-                {infoItems.map((item) => (
-                  <DropdownMenuItem
-                    key={item.href}
-                    onClick={() => router.push(item.href)}
-                  >
-                    {item.label}
-                  </DropdownMenuItem>
-                ))}
+                <DropdownMenuGroup>
+                  {infoItems.map((item) => (
+                    <DropdownMenuItem
+                      key={item.href}
+                      onClick={() => router.push(item.href)}
+                    >
+                      {item.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuGroup>
               </DropdownMenuContent>
             </DropdownMenu>
           </nav>
@@ -107,25 +112,31 @@ export function SiteHeader({ locale, messages }: SiteHeaderProps) {
               <RiMenu3Line className="size-5" />
             </DropdownMenuTrigger>
             <DropdownMenuContent className="surface-floating min-w-56 rounded-2xl text-zinc-100">
-              <DropdownMenuLabel>{messages.logo}</DropdownMenuLabel>
+              <DropdownMenuGroup>
+                <DropdownMenuLabel>{messages.logo}</DropdownMenuLabel>
+              </DropdownMenuGroup>
               <DropdownMenuSeparator />
-              {navItems.map((item) => (
-                <DropdownMenuItem
-                  key={item.href}
-                  onClick={() => router.push(item.href)}
-                >
-                  {item.label}
-                </DropdownMenuItem>
-              ))}
+              <DropdownMenuGroup>
+                {navItems.map((item) => (
+                  <DropdownMenuItem
+                    key={item.href}
+                    onClick={() => router.push(item.href)}
+                  >
+                    {item.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuGroup>
               <DropdownMenuSeparator />
-              {infoItems.map((item) => (
-                <DropdownMenuItem
-                  key={item.href}
-                  onClick={() => router.push(item.href)}
-                >
-                  {item.label}
-                </DropdownMenuItem>
-              ))}
+              <DropdownMenuGroup>
+                {infoItems.map((item) => (
+                  <DropdownMenuItem
+                    key={item.href}
+                    onClick={() => router.push(item.href)}
+                  >
+                    {item.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuGroup>
             </DropdownMenuContent>
           </DropdownMenu>
 
@@ -137,22 +148,26 @@ export function SiteHeader({ locale, messages }: SiteHeaderProps) {
               <RiArrowDownSLine className="size-4" />
             </DropdownMenuTrigger>
             <DropdownMenuContent className="surface-floating min-w-48 rounded-2xl text-zinc-100">
-              <DropdownMenuLabel>{messages.language.label}</DropdownMenuLabel>
+              <DropdownMenuGroup>
+                <DropdownMenuLabel>{messages.language.label}</DropdownMenuLabel>
+              </DropdownMenuGroup>
               <DropdownMenuSeparator />
-              {locales.map((targetLocale) => (
-                <DropdownMenuItem
-                  key={targetLocale}
-                  onClick={() =>
-                    router.push(buildLocalizedHref(pathname, targetLocale))
-                  }
-                >
-                  {{
-                    en: messages.language.en,
-                    ru: messages.language.ru,
-                    kg: messages.language.kg,
-                  }[targetLocale]}
-                </DropdownMenuItem>
-              ))}
+              <DropdownMenuGroup>
+                {locales.map((targetLocale) => (
+                  <DropdownMenuItem
+                    key={targetLocale}
+                    onClick={() =>
+                      router.push(buildLocalizedHref(pathname, targetLocale))
+                    }
+                  >
+                    {{
+                      en: messages.language.en,
+                      ru: messages.language.ru,
+                      kg: messages.language.kg,
+                    }[targetLocale]}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuGroup>
             </DropdownMenuContent>
           </DropdownMenu>
 

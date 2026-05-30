@@ -80,6 +80,7 @@ import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -134,6 +135,8 @@ export function UiCatalog() {
   const [budgetAlerts, setBudgetAlerts] = useState(true);
   const [includeTransfers, setIncludeTransfers] = useState(false);
   const [compactMode, setCompactMode] = useState(true);
+  const [includeHiddenWallets, setIncludeHiddenWallets] = useState(true);
+  const [showArchivedCategories, setShowArchivedCategories] = useState(false);
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(34,197,94,0.12),_transparent_22%),radial-gradient(circle_at_bottom_right,_rgba(163,230,53,0.08),_transparent_22%),linear-gradient(180deg,_#040806_0%,_#07100b_100%)] px-6 py-16 text-white sm:px-10">
@@ -510,22 +513,32 @@ export function UiCatalog() {
                         <RiMore2Fill className="size-4 text-emerald-200" />
                       </DropdownMenuTrigger>
                       <DropdownMenuContent className="surface-floating rounded-2xl text-zinc-100">
-                        <DropdownMenuLabel>{messages.actions.dropdown.label}</DropdownMenuLabel>
-                        <DropdownMenuItem>
-                          <RiWallet3Line className="size-4 text-emerald-200" />
-                          {messages.actions.dropdown.reconcileBalances}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <RiNotification3Line className="size-4 text-emerald-200" />
-                          {messages.actions.dropdown.createAlert}
-                        </DropdownMenuItem>
+                        <DropdownMenuGroup>
+                          <DropdownMenuLabel>{messages.actions.dropdown.label}</DropdownMenuLabel>
+                          <DropdownMenuItem>
+                            <RiWallet3Line className="size-4 text-emerald-200" />
+                            {messages.actions.dropdown.reconcileBalances}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem>
+                            <RiNotification3Line className="size-4 text-emerald-200" />
+                            {messages.actions.dropdown.createAlert}
+                          </DropdownMenuItem>
+                        </DropdownMenuGroup>
                         <DropdownMenuSeparator />
-                        <DropdownMenuCheckboxItem checked>
-                          {messages.actions.dropdown.includeHiddenWallets}
-                        </DropdownMenuCheckboxItem>
-                        <DropdownMenuCheckboxItem>
-                          {messages.actions.dropdown.showArchivedCategories}
-                        </DropdownMenuCheckboxItem>
+                        <DropdownMenuGroup>
+                          <DropdownMenuCheckboxItem
+                            checked={includeHiddenWallets}
+                            onCheckedChange={setIncludeHiddenWallets}
+                          >
+                            {messages.actions.dropdown.includeHiddenWallets}
+                          </DropdownMenuCheckboxItem>
+                          <DropdownMenuCheckboxItem
+                            checked={showArchivedCategories}
+                            onCheckedChange={setShowArchivedCategories}
+                          >
+                            {messages.actions.dropdown.showArchivedCategories}
+                          </DropdownMenuCheckboxItem>
+                        </DropdownMenuGroup>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>

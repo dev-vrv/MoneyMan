@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { IBM_Plex_Mono, Manrope, Sora } from "next/font/google";
 
+import { ThemeProvider } from "@/components/providers/theme-provider";
 import {
   defaultLocale,
   isLocale,
@@ -47,7 +48,7 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
-        {children}
+        <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>
   );
