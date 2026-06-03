@@ -21,6 +21,8 @@ import {
   RiMailLine,
   RiMore2Fill,
   RiNotification3Line,
+  RiEyeLine,
+  RiEyeOffLine,
   RiRepeat2Line,
   RiSafe2Line,
   RiSearchLine,
@@ -87,6 +89,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from "@/components/ui/input-group";
 import { Progress } from "@/components/ui/progress";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
@@ -131,6 +139,7 @@ export function UiCatalog() {
   const [selectedMinute, setSelectedMinute] = useState("30");
   const [riskMode, setRiskMode] = useState("balanced");
   const [reviewScore, setReviewScore] = useState([72]);
+  const [showPassword, setShowPassword] = useState(false);
   const [syncRealtime, setSyncRealtime] = useState(true);
   const [budgetAlerts, setBudgetAlerts] = useState(true);
   const [includeTransfers, setIncludeTransfers] = useState(false);
@@ -248,11 +257,24 @@ export function UiCatalog() {
                     label={messages.fields.password.label}
                     description={messages.fields.password.description}
                   >
-                    <Input
-                      type="password"
-                      placeholder={messages.fields.password.placeholder}
-                      className="surface-field h-11 rounded-2xl"
-                    />
+                    <InputGroup className="surface-field h-11 rounded-2xl border-white/10">
+                      <InputGroupInput
+                        type={showPassword ? "text" : "password"}
+                        placeholder={messages.fields.password.placeholder}
+                        className="h-full text-zinc-100 placeholder:text-zinc-500"
+                      />
+                      <InputGroupAddon align="inline-end">
+                        <InputGroupButton
+                          aria-label={showPassword ? "Hide password" : "Show password"}
+                          aria-pressed={showPassword}
+                          className="text-zinc-400 hover:text-zinc-100"
+                          onClick={() => setShowPassword((value) => !value)}
+                          size="icon-xs"
+                        >
+                          {showPassword ? <RiEyeOffLine /> : <RiEyeLine />}
+                        </InputGroupButton>
+                      </InputGroupAddon>
+                    </InputGroup>
                   </FieldShell>
 
                   <DatePickerField value={selectedDate} onChange={setSelectedDate} />

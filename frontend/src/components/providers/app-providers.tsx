@@ -2,9 +2,10 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
-import { Toaster } from "sonner";
 
+import { AuthProvider } from "@/components/providers/auth-provider";
 import { LocaleProvider } from "@/components/providers/locale-provider";
+import { Toaster } from "@/components/ui/sonner";
 import type { Locale } from "@/lib/i18n/config";
 import type { Dictionary } from "@/lib/i18n/dictionaries";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -31,12 +32,14 @@ export function AppProviders({ children, locale, messages }: AppProvidersProps) 
 
   return (
     <LocaleProvider locale={locale} messages={messages}>
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider delay={120}>
-          {children}
-          <Toaster richColors position="top-right" />
-        </TooltipProvider>
-      </QueryClientProvider>
+      <AuthProvider>
+        <QueryClientProvider client={queryClient}>
+          <TooltipProvider delay={120}>
+            {children}
+            <Toaster richColors position="top-right" />
+          </TooltipProvider>
+        </QueryClientProvider>
+      </AuthProvider>
     </LocaleProvider>
   );
 }

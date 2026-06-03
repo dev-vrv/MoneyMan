@@ -1,15 +1,14 @@
 "use client"
 
-import { useTheme } from "next-themes"
 import { Toaster as Sonner, type ToasterProps } from "sonner"
 import { RiCheckboxCircleLine, RiInformationLine, RiErrorWarningLine, RiCloseCircleLine, RiLoader4Line } from "react-icons/ri"
 
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme()
-
   return (
     <Sonner
-      theme={theme as ToasterProps["theme"]}
+      theme="dark"
+      closeButton
+      swipeDirections={[]}
       className="toaster group"
       icons={{
         success: (
@@ -37,8 +36,11 @@ const Toaster = ({ ...props }: ToasterProps) => {
         } as React.CSSProperties
       }
       toastOptions={{
+        closeButton: true,
         classNames: {
           toast: "cn-toast",
+          closeButton:
+            "text-zinc-400 transition hover:text-white focus-visible:text-white",
         },
       }}
       {...props}

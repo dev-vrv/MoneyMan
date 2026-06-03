@@ -29,7 +29,7 @@ export const enMessages = {
       kg: "Kyrgyz",
     },
     actions: {
-      login: "Log in",
+      auth: "Auth",
     },
   },
   home: {
@@ -61,6 +61,232 @@ export const enMessages = {
           "JWT rotation, environment-driven config, isolated services, Postgres consistency and Redis-backed async processing.",
       },
     ],
+  },
+  auth: {
+    badge: "Credential workspace",
+    title: "A premium authentication flow shaped like a real product surface.",
+    description:
+      "Switch between sign in and sign up with a motion-rich screen that feels native to a modern fintech product, not like a detached modal.",
+    logo: {
+      title: "Fin Man Access",
+      subtitle: "Placeholder mark linked to home",
+    },
+    tabs: {
+      caption: "Account access",
+      signIn: "Sign in",
+      signUp: "Create account",
+    },
+    metrics: [
+      {
+        label: "Session trust",
+        value: "99.98%",
+        caption: "Adaptive checks tuned for returning devices and secure recovery.",
+      },
+      {
+        label: "Access speed",
+        value: "< 90 sec",
+        caption: "From new registration to a verified workspace in one flow.",
+      },
+      {
+        label: "Signal layers",
+        value: "6",
+        caption: "Identity, device, consent, recovery and policy checkpoints.",
+      },
+    ],
+    showcase: {
+      eyebrow: "Animated auth system",
+      signIn: {
+        title: "Fast return for trusted members",
+        description:
+          "The sign-in state emphasizes clarity, memory cues and quick recovery while keeping the form visually calm and conversion-focused.",
+        bullets: [
+          "Smooth panel transitions preserve orientation instead of snapping content.",
+          "Field surfaces stay dense and readable on both mobile and desktop.",
+          "Recovery and session hints are visible without cluttering the core action.",
+        ],
+      },
+      signUp: {
+        title: "Confident onboarding for first-time users",
+        description:
+          "Registration expands the panel, reveals consent context and frames account creation as a polished first-run experience.",
+        bullets: [
+          "Progressive reveal makes the longer form feel lighter during mode switch.",
+          "Consent copy and legal links are integrated into the visual hierarchy.",
+          "Email and password inputs stay focused, fast and consistent with the core auth flow.",
+        ],
+      },
+    },
+    highlights: [
+      {
+        title: "Product-grade motion",
+        description:
+          "Layered gradients, staggered reveal and animated state shifts make the page feel intentional instead of template-driven.",
+      },
+      {
+        title: "Clear legal path",
+        description:
+          "Terms and privacy links are present directly in registration, where the consent decision actually happens.",
+      },
+      {
+        title: "Security-first framing",
+        description:
+          "The page communicates trust, session discipline and access clarity before any backend integration lands.",
+      },
+    ],
+    placeholders: {
+      email: "your@email.com",
+      password: "Enter password",
+      confirmPassword: "Repeat password",
+    },
+    signIn: {
+      title: "Welcome back",
+      description:
+        "Sign in to your workspace, restore your active sessions and continue from the last secure checkpoint.",
+      fields: {
+        email: "Email",
+        password: "Password",
+      },
+      remember: "Remember this device",
+      forgotPassword: "Forgot password?",
+      submit: "Continue to dashboard",
+      footnote:
+        "By continuing you enter the protected Fin Man workspace with active session and device policies.",
+    },
+    signUp: {
+      title: "Create your account",
+      description:
+        "Start with the standard registration data and confirm agreement with the product terms before activation.",
+      fields: {
+        email: "Email",
+        password: "Password",
+        confirmPassword: "Repeat password",
+      },
+      consent: {
+        prefix: "I agree with the",
+        terms: "Terms of Service",
+        and: "and",
+        privacy: "Privacy & Security policy",
+      },
+      submit: "Create account",
+      footnote:
+        "After registration, the user can move into verification, onboarding and protected product areas without changing the visual shell.",
+    },
+    footer: {
+      status: "Designed for responsive auth",
+      backHome: "Back to home",
+    },
+    messages: {
+      pending: "Processing",
+      signInSuccess: "Signed in successfully.",
+      signUpSuccess: "Account created successfully.",
+      consentRequired: "You need to accept the terms before registration.",
+      genericError: "Unable to complete the request right now.",
+      socialStub: "Social auth buttons are placeholders for the future all-auth flow.",
+    },
+    social: {
+      facebook: "Facebook",
+      google: "Google",
+      telegram: "Telegram",
+    },
+  },
+  passwordRecovery: {
+    title: "Recover account access",
+    description:
+      "If access to the account was lost, enter the linked email and continue through a secure password reset flow.",
+    bullets: [
+      "One focused step instead of a crowded recovery scenario.",
+      "Uses the same visual system as the auth screen.",
+      "Ready for backend integration when reset link delivery is connected.",
+    ],
+    actions: {
+      backToAuth: "Back to sign in",
+    },
+    form: {
+      title: "Password recovery",
+      description:
+        "Enter the email linked to your account. Once the backend is connected, this screen will send a password reset link.",
+      emailLabel: "Email",
+      emailPlaceholder: "your@email.com",
+      submit: "Send recovery link",
+      footnote:
+        "Reset email delivery is not connected yet. The interface is already prepared for the next integration step.",
+    },
+    messages: {
+      stub: "The recovery screen is ready. Password reset email delivery will be connected next.",
+    },
+  },
+  workspace: {
+    badge: "Financial workspace",
+    greeting: "Welcome, {name}",
+    description:
+      "This is the operating surface for daily financial control: balances, cash flow, budgets, recent activity and the next areas that need attention.",
+    actions: {
+      addTransaction: "Add transaction",
+      planBudget: "Plan budget",
+      signOut: "Sign out",
+    },
+    loading: {
+      title: "Preparing your workspace",
+      description: "Fetching balances, budgets and account context.",
+    },
+    error: {
+      title: "Workspace data is unavailable",
+      description:
+        "The dashboard could not load the latest financial overview. Try again or sign out and start a new session.",
+      retry: "Retry",
+    },
+    summary: {
+      netWorth: "Net worth",
+      income: "Monthly income",
+      expenses: "Monthly expenses",
+      savingsRate: "Savings rate",
+    },
+    sections: {
+      widgets: "Control center",
+      widgetsDescription: "Top-level finance widgets that tell you where to focus first.",
+      budgets: "Budget tracking",
+      budgetsDescription: "Monitor category pressure and available room before the cycle closes.",
+      transactions: "Recent activity",
+      transactionsDescription: "Latest movements across accounts, subscriptions and planned outflows.",
+      accounts: "Account structure",
+      accountsDescription: "Core balance buckets for cash, reserve and long-term allocation.",
+      priorities: "Priority signals",
+      prioritiesDescription: "The most important operational items to review next.",
+      nextSteps: "Next steps",
+    },
+    labels: {
+      utilization: "Utilization",
+    },
+    remaining: "Remaining {value}",
+    table: {
+      title: "Title",
+      account: "Account",
+      category: "Category",
+      date: "Date",
+      amount: "Amount",
+    },
+    priorityCards: {
+      obligationsTitle: "Upcoming obligations",
+      obligationsBody: "Scheduled outflow currently stands at {value}. Review the next planned payments before they settle.",
+      focusTitle: "Attention queue",
+      focusBody: "{count} pending or scheduled items are waiting for review in the current cycle.",
+    },
+    nextSteps: [
+      {
+        title: "Add manual expense capture",
+        description: "The next product layer should let the user record daily spend directly from this surface.",
+      },
+      {
+        title: "Connect recurring planning",
+        description: "Budget automation, subscription checkpoints and category rules should be attached to these widgets.",
+      },
+      {
+        title: "Expand analytics stack",
+        description: "Cash flow trends, period comparisons and forecast cards belong in the next workspace iteration.",
+      },
+    ],
+    attention: "{count} items need attention",
+    backHome: "Back to home",
   },
   uiCatalog: {
     badges: {
@@ -404,10 +630,20 @@ export const enMessages = {
       description:
         "Upcoming modules, integrations and platform milestones will be tracked here.",
     },
-    login: {
-      title: "Account login",
+    auth: {
+      title: "Authentication",
       description:
-        "Authentication flows, session policy and account access screens will be added here.",
+        "Animated sign-in and registration flows live here with product-grade transitions and legal entry points.",
+    },
+    terms: {
+      title: "Terms of Service",
+      description:
+        "The legal terms, consent language and usage conditions for account creation will be published here.",
+    },
+    forgotPassword: {
+      title: "Password recovery",
+      description:
+        "A dedicated recovery screen will live here and connect to the future password reset flow.",
     },
   },
 };

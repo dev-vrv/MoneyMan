@@ -172,11 +172,11 @@ export function SiteHeader({ locale, messages }: SiteHeaderProps) {
           </DropdownMenu>
 
           <Link
-            href={getLocalizedPath(locale, "/login")}
+            href={getLocalizedPath(locale, "/auth")}
             className="inline-flex h-11 items-center gap-2 rounded-full border border-emerald-300/20 bg-linear-to-r from-emerald-300 via-emerald-400 to-lime-300 px-5 text-sm font-semibold whitespace-nowrap text-slate-950 shadow-[0_12px_32px_rgba(74,222,128,0.16)] transition hover:brightness-105"
           >
             <RiLoginCircleLine className="size-4" />
-            {messages.actions.login}
+            {messages.actions.auth}
           </Link>
         </div>
       </div>
