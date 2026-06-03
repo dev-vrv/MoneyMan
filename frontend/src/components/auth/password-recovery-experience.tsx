@@ -59,7 +59,7 @@ export function PasswordRecoveryExperience({
                 text={content.form.title}
                 as="h1"
                 size="xl"
-                className="font-semibold tracking-tight text-white"
+                className="font-semibold leading-[1.08] tracking-tight text-white"
                 delay={0.08}
                 duration={0.44}
                 stagger={0.024}
@@ -84,8 +84,12 @@ export function PasswordRecoveryExperience({
                   FM
                 </span>
                 <span>
-                  <span className="block text-sm font-semibold text-white">Fin Man</span>
-                  <span className="block text-xs text-zinc-400">Finance workspace</span>
+                  <span className="block text-sm font-semibold text-white">
+                    {content.title}
+                  </span>
+                  <span className="block text-xs text-zinc-400">
+                    {content.form.title}
+                  </span>
                 </span>
               </Link>
             </div>

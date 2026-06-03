@@ -67,6 +67,7 @@ export function AuthExperience({ locale, content }: AuthExperienceProps) {
 
   const isSignIn = mode === "sign-in";
   const activeTheme = isSignIn ? content.showcase.signIn : content.showcase.signUp;
+  const activeBadge = isSignIn ? content.badge : content.tabs.signUp;
 
   useEffect(() => {
     if (status === "authenticated") {
@@ -148,14 +149,14 @@ export function AuthExperience({ locale, content }: AuthExperienceProps) {
 
               <div className="space-y-3">
                 <p className="text-xs uppercase tracking-[0.35em] text-emerald-200/70">
-                  {content.badge}
+                  {activeBadge}
                 </p>
                 <AnimatedText
                   key={activeTheme.title}
                   text={activeTheme.title}
                   as="h1"
                   size="xl"
-                  className="font-semibold tracking-tight text-white"
+                  className="text-2xl font-semibold leading-[1.28] tracking-tight text-white sm:text-3xl"
                   delay={0.08}
                   duration={0.44}
                   stagger={0.024}
@@ -186,12 +187,12 @@ export function AuthExperience({ locale, content }: AuthExperienceProps) {
                   <span className="inline-flex size-11 items-center justify-center rounded-full bg-linear-to-br from-emerald-200 via-emerald-300 to-lime-200 text-sm font-semibold text-slate-950">
                     FM
                   </span>
-                  <span>
+                    <span>
                     <span className="block text-sm font-semibold text-white">
-                      {content.logo.title}
+                      {activeBadge}
                     </span>
                     <span className="block text-xs text-zinc-400">
-                      {content.logo.subtitle}
+                      {isSignIn ? content.signIn.title : content.signUp.title}
                     </span>
                   </span>
                 </Link>
