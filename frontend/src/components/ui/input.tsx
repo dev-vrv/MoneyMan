@@ -4,7 +4,6 @@ import * as React from "react"
 import { Input as InputPrimitive } from "@base-ui/react/input"
 import { RiEyeLine, RiEyeOffLine } from "react-icons/ri"
 
-import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 const inputClasses =
@@ -29,7 +28,7 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
     }
 
     return (
-      <div className="relative">
+      <div className="relative w-full">
         <InputPrimitive
           ref={ref}
           type={isVisible ? "text" : "password"}
@@ -38,18 +37,17 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
           className={cn(inputClasses, "pr-11", className)}
           {...props}
         />
-        <Button
+        <button
           type="button"
-          variant="ghost"
-          size="icon-sm"
           disabled={disabled}
           aria-label={isVisible ? "Hide password" : "Show password"}
           aria-pressed={isVisible}
-          className="absolute right-1.5 top-1/2 z-10 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+          className="absolute right-1.5 top-1/2 z-10 inline-flex size-7 -translate-y-1/2 items-center justify-center rounded-[min(var(--radius-md),12px)] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50"
+          onMouseDown={(event) => event.preventDefault()}
           onClick={() => setIsVisible((current) => !current)}
         >
           {isVisible ? <RiEyeOffLine className="size-4" /> : <RiEyeLine className="size-4" />}
-        </Button>
+        </button>
       </div>
     )
   }

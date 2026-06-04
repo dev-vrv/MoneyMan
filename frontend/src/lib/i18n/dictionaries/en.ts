@@ -30,6 +30,7 @@ export const enMessages = {
     },
     actions: {
       auth: "Auth",
+      workspace: "Workspace",
     },
   },
   home: {
@@ -135,6 +136,7 @@ export const enMessages = {
     ],
     placeholders: {
       email: "your@email.com",
+      phone: "+7 700 000 00 00",
       password: "Enter password",
       confirmPassword: "Repeat password",
     },
@@ -158,6 +160,7 @@ export const enMessages = {
         "Start with the standard registration data and confirm agreement with the product terms before activation.",
       fields: {
         email: "Email",
+        phone: "Phone",
         password: "Password",
         confirmPassword: "Repeat password",
       },

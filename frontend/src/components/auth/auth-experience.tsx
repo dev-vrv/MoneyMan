@@ -10,6 +10,7 @@ import {
   RiGoogleFill,
   RiLock2Line,
   RiMailLine,
+  RiPhoneLine,
   RiTelegram2Fill,
   RiUser3Line,
 } from "react-icons/ri";
@@ -60,6 +61,7 @@ export function AuthExperience({ locale, content }: AuthExperienceProps) {
   const [signUpForm, setSignUpForm] = useState({
     email: "",
     password: "",
+    phone: "",
     passwordConfirmation: "",
   });
   const { signIn, signUp, status } = useAuth();
@@ -106,6 +108,7 @@ export function AuthExperience({ locale, content }: AuthExperienceProps) {
     try {
       await signUp({
         email: signUpForm.email,
+        phone: signUpForm.phone,
         password: signUpForm.password,
         password_confirmation: signUpForm.passwordConfirmation,
       });
@@ -375,6 +378,28 @@ export function AuthExperience({ locale, content }: AuthExperienceProps) {
                           }))
                         }
                         placeholder={content.placeholders.email}
+                        className={`${formClasses} pl-11`}
+                      />
+                    </div>
+                  </Field>
+
+                  <Field>
+                    <FieldLabel className="text-sm font-medium text-zinc-200">
+                      {content.signUp.fields.phone}
+                    </FieldLabel>
+                    <div className="relative">
+                      <RiPhoneLine className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-zinc-500" />
+                      <Input
+                        type="tel"
+                        required
+                        value={signUpForm.phone}
+                        onChange={(event) =>
+                          setSignUpForm((current) => ({
+                            ...current,
+                            phone: event.target.value,
+                          }))
+                        }
+                        placeholder={content.placeholders.phone}
                         className={`${formClasses} pl-11`}
                       />
                     </div>

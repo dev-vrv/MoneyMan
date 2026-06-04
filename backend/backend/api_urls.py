@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from rest_framework_simplejwt.views import TokenRefreshView
 
@@ -21,6 +21,7 @@ urlpatterns = [
     path("auth/me/", CurrentUserView.as_view(), name="auth-me"),
     path("auth/jwt/refresh/", TokenRefreshView.as_view(), name="token-refresh"),
     path("workspace/overview/", WorkspaceOverviewView.as_view(), name="workspace-overview"),
+    path("finance/", include("app.urls")),
     path("schema/", SpectacularAPIView.as_view(), name="schema"),
     path("docs/", SpectacularSwaggerView.as_view(url_name="api:schema"), name="docs"),
 ]

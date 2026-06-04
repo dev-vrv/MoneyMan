@@ -32,6 +32,7 @@ export const ruMessages: typeof enMessages = {
     },
     actions: {
       auth: "Auth",
+      workspace: "Workspace",
     },
   },
   home: {
@@ -137,6 +138,7 @@ export const ruMessages: typeof enMessages = {
     ],
     placeholders: {
       email: "your@email.com",
+      phone: "+7 700 000 00 00",
       password: "Введите пароль",
       confirmPassword: "Повторите пароль",
     },
@@ -160,6 +162,7 @@ export const ruMessages: typeof enMessages = {
         "Заполните стандартные регистрационные поля и подтвердите согласие с условиями сервиса перед активацией.",
       fields: {
         email: "Email",
+        phone: "Телефон",
         password: "Пароль",
         confirmPassword: "Повторите пароль",
       },

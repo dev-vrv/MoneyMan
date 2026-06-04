@@ -1,4 +1,6 @@
 from django.contrib.auth import authenticate, get_user_model, password_validation
+from django.core.exceptions import ObjectDoesNotExist
+from django.db import DatabaseError
 from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
 
@@ -8,7 +10,7 @@ User = get_user_model()
 
 
 class UserSerializer(serializers.ModelSerializer):
-    phone = serializers.CharField(source="profile.phone", read_only=True)
+    phone = serializers.SerializerMethodField()
     display_name = serializers.SerializerMethodField()
 
     class Meta:
@@ -17,6 +19,15 @@ class UserSerializer(serializers.ModelSerializer):
 
     def get_display_name(self, obj):
         return obj.get_full_name() or obj.first_name or obj.email
+
+    def get_phone(self, obj):
+        if obj.phone:
+            return obj.phone
+
+        try:
+            return obj.profile.phone
+        except (ObjectDoesNotExist, DatabaseError):
+            return ""
 
 
 class AuthResponseSerializer(serializers.Serializer):
@@ -27,6 +38,7 @@ class AuthResponseSerializer(serializers.Serializer):
 
 class RegisterSerializer(serializers.Serializer):
     email = serializers.EmailField()
+    phone = serializers.CharField(max_length=32, required=False, allow_blank=True)
     password = serializers.CharField(write_only=True, min_length=8, trim_whitespace=False)
     password_confirmation = serializers.CharField(
         write_only=True,
@@ -40,6 +52,9 @@ class RegisterSerializer(serializers.Serializer):
             raise serializers.ValidationError("A user with this email already exists.")
         return normalized_email
 
+    def validate_phone(self, value):
+        return value.strip()
+
     def validate(self, attrs):
         if attrs["password"] != attrs["password_confirmation"]:
             raise serializers.ValidationError(
@@ -51,6 +66,7 @@ class RegisterSerializer(serializers.Serializer):
     def create(self, validated_data):
         return create_user_with_workspace(
             email=validated_data["email"],
+            phone=validated_data.get("phone", ""),
             password=validated_data["password"],
         )
 
@@ -64,7 +80,7 @@ class LoginSerializer(serializers.Serializer):
         password = attrs["password"]
         user = authenticate(
             request=self.context.get("request"),
-            username=email,
+            email=email,
             password=password,
         )
         if not user:

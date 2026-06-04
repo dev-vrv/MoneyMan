@@ -1,4 +1,6 @@
 from django.contrib.auth import get_user_model
+from django.db import transaction
+from django.utils.decorators import method_decorator
 from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -11,7 +13,7 @@ from .serializers import (
     RegisterSerializer,
     UserSerializer,
 )
-from .services import build_workspace_overview
+from .services import build_workspace_overview, ensure_user_bootstrap
 
 User = get_user_model()
 
@@ -24,6 +26,7 @@ class HealthCheckView(APIView):
         return Response({"status": "ok"})
 
 
+@method_decorator(transaction.non_atomic_requests, name="dispatch")
 class RegisterView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = []
@@ -44,6 +47,7 @@ class RegisterView(APIView):
         )
 
 
+@method_decorator(transaction.non_atomic_requests, name="dispatch")
 class LoginView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = []
@@ -52,6 +56,7 @@ class LoginView(APIView):
         serializer = LoginSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data["user"]
+        ensure_user_bootstrap(user)
         refresh = RefreshToken.for_user(user)
 
         return Response(
@@ -73,9 +78,11 @@ class LogoutView(APIView):
 
 class CurrentUserView(APIView):
     def get(self, request, *args, **kwargs):
+        ensure_user_bootstrap(request.user)
         return Response(UserSerializer(request.user).data)
 
 
 class WorkspaceOverviewView(APIView):
     def get(self, request, *args, **kwargs):
+        ensure_user_bootstrap(request.user)
         return Response(build_workspace_overview(request.user))

@@ -8,6 +8,8 @@ ROOT_DIR = BASE_DIR.parent
 
 env = environ.Env()
 environ.Env.read_env(ROOT_DIR / ".env")
+LOGS_DIR = Path(env.str("DJANGO_LOG_DIR", default=str(ROOT_DIR / "logs")))
+LOGS_DIR.mkdir(parents=True, exist_ok=True)
 
 SECRET_KEY = env("DJANGO_SECRET_KEY", default="django-insecure-change-me")
 DEBUG = env.bool("DJANGO_DEBUG", default=False)
@@ -34,7 +36,9 @@ INSTALLED_APPS = [
     "rest_framework",
     "rest_framework_simplejwt.token_blacklist",
     "drf_spectacular",
+    "users",
     "backend.common",
+    "app",
 ]
 
 MIDDLEWARE = [
@@ -148,4 +152,56 @@ CSRF_COOKIE_SECURE = not DEBUG
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = "DENY"
 
+AUTH_USER_MODEL = "users.User"
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "%(asctime)s [%(levelname)s] %(name)s %(message)s",
+        },
+    },
+    "handlers": {
+        "django_file": {
+            "level": "INFO",
+            "class": "logging.FileHandler",
+            "filename": str(LOGS_DIR / "django.log"),
+            "formatter": "verbose",
+        },
+        "django_error_file": {
+            "level": "ERROR",
+            "class": "logging.FileHandler",
+            "filename": str(LOGS_DIR / "django.error.log"),
+            "formatter": "verbose",
+        },
+    },
+    "root": {
+        "handlers": ["django_file", "django_error_file"],
+        "level": "INFO",
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["django_file", "django_error_file"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "django.request": {
+            "handlers": ["django_error_file"],
+            "level": "ERROR",
+            "propagate": False,
+        },
+        "django.server": {
+            "handlers": ["django_file", "django_error_file"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "backend": {
+            "handlers": ["django_file", "django_error_file"],
+            "level": "INFO",
+            "propagate": False,
+        },
+    },
+}

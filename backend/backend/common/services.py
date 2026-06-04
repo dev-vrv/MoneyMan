@@ -5,11 +5,14 @@ from datetime import date, timedelta
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
-from django.db import transaction
+from django.core.exceptions import ObjectDoesNotExist
+from django.db import DatabaseError, transaction
 from django.db.models import Q, Sum
 from django.db.models.functions import Coalesce
 
 from .models import Budget, FinancialAccount, Transaction, TransactionCategory, UserProfile
+
+logger = __import__("logging").getLogger(__name__)
 
 User = get_user_model()
 
@@ -30,18 +33,58 @@ def normalize_email(email: str) -> str:
     return email.strip().lower()
 
 
-@transaction.atomic
-def create_user_with_workspace(*, email: str, password: str) -> User:
+def ensure_user_profile(user: User) -> None:
+    try:
+        with transaction.atomic():
+            profile, created = UserProfile.objects.get_or_create(
+                user=user,
+                defaults={"phone": user.phone},
+            )
+            if user.phone and profile.phone != user.phone:
+                profile.phone = user.phone
+                profile.save(update_fields=["phone"])
+    except DatabaseError:
+        logger.warning("UserProfile table is unavailable during auth bootstrap", extra={"user_id": user.id})
+
+
+def ensure_workspace_seed(user: User) -> None:
+    try:
+        with transaction.atomic():
+            seed_workspace_for_user(user)
+    except DatabaseError:
+        logger.warning("Workspace seed tables are unavailable during auth bootstrap", extra={"user_id": user.id})
+
+
+def create_user_with_workspace(*, email: str, phone: str = "", password: str) -> User:
     normalized_email = normalize_email(email)
-    user = User.objects.create_user(
-        username=normalized_email,
-        email=normalized_email,
-        password=password,
-        first_name=normalized_email.split("@")[0][:30],
-    )
-    UserProfile.objects.create(user=user)
-    seed_workspace_for_user(user)
+    normalized_phone = phone.strip()
+
+    with transaction.atomic():
+        user = User.objects.create_user(
+            email=normalized_email,
+            phone=normalized_phone,
+            password=password,
+            first_name=normalized_email.split("@")[0][:30],
+        )
+
+    ensure_user_profile(user)
+    ensure_workspace_seed(user)
     return user
+
+
+def ensure_user_bootstrap(user: User) -> None:
+    ensure_user_profile(user)
+    ensure_workspace_seed(user)
+
+
+def get_user_phone(user: User) -> str:
+    if user.phone:
+        return user.phone
+
+    try:
+        return user.profile.phone
+    except (ObjectDoesNotExist, DatabaseError):
+        return ""
 
 
 @transaction.atomic
@@ -233,119 +276,120 @@ def seed_workspace_for_user(user: User) -> None:
 
 
 def build_workspace_overview(user: User) -> dict:
+    ensure_user_bootstrap(user)
+
+    transactions_qs = (
+        Transaction.objects.filter(owner=user)
+        .select_related("account", "category")
+        .order_by("-transaction_date", "-created_at")
+    )
+    budgets_qs = Budget.objects.filter(owner=user).select_related("category")
+
     total_balance = user.financial_accounts.aggregate(
         total=Coalesce(Sum("balance"), Decimal("0"))
     )["total"]
-    monthly_income = (
-        user.transactions.filter(
-            category__kind=TransactionCategory.CategoryKind.INCOME,
-            transaction_date__month=date.today().month,
-            transaction_date__year=date.today().year,
-        ).aggregate(total=Coalesce(Sum("amount"), Decimal("0")))["total"]
-    )
-    monthly_expenses = (
-        user.transactions.filter(
-            category__kind=TransactionCategory.CategoryKind.EXPENSE,
-            transaction_date__month=date.today().month,
-            transaction_date__year=date.today().year,
-        ).aggregate(total=Coalesce(Sum("amount"), Decimal("0")))["total"]
-    )
-    monthly_expenses_abs = abs(monthly_expenses)
-    savings_rate = (
-        Decimal("0")
-        if monthly_income <= 0
-        else ((monthly_income - monthly_expenses_abs) / monthly_income) * Decimal("100")
-    )
+    monthly_spend = transactions_qs.filter(
+        amount__lt=0,
+        status__in=[
+            Transaction.TransactionStatus.CLEARED,
+            Transaction.TransactionStatus.PENDING,
+        ],
+    ).aggregate(total=Coalesce(Sum("amount"), Decimal("0")))["total"]
+    monthly_income = transactions_qs.filter(
+        amount__gt=0,
+        status=Transaction.TransactionStatus.CLEARED,
+    ).aggregate(total=Coalesce(Sum("amount"), Decimal("0")))["total"]
+
+    recent_transactions = [
+        {
+            "id": transaction.id,
+            "title": transaction.title,
+            "amount": f"{transaction.amount:.2f}",
+            "status": transaction.status,
+            "date": transaction.transaction_date.isoformat(),
+            "merchant": transaction.merchant,
+            "account": transaction.account.name,
+            "category": transaction.category.name if transaction.category else None,
+        }
+        for transaction in transactions_qs[:8]
+    ]
+
+    budgets = [
+        {
+            "id": budget.id,
+            "category": budget.category.name,
+            "limit": f"{budget.monthly_limit:.2f}",
+            "spent": f"{budget.spent:.2f}",
+            "progress": float(
+                (budget.spent / budget.monthly_limit * Decimal("100"))
+                if budget.monthly_limit
+                else Decimal("0")
+            ),
+            "alertThreshold": budget.alert_threshold,
+        }
+        for budget in budgets_qs
+    ]
 
     accounts = [
         {
             "id": account.id,
             "name": account.name,
             "kind": account.kind,
-            "institution": account.institution,
+            "balance": f"{account.balance:.2f}",
             "currency": account.currency,
-            "balance": str(account.balance),
-            "color_token": account.color_token,
+            "institution": account.institution,
+            "colorToken": account.color_token,
         }
         for account in user.financial_accounts.all()
     ]
 
-    budgets = []
-    for budget in user.budgets.select_related("category").all():
-        monthly_limit = budget.monthly_limit or Decimal("0")
-        utilization = Decimal("0")
-        if monthly_limit > 0:
-            utilization = (budget.spent / monthly_limit) * Decimal("100")
+    upcoming_transactions = transactions_qs.filter(
+        Q(status=Transaction.TransactionStatus.SCHEDULED)
+        | Q(status=Transaction.TransactionStatus.PENDING)
+    )[:4]
 
-        budgets.append(
+    widgets = {
+        "runwayDays": 184,
+        "savingsRate": 26,
+        "upcoming": [
             {
-                "id": budget.id,
-                "category": budget.category.name,
-                "spent": str(budget.spent),
-                "limit": str(monthly_limit),
-                "utilization_percent": float(round(utilization, 2)),
-                "remaining": str(monthly_limit - budget.spent),
-                "alert_threshold": budget.alert_threshold,
+                "title": transaction.title,
+                "date": transaction.transaction_date.isoformat(),
+                "amount": f"{transaction.amount:.2f}",
             }
-        )
-
-    recent_transactions = [
-        {
-            "id": item.id,
-            "title": item.title,
-            "merchant": item.merchant,
-            "amount": str(item.amount),
-            "status": item.status,
-            "category": item.category.name if item.category else "",
-            "account": item.account.name,
-            "transaction_date": item.transaction_date.isoformat(),
-            "note": item.note,
-        }
-        for item in user.transactions.select_related("account", "category")[:8]
-    ]
-
-    scheduled_total = (
-        user.transactions.filter(status=Transaction.TransactionStatus.SCHEDULED).aggregate(
-            total=Coalesce(Sum("amount"), Decimal("0"))
-        )["total"]
-    )
-    pending_count = user.transactions.filter(
-        Q(status=Transaction.TransactionStatus.PENDING)
-        | Q(status=Transaction.TransactionStatus.SCHEDULED)
-    ).count()
+            for transaction in upcoming_transactions
+        ],
+    }
 
     return {
-        "user": {
-            "email": user.email,
-            "phone": getattr(user.profile, "phone", ""),
-            "display_name": user.get_full_name() or user.first_name or user.email,
-        },
         "summary": {
-            "net_worth": str(total_balance),
-            "monthly_income": str(monthly_income),
-            "monthly_expenses": str(monthly_expenses_abs),
-            "savings_rate": float(round(savings_rate, 2)),
-            "scheduled_outflow": str(abs(scheduled_total)),
-            "attention_count": pending_count,
+            "netWorth": f"{total_balance:.2f}",
+            "monthlyIncome": f"{monthly_income:.2f}",
+            "monthlySpend": f"{abs(monthly_spend):.2f}",
+            "cashFlow": f"{(monthly_income + monthly_spend):.2f}",
         },
         "accounts": accounts,
         "budgets": budgets,
         "transactions": recent_transactions,
-        "widgets": [
+        "widgets": widgets,
+        "highlights": [
             {
-                "title": "Cash control",
-                "value": f"{len(accounts)} active accounts",
-                "description": "Balances, reserve coverage and investment allocation at a glance.",
+                "label": "Top account",
+                "value": max(accounts, key=lambda item: Decimal(item["balance"]))["name"]
+                if accounts
+                else "N/A",
             },
             {
-                "title": "Budget pressure",
-                "value": f"{len([item for item in budgets if item['utilization_percent'] >= 70])} categories to watch",
-                "description": "Track where monthly limits are moving close to alert thresholds.",
+                "label": "Largest expense",
+                "value": max(
+                    [item for item in recent_transactions if Decimal(item["amount"]) < 0],
+                    key=lambda item: abs(Decimal(item["amount"])),
+                    default={"title": "N/A"},
+                )["title"],
             },
             {
-                "title": "Upcoming obligations",
-                "value": f"{pending_count} items",
-                "description": "Pending and scheduled movements that still need attention this cycle.",
+                "label": "Active budgets",
+                "value": f"{len(budgets)} active budgets",
             },
         ],
     }

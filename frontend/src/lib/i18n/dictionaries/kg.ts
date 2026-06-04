@@ -32,6 +32,7 @@ export const kgMessages: typeof enMessages = {
     },
     actions: {
       auth: "Auth",
+      workspace: "Workspace",
     },
   },
   home: {
@@ -137,6 +138,7 @@ export const kgMessages: typeof enMessages = {
     ],
     placeholders: {
       email: "your@email.com",
+      phone: "+996 700 000 000",
       password: "Пароль киргизиңиз",
       confirmPassword: "Паролду кайталаңыз",
     },
@@ -160,6 +162,7 @@ export const kgMessages: typeof enMessages = {
         "Стандарттуу катталуу талааларын толтуруп, активдештирүүдөн мурун сервистин шарттарына макул болуңуз.",
       fields: {
         email: "Email",
+        phone: "Телефон",
         password: "Пароль",
         confirmPassword: "Паролду кайталоо",
       },
