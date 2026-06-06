@@ -31,3 +31,12 @@ export async function fetchCurrentUser() {
   const { data } = await apiClient.get<AuthUser>("/auth/me/");
   return data;
 }
+
+export type UpdateCurrentUserPayload = Partial<
+  Pick<AuthUser, "email" | "first_name" | "last_name" | "phone" | "cash_flow_chart_default" | "default_currency">
+>;
+
+export async function updateCurrentUser(payload: UpdateCurrentUserPayload) {
+  const { data } = await apiClient.patch<AuthUser>("/auth/me/", payload);
+  return data;
+}

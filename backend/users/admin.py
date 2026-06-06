@@ -24,9 +24,9 @@ class UserAdmin(DjangoUserAdmin):
     readonly_fields = ("last_login", "date_joined")
     fieldsets = (
         (None, {"fields": ("email", "password")}),
-        ("Personal info", {"fields": ("phone", "username", "first_name", "last_name")}),
+        ("Личные данные", {"fields": ("phone", "username", "first_name", "last_name")}),
         (
-            "Permissions",
+            "Права доступа",
             {
                 "fields": (
                     "is_active",
@@ -37,11 +37,11 @@ class UserAdmin(DjangoUserAdmin):
                 )
             },
         ),
-        ("Important dates", {"fields": ("last_login", "date_joined")}),
+        ("Важные даты", {"fields": ("last_login", "date_joined")}),
     )
     add_fieldsets = (
         (
-            None,
+            "Создание пользователя",
             {
                 "classes": ("wide",),
                 "fields": (

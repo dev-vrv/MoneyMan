@@ -1,17 +1,40 @@
-from django.db.models import Q
+from django.db.models import Prefetch, Q
+from django.utils import timezone
 from rest_framework import status, viewsets
+from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Account, Budget, Currency, ExchangeRate, Transaction
+from .models import (
+    Account,
+    AccountTaxProfile,
+    Budget,
+    CryptoAsset,
+    CryptoAssetNetwork,
+    CryptoHolding,
+    CryptoNetwork,
+    CryptoWallet,
+    Currency,
+    ExchangeRate,
+    Notification,
+    NotificationReceipt,
+    Transaction,
+)
 from .serializers import (
     AccountSerializer,
+    AccountTaxProfileSerializer,
     BudgetSerializer,
     CategorySerializer,
+    CryptoAssetNetworkSerializer,
+    CryptoAssetSerializer,
+    CryptoHoldingSerializer,
+    CryptoNetworkSerializer,
+    CryptoWalletSerializer,
     CurrencySerializer,
     ExchangeRateSerializer,
+    NotificationSerializer,
     TransactionSerializer,
 )
 from .services import build_dashboard_overview, category_queryset_for_user, delete_transaction
@@ -28,16 +51,18 @@ class CurrencyViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated]
     serializer_class = CurrencySerializer
     queryset = Currency.objects.filter(is_active=True).order_by("code")
+    pagination_class = None
 
 
 class ExchangeRateViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated]
     serializer_class = ExchangeRateSerializer
+    pagination_class = None
 
     def get_queryset(self):
         queryset = ExchangeRate.objects.filter(is_active=True).select_related(
             "base_currency", "quote_currency"
-        )
+        ).order_by("base_currency__code", "quote_currency__code")
         base_currency = self.request.query_params.get("base_currency")
         quote_currency = self.request.query_params.get("quote_currency")
         if base_currency:
@@ -47,9 +72,80 @@ class ExchangeRateViewSet(viewsets.ReadOnlyModelViewSet):
         return queryset
 
 
+class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
+    permission_classes = [IsAuthenticated]
+    serializer_class = NotificationSerializer
+    pagination_class = None
+
+    def get_queryset(self):
+        now = timezone.now()
+        user = self.request.user
+        receipt_queryset = NotificationReceipt.objects.filter(user=user)
+        return (
+            Notification.objects.filter(
+                Q(scope=Notification.Scope.BROADCAST)
+                | Q(scope=Notification.Scope.PERSONAL, recipient=user),
+                is_active=True,
+                published_at__lte=now,
+            )
+            .filter(Q(expires_at__isnull=True) | Q(expires_at__gt=now))
+            .prefetch_related(
+                Prefetch(
+                    "receipts",
+                    queryset=receipt_queryset,
+                    to_attr="user_receipts",
+                )
+            )
+            .order_by("-published_at", "-created_at")
+        )
+
+    @action(detail=True, methods=["post"], url_path="mark-read")
+    def mark_read(self, request, pk=None):
+        notification = self.get_object()
+        receipt, _ = NotificationReceipt.objects.get_or_create(
+            notification=notification,
+            user=request.user,
+        )
+        if receipt.read_at is None:
+            receipt.read_at = timezone.now()
+            receipt.save(update_fields=["read_at", "updated_at"])
+        notification.user_receipts = [receipt]
+        return Response(self.get_serializer(notification).data)
+
+    @action(detail=False, methods=["post"], url_path="mark-all-read")
+    def mark_all_read(self, request):
+        now = timezone.now()
+        notification_ids = list(self.get_queryset().values_list("id", flat=True))
+        if not notification_ids:
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+        receipts = {
+            receipt.notification_id: receipt
+            for receipt in NotificationReceipt.objects.filter(
+                user=request.user,
+                notification_id__in=notification_ids,
+            )
+        }
+
+        unread_existing_ids = [receipt.id for receipt in receipts.values() if receipt.read_at is None]
+        if unread_existing_ids:
+            NotificationReceipt.objects.filter(id__in=unread_existing_ids).update(read_at=now)
+
+        missing_receipts = [
+            NotificationReceipt(notification_id=notification_id, user=request.user, read_at=now)
+            for notification_id in notification_ids
+            if notification_id not in receipts
+        ]
+        if missing_receipts:
+            NotificationReceipt.objects.bulk_create(missing_receipts)
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
 class CategoryViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     serializer_class = CategorySerializer
+    pagination_class = None
 
     def get_queryset(self):
         queryset = category_queryset_for_user(self.request.user)
@@ -72,9 +168,14 @@ class CategoryViewSet(viewsets.ModelViewSet):
 class AccountViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     serializer_class = AccountSerializer
+    pagination_class = None
 
     def get_queryset(self):
-        queryset = Account.objects.filter(owner=self.request.user).select_related("currency")
+        queryset = Account.objects.filter(owner=self.request.user).select_related(
+            "currency",
+            "tax_profile",
+            "deposit_profile",
+        )
         status_param = self.request.query_params.get("status")
         kind = self.request.query_params.get("kind")
         if status_param:
@@ -84,9 +185,126 @@ class AccountViewSet(viewsets.ModelViewSet):
         return queryset.order_by("name")
 
 
+class AccountTaxProfileViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAuthenticated]
+    serializer_class = AccountTaxProfileSerializer
+    pagination_class = None
+
+    def get_queryset(self):
+        return AccountTaxProfile.objects.filter(account__owner=self.request.user).select_related(
+            "account",
+            "account__currency",
+        ).order_by("account__name")
+
+
+class CryptoNetworkViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAuthenticated]
+    serializer_class = CryptoNetworkSerializer
+    pagination_class = None
+
+    def get_queryset(self):
+        queryset = CryptoNetwork.objects.filter(
+            Q(is_system=True) | Q(owner=self.request.user)
+        ).order_by("name")
+        scope = self.request.query_params.get("scope")
+        if scope == "custom":
+            queryset = queryset.filter(owner=self.request.user)
+        elif scope == "system":
+            queryset = queryset.filter(is_system=True)
+        return queryset
+
+    def perform_destroy(self, instance):
+        if instance.is_system:
+            raise PermissionDenied("System crypto networks cannot be deleted.")
+        instance.delete()
+
+
+class CryptoAssetViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAuthenticated]
+    serializer_class = CryptoAssetSerializer
+    pagination_class = None
+
+    def get_queryset(self):
+        queryset = CryptoAsset.objects.filter(
+            Q(is_system=True) | Q(owner=self.request.user)
+        ).order_by("symbol")
+        scope = self.request.query_params.get("scope")
+        asset_type = self.request.query_params.get("asset_type")
+        if scope == "custom":
+            queryset = queryset.filter(owner=self.request.user)
+        elif scope == "system":
+            queryset = queryset.filter(is_system=True)
+        if asset_type:
+            queryset = queryset.filter(asset_type=asset_type)
+        return queryset
+
+    def perform_destroy(self, instance):
+        if instance.is_system:
+            raise PermissionDenied("System crypto assets cannot be deleted.")
+        instance.delete()
+
+
+class CryptoAssetNetworkViewSet(viewsets.ReadOnlyModelViewSet):
+    permission_classes = [IsAuthenticated]
+    serializer_class = CryptoAssetNetworkSerializer
+    pagination_class = None
+
+    def get_queryset(self):
+        queryset = CryptoAssetNetwork.objects.select_related("asset", "network").filter(
+            Q(asset__is_system=True) | Q(asset__owner=self.request.user)
+        ).order_by("asset__symbol", "sort_order", "network__name")
+        asset_id = self.request.query_params.get("asset")
+        network_id = self.request.query_params.get("network")
+        if asset_id:
+            queryset = queryset.filter(asset_id=asset_id)
+        if network_id:
+            queryset = queryset.filter(network_id=network_id)
+        return queryset
+
+
+class CryptoWalletViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAuthenticated]
+    serializer_class = CryptoWalletSerializer
+    pagination_class = None
+
+    def get_queryset(self):
+        queryset = CryptoWallet.objects.filter(owner=self.request.user).select_related("network")
+        network_id = self.request.query_params.get("network")
+        wallet_type = self.request.query_params.get("wallet_type")
+        if network_id:
+            queryset = queryset.filter(network_id=network_id)
+        if wallet_type:
+            queryset = queryset.filter(wallet_type=wallet_type)
+        return queryset.order_by("name")
+
+
+class CryptoHoldingViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAuthenticated]
+    serializer_class = CryptoHoldingSerializer
+    pagination_class = None
+
+    def get_queryset(self):
+        queryset = CryptoHolding.objects.filter(wallet__owner=self.request.user).select_related(
+            "wallet",
+            "wallet__network",
+            "asset",
+            "asset_network",
+            "asset_network__network",
+            "price_currency",
+        )
+        wallet_id = self.request.query_params.get("wallet")
+        asset_id = self.request.query_params.get("asset")
+        if wallet_id:
+            queryset = queryset.filter(wallet_id=wallet_id)
+        if asset_id:
+            queryset = queryset.filter(asset_id=asset_id)
+        return queryset.order_by("wallet__name", "asset__symbol")
+
+
 class TransactionViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     serializer_class = TransactionSerializer
+    pagination_class = None
 
     def get_queryset(self):
         queryset = Transaction.objects.filter(owner=self.request.user).select_related(
@@ -124,6 +342,7 @@ class TransactionViewSet(viewsets.ModelViewSet):
 class BudgetViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     serializer_class = BudgetSerializer
+    pagination_class = None
 
     def get_queryset(self):
         queryset = Budget.objects.filter(owner=self.request.user).select_related("category", "currency")

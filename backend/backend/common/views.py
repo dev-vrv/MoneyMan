@@ -7,13 +7,16 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from app.services import build_workspace_overview as build_finance_workspace_overview
+
 from .serializers import (
     LoginSerializer,
     LogoutSerializer,
     RegisterSerializer,
     UserSerializer,
+    UserUpdateSerializer,
 )
-from .services import build_workspace_overview, ensure_user_bootstrap
+from .services import ensure_user_bootstrap
 
 User = get_user_model()
 
@@ -81,8 +84,15 @@ class CurrentUserView(APIView):
         ensure_user_bootstrap(request.user)
         return Response(UserSerializer(request.user).data)
 
+    def patch(self, request, *args, **kwargs):
+        ensure_user_bootstrap(request.user)
+        serializer = UserUpdateSerializer(request.user, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(UserSerializer(request.user).data)
+
 
 class WorkspaceOverviewView(APIView):
     def get(self, request, *args, **kwargs):
         ensure_user_bootstrap(request.user)
-        return Response(build_workspace_overview(request.user))
+        return Response(build_finance_workspace_overview(user=request.user))

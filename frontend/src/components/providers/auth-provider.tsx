@@ -16,8 +16,10 @@ import {
   login as loginRequest,
   logout as logoutRequest,
   register as registerRequest,
+  updateCurrentUser as updateCurrentUserRequest,
   type LoginPayload,
   type RegisterPayload,
+  type UpdateCurrentUserPayload,
 } from "@/lib/api/auth";
 import {
   clearSession,
@@ -37,6 +39,7 @@ type AuthContextValue = {
   signUp: (payload: RegisterPayload) => Promise<AuthUser>;
   signOut: () => Promise<void>;
   refreshUser: () => Promise<AuthUser | null>;
+  updateUser: (payload: UpdateCurrentUserPayload) => Promise<AuthUser>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -150,6 +153,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(null);
           setStatus("unauthenticated");
           return null;
+        }
+      },
+      async updateUser(payload) {
+        try {
+          const nextUser = await updateCurrentUserRequest(payload);
+          const current = getStoredSession();
+          if (current) {
+            persistSession({ ...current, user: nextUser });
+          }
+          setUser(nextUser);
+          setStatus("authenticated");
+          return nextUser;
+        } catch (error) {
+          throw new Error(extractErrorMessage(error));
         }
       },
     }),

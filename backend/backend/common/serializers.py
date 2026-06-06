@@ -12,10 +12,21 @@ User = get_user_model()
 class UserSerializer(serializers.ModelSerializer):
     phone = serializers.SerializerMethodField()
     display_name = serializers.SerializerMethodField()
+    cash_flow_chart_default = serializers.SerializerMethodField()
+    default_currency = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ("id", "email", "first_name", "last_name", "phone", "display_name")
+        fields = (
+            "id",
+            "email",
+            "first_name",
+            "last_name",
+            "phone",
+            "display_name",
+            "cash_flow_chart_default",
+            "default_currency",
+        )
 
     def get_display_name(self, obj):
         return obj.get_full_name() or obj.first_name or obj.email
@@ -28,6 +39,83 @@ class UserSerializer(serializers.ModelSerializer):
             return obj.profile.phone
         except (ObjectDoesNotExist, DatabaseError):
             return ""
+
+    def get_cash_flow_chart_default(self, obj):
+        try:
+            return obj.profile.cash_flow_chart_default
+        except (ObjectDoesNotExist, DatabaseError):
+            return "bars"
+
+    def get_default_currency(self, obj):
+        try:
+            return obj.profile.default_currency
+        except (ObjectDoesNotExist, DatabaseError):
+            return "USD"
+
+
+class UserUpdateSerializer(serializers.ModelSerializer):
+    phone = serializers.CharField(max_length=32, required=False, allow_blank=True)
+    cash_flow_chart_default = serializers.ChoiceField(
+        choices=("bars", "line", "tradingview", "candles", "structure"),
+        required=False,
+    )
+    default_currency = serializers.CharField(
+        max_length=8,
+        required=False,
+    )
+
+    class Meta:
+        model = User
+        fields = ("email", "first_name", "last_name", "phone", "cash_flow_chart_default", "default_currency")
+
+    def validate_email(self, value):
+        normalized_email = normalize_email(value)
+        queryset = User.objects.filter(email=normalized_email).exclude(pk=self.instance.pk)
+        if queryset.exists():
+            raise serializers.ValidationError("A user with this email already exists.")
+        return normalized_email
+
+    def validate_phone(self, value):
+        return value.strip()
+
+    def validate_default_currency(self, value):
+        return value.strip().upper()
+
+    def update(self, instance, validated_data):
+        phone = validated_data.pop("phone", instance.phone)
+        cash_flow_chart_default = validated_data.pop("cash_flow_chart_default", None)
+        default_currency = validated_data.pop("default_currency", None)
+
+        for field, value in validated_data.items():
+            setattr(instance, field, value)
+
+        instance.phone = phone
+        instance.username = instance.email
+        instance.save(update_fields=["email", "first_name", "last_name", "phone", "username"])
+
+        try:
+            profile = instance.profile
+        except (ObjectDoesNotExist, DatabaseError):
+            profile = None
+
+        if profile:
+            update_fields = []
+            if profile.phone != instance.phone:
+                profile.phone = instance.phone
+                update_fields.append("phone")
+            if (
+                cash_flow_chart_default is not None
+                and profile.cash_flow_chart_default != cash_flow_chart_default
+            ):
+                profile.cash_flow_chart_default = cash_flow_chart_default
+                update_fields.append("cash_flow_chart_default")
+            if default_currency is not None and profile.default_currency != default_currency:
+                profile.default_currency = default_currency
+                update_fields.append("default_currency")
+            if update_fields:
+                profile.save(update_fields=update_fields)
+
+        return instance
 
 
 class AuthResponseSerializer(serializers.Serializer):

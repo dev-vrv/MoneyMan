@@ -7,7 +7,7 @@ export const kgMessages: typeof enMessages = {
   },
   loading: {
     brand: "Fin Man",
-    title: "Каржылык workspace даярдалып жатат",
+    title: "Каржы мейкиндиги даярдалып жатат",
     description:
       "Бир коопсуз агымда баланстарды, аналитиканы жана туташкан модулдарды даярдап жатабыз.",
   },
@@ -31,8 +31,8 @@ export const kgMessages: typeof enMessages = {
       kg: "Кыргызча",
     },
     actions: {
-      auth: "Auth",
-      workspace: "Workspace",
+      auth: "Кирүү",
+      workspace: "Кабинет",
     },
   },
   home: {
@@ -88,7 +88,7 @@ export const kgMessages: typeof enMessages = {
       {
         label: "Старт ылдамдыгы",
         value: "< 90 сек",
-        caption: "Катталуудан даяр workspaceке чейин бир агымда.",
+        caption: "Катталуудан даяр кабинетке чейин бир агымда.",
       },
       {
         label: "Сигнал катмары",
@@ -145,7 +145,7 @@ export const kgMessages: typeof enMessages = {
     signIn: {
       title: "Кайра кош келиңиз",
       description:
-        "Workspaceке кирип, активдүү сессияны улантып, акыркы корголгон чекиттен ишти улантыңыз.",
+        "Кабинетке кирип, активдүү сессияны улантып, акыркы корголгон чекиттен ишти улантыңыз.",
       fields: {
         email: "Email",
         password: "Пароль",
@@ -221,7 +221,7 @@ export const kgMessages: typeof enMessages = {
     },
   },
   workspace: {
-    badge: "Каржы workspace",
+    badge: "Каржы мейкиндиги",
     greeting: "Кош келиңиз, {name}",
     description:
       "Бул күнүмдүк финансылык көзөмөл үчүн негизги иш мейкиндиги: баланс, cash flow, бюджеттер, акыркы кыймылдар жана көңүл буруучу зоналар.",
@@ -235,7 +235,7 @@ export const kgMessages: typeof enMessages = {
       description: "Баланстар, бюджеттер жана аккаунт контексти жүктөлүүдө.",
     },
     error: {
-      title: "Workspace маалыматтары жеткиликсиз",
+      title: "Иш мейкиндигинин маалыматтары жеткиликсиз",
       description:
         "Актуалдуу каржылык обзор жүктөлгөн жок. Кайра аракет кылыңыз же сессияны жаап кайра кириңиз.",
       retry: "Кайра аракет",
@@ -247,17 +247,17 @@ export const kgMessages: typeof enMessages = {
       savingsRate: "Үнөм деңгээли",
     },
     sections: {
-      widgets: "Control center",
+      widgets: "Көзөмөл борбору",
       widgetsDescription: "Эң биринчи кайсы жакты көрүү керектигин көрсөткөн негизги виджеттер.",
       budgets: "Бюджет көзөмөлү",
       budgetsDescription: "Категориялар боюнча басымды жана цикл жабылганга чейинки запасты көзөмөлдөңүз.",
       transactions: "Акыркы активдүүлүк",
       transactionsDescription: "Эсептер, жазылуулар жана пландалган төлөмдөр боюнча акыркы кыймылдар.",
       accounts: "Эсеп түзүмү",
-      accountsDescription: "Күнүмдүк акча, резерв жана узак мөөнөттүү бөлүштүрүү үчүн негизги balance buckets.",
+      accountsDescription: "Күнүмдүк акча, резерв жана узак мөөнөттүү бөлүштүрүү үчүн негизги эсеп блоктору.",
       priorities: "Приоритет сигналдары",
       prioritiesDescription: "Кийинки карап чыгууга тийиш болгон эң маанилүү операциялык чекиттер.",
-      nextSteps: "Кийинки кадамдар",
+      nextSteps: "Иш сценарийлери",
     },
     labels: {
       utilization: "Колдонуу",
@@ -276,20 +276,6 @@ export const kgMessages: typeof enMessages = {
       focusTitle: "Көңүл буруу кезеги",
       focusBody: "Учурдагы циклде {count} pending же scheduled операциясы кароону күтүп турат.",
     },
-    nextSteps: [
-      {
-        title: "Кол менен чыгаша киргизүүнү кошуу",
-        description: "Кийинки этапта колдонуучу күнүмдүк чыгашаны түз ушул беттен кошо алышы керек.",
-      },
-      {
-        title: "Recurring planning туташтыруу",
-        description: "Бул виджеттерге бюджет автоматизациясын, жазылууларды жана category rules логикаларын байлоо керек.",
-      },
-      {
-        title: "Аналитика катмарын кеңейтүү",
-        description: "Кийинки итерацияда бул жерге cash flow trends, мезгил салыштыруусу жана forecast cards кошулат.",
-      },
-    ],
     attention: "{count} элемент көңүл бурууну талап кылат",
     backHome: "Башкы бетке",
   },
@@ -518,19 +504,19 @@ export const kgMessages: typeof enMessages = {
           "Dashboard, аналитика жана каптал workflow'лор үчүн жалпы беттер.",
         items: [
           {
-            title: "Dashboard shell",
+            title: "Дашборд каркасы",
             description:
-              "Header, KPIs, widgets жана contextual quick actions.",
+              "Хедер, KPI, виджеттер жана контексттик тез аракеттер.",
           },
           {
-            title: "Filter rail",
+            title: "Фильтр панели",
             description:
-              "Saved filters, advanced rules жана segment presets.",
+              "Сакталган фильтрлер, кеңейтилген эрежелер жана сегмент пресеттери.",
           },
           {
-            title: "Analytics stack",
+            title: "Аналитика стеги",
             description:
-              "Отчеттор, графиктер, салыштыруулар жана forecast cards.",
+              "Отчеттор, графиктер, салыштыруулар жана прогноз карточкалары.",
           },
         ],
       },
@@ -589,11 +575,11 @@ export const kgMessages: typeof enMessages = {
         placeholder: "+7 777 000 00 00",
       },
       notes: {
-        label: "Эскертме / notes",
+        label: "Эскертме",
         description:
-          "Транзакция, аудит жана салыштыруу үчүн cross-platform notes.",
+          "Транзакция, аудит жана салыштыруу үчүн кроссплатформалык эскертмелер.",
         placeholder:
-          "Салыштыруу, treasury review же category rules үчүн notes кошуңуз",
+          "Салыштыруу, treasury review же категория эрежелери үчүн эскертме кошуңуз",
       },
     },
     common: {

@@ -29,7 +29,7 @@ export const enMessages = {
       kg: "Kyrgyz",
     },
     actions: {
-      auth: "Auth",
+      auth: "Sign in",
       workspace: "Workspace",
     },
   },
@@ -255,7 +255,7 @@ export const enMessages = {
       accountsDescription: "Core balance buckets for cash, reserve and long-term allocation.",
       priorities: "Priority signals",
       prioritiesDescription: "The most important operational items to review next.",
-      nextSteps: "Next steps",
+      nextSteps: "Workflows",
     },
     labels: {
       utilization: "Utilization",
@@ -274,20 +274,6 @@ export const enMessages = {
       focusTitle: "Attention queue",
       focusBody: "{count} pending or scheduled items are waiting for review in the current cycle.",
     },
-    nextSteps: [
-      {
-        title: "Add manual expense capture",
-        description: "The next product layer should let the user record daily spend directly from this surface.",
-      },
-      {
-        title: "Connect recurring planning",
-        description: "Budget automation, subscription checkpoints and category rules should be attached to these widgets.",
-      },
-      {
-        title: "Expand analytics stack",
-        description: "Cash flow trends, period comparisons and forecast cards belong in the next workspace iteration.",
-      },
-    ],
     attention: "{count} items need attention",
     backHome: "Back to home",
   },

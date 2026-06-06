@@ -1,0 +1,23 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrastyle %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static 'admin/fin-man-admin.css' %}">
+{% endblock %}
+
+{% block branding %}
+  <div class="finman-branding">
+    <a href="{% url 'admin:index' %}" class="finman-brand-link">
+      <span class="finman-brand-mark">FM</span>
+      <span class="finman-brand-copy">
+        <span class="finman-brand-title">Fin Man</span>
+        <span class="finman-brand-subtitle">Панель управления</span>
+      </span>
+    </a>
+  </div>
+{% endblock %}
+
+{% block userlinks %}
+  {{ block.super }}
+{% endblock %}

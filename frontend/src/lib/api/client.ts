@@ -6,6 +6,7 @@ import {
   getRefreshToken,
   updateSessionTokens,
 } from "@/lib/auth/session";
+import { isLocale, localeCookieName } from "@/lib/i18n/config";
 
 const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "/api/v1";
 
@@ -17,11 +18,36 @@ export const apiClient = axios.create({
   withCredentials: false,
 });
 
+function getCurrentLocale() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const pathLocale = window.location.pathname.split("/").filter(Boolean)[0];
+  if (pathLocale && isLocale(pathLocale)) {
+    return pathLocale;
+  }
+
+  const localeCookie = document.cookie
+    .split(";")
+    .map((item) => item.trim())
+    .find((item) => item.startsWith(`${localeCookieName}=`))
+    ?.split("=")[1];
+
+  return localeCookie && isLocale(localeCookie) ? localeCookie : null;
+}
+
 apiClient.interceptors.request.use((config) => {
   const accessToken = getAccessToken();
   if (accessToken) {
     config.headers.Authorization = `Bearer ${accessToken}`;
   }
+
+  const locale = getCurrentLocale();
+  if (locale) {
+    config.headers["X-Locale"] = locale;
+  }
+
   return config;
 });
 

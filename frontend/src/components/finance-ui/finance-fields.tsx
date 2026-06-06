@@ -1,10 +1,9 @@
 "use client";
 
 import { format } from "date-fns";
-import { RiCalendarLine, RiCoinsLine, RiSearchLine } from "react-icons/ri";
+import { RiCoinsLine, RiSearchLine } from "react-icons/ri";
 
-import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
+import { DateInput } from "@/components/ui/date-input";
 import {
   InputGroup,
   InputGroupAddon,
@@ -13,14 +12,6 @@ import {
 } from "@/components/ui/input-group";
 import { Label } from "@/components/ui/label";
 import {
-  Popover,
-  PopoverContent,
-  PopoverDescription,
-  PopoverHeader,
-  PopoverTitle,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -28,7 +19,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useTranslations } from "@/lib/i18n/client";
-import { cn } from "@/lib/utils";
 
 type FieldShellProps = {
   label: string;
@@ -160,45 +150,20 @@ export function DatePickerField({ value, onChange }: DatePickerFieldProps) {
 
   return (
     <FieldShell label={messages.label} description={messages.description}>
-      <Popover>
-        <PopoverTrigger className="surface-field flex h-11 w-full items-center justify-between rounded-2xl px-4 text-left text-sm text-zinc-100 transition hover:border-emerald-300/20">
-          <span className={cn("truncate", !value && "text-zinc-500")}>
-            {value ? format(value, "dd.MM.yyyy") : messages.placeholder}
-          </span>
-          <RiCalendarLine className="size-4 text-emerald-200" />
-        </PopoverTrigger>
-        <PopoverContent
-          align="start"
-          sideOffset={10}
-          className="surface-floating w-auto rounded-3xl p-3"
-        >
-          <PopoverHeader className="px-1 pt-1">
-            <PopoverTitle className="text-zinc-100">
-              {messages.popoverTitle}
-            </PopoverTitle>
-            <PopoverDescription className="text-zinc-400">
-              {messages.popoverDescription}
-            </PopoverDescription>
-          </PopoverHeader>
-          <Calendar
-            mode="single"
-            selected={value}
-            onSelect={onChange}
-            className="rounded-2xl bg-transparent"
-          />
-          <div className="flex justify-end px-1 pb-1">
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              onClick={() => onChange(undefined)}
-              className="text-zinc-300 hover:text-white"
-            >
-              {messages.clear}
-            </Button>
-          </div>
-        </PopoverContent>
-      </Popover>
+      <DateInput
+        value={value ? format(value, "yyyy-MM-dd") : ""}
+        onChange={(nextValue) => {
+          if (!nextValue) {
+            onChange(undefined)
+            return
+          }
+
+          const parsed = new Date(`${nextValue}T00:00:00`)
+          onChange(Number.isNaN(parsed.getTime()) ? undefined : parsed)
+        }}
+        placeholder={messages.placeholder}
+        className="surface-field"
+      />
     </FieldShell>
   );
 }

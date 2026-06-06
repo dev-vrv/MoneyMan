@@ -31,8 +31,8 @@ export const ruMessages: typeof enMessages = {
       kg: "Кыргызча",
     },
     actions: {
-      auth: "Auth",
-      workspace: "Workspace",
+      auth: "Войти",
+      workspace: "Кабинет",
     },
   },
   home: {
@@ -88,7 +88,7 @@ export const ruMessages: typeof enMessages = {
       {
         label: "Скорость старта",
         value: "< 90 сек",
-        caption: "От регистрации до готового workspace в одном потоке.",
+        caption: "От регистрации до готового кабинета в одном потоке.",
       },
       {
         label: "Слои сигнала",
@@ -145,7 +145,7 @@ export const ruMessages: typeof enMessages = {
     signIn: {
       title: "С возвращением",
       description:
-        "Войдите в workspace, восстановите активную сессию и продолжите с последней защищенной точки.",
+        "Войдите в кабинет, восстановите активную сессию и продолжите с последней защищенной точки.",
       fields: {
         email: "Email",
         password: "Пароль",
@@ -235,7 +235,7 @@ export const ruMessages: typeof enMessages = {
       description: "Загружаем балансы, бюджеты и контекст аккаунтов.",
     },
     error: {
-      title: "Данные workspace недоступны",
+      title: "Данные рабочего пространства недоступны",
       description:
         "Не удалось загрузить актуальный финансовый обзор. Повторите попытку или завершите сессию и войдите снова.",
       retry: "Повторить",
@@ -247,8 +247,8 @@ export const ruMessages: typeof enMessages = {
       savingsRate: "Норма сбережений",
     },
     sections: {
-      widgets: "Control center",
-      widgetsDescription: "Ключевые виджеты, которые сразу показывают, куда смотреть в первую очередь.",
+      widgets: "Центр контроля",
+      widgetsDescription: "Ключевые виджеты для быстрого контроля финансовой ситуации.",
       budgets: "Контроль бюджетов",
       budgetsDescription: "Следите за давлением по категориям и доступным запасом до закрытия периода.",
       transactions: "Последняя активность",
@@ -257,7 +257,7 @@ export const ruMessages: typeof enMessages = {
       accountsDescription: "Основные корзины баланса для ежедневных денег, резерва и долгосрочного капитала.",
       priorities: "Приоритетные сигналы",
       prioritiesDescription: "Самые важные операционные точки, которые стоит проверить дальше.",
-      nextSteps: "Следующие шаги",
+      nextSteps: "Рабочие сценарии",
     },
     labels: {
       utilization: "Использование",
@@ -276,20 +276,6 @@ export const ruMessages: typeof enMessages = {
       focusTitle: "Очередь внимания",
       focusBody: "В текущем цикле {count} операций со статусом pending или scheduled требуют просмотра.",
     },
-    nextSteps: [
-      {
-        title: "Добавить ручной ввод расходов",
-        description: "Следующий слой продукта должен позволять заносить ежедневные траты прямо с этой поверхности.",
-      },
-      {
-        title: "Подключить recurring planning",
-        description: "К этим виджетам логично привязать автоматизацию бюджетов, подписки и category rules.",
-      },
-      {
-        title: "Расширить стек аналитики",
-        description: "На следующем этапе сюда стоит добавить cash flow trends, сравнения периодов и forecast cards.",
-      },
-    ],
     attention: "{count} элементов требуют внимания",
     backHome: "На главную",
   },
@@ -518,19 +504,19 @@ export const ruMessages: typeof enMessages = {
           "Общие поверхности для dashboards, аналитики и side workflows.",
         items: [
           {
-            title: "Dashboard shell",
+            title: "Каркас дашборда",
             description:
-              "Header, KPIs, widgets и contextual quick actions.",
+              "Хедер, KPI, виджеты и контекстные быстрые действия.",
           },
           {
-            title: "Filter rail",
+            title: "Панель фильтров",
             description:
-              "Saved filters, advanced rules и segment presets.",
+              "Сохраненные фильтры, расширенные правила и пресеты сегментов.",
           },
           {
-            title: "Analytics stack",
+            title: "Стек аналитики",
             description:
-              "Отчеты, графики, сравнения и forecast cards.",
+              "Отчеты, графики, сравнения и прогнозные карточки.",
           },
         ],
       },
@@ -589,11 +575,11 @@ export const ruMessages: typeof enMessages = {
         placeholder: "+7 777 000 00 00",
       },
       notes: {
-        label: "Заметка / notes",
+        label: "Заметка",
         description:
-          "Кросс-платформенные заметки для транзакций, аудита и сверки.",
+          "Кроссплатформенные заметки для транзакций, аудита и сверки.",
         placeholder:
-          "Добавьте заметки для сверки, treasury review или category rules",
+          "Добавьте заметки для сверки, treasury review или правил категорий",
       },
     },
     common: {

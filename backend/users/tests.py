@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from rest_framework.test import APIClient
 
-from backend.common.models import FinancialAccount, UserProfile
+from backend.common.models import Budget, FinancialAccount, Transaction, TransactionCategory, UserProfile
 from backend.common.services import create_user_with_workspace
 
 User = get_user_model()
@@ -36,7 +36,7 @@ class AuthFlowTests(TestCase):
     def setUp(self):
         self.client = APIClient()
 
-    def test_register_creates_custom_user_profile_and_workspace(self):
+    def test_register_creates_user_with_empty_workspace(self):
         response = self.client.post(
             "/api/v1/auth/register/",
             {
@@ -54,7 +54,10 @@ class AuthFlowTests(TestCase):
         self.assertEqual(response.data["user"]["phone"], "+7 701 000 00 00")
         self.assertEqual(user.phone, "+7 701 000 00 00")
         self.assertTrue(UserProfile.objects.filter(user=user, phone=user.phone).exists())
-        self.assertEqual(FinancialAccount.objects.filter(owner=user).count(), 3)
+        self.assertEqual(FinancialAccount.objects.filter(owner=user).count(), 0)
+        self.assertEqual(TransactionCategory.objects.filter(owner=user).count(), 0)
+        self.assertEqual(Budget.objects.filter(owner=user).count(), 0)
+        self.assertEqual(Transaction.objects.filter(owner=user).count(), 0)
 
     def test_login_works_with_email_username_field(self):
         user = create_user_with_workspace(
@@ -77,3 +80,34 @@ class AuthFlowTests(TestCase):
         self.assertEqual(response.data["user"]["phone"], user.phone)
         self.assertIn("access", response.data)
         self.assertIn("refresh", response.data)
+
+    def test_current_user_patch_updates_profile_fields(self):
+        user = create_user_with_workspace(
+            email="profile@example.com",
+            phone="+7 555 000 00 00",
+            password="StrongPass123!",
+        )
+        self.client.force_authenticate(user)
+
+        response = self.client.patch(
+            "/api/v1/auth/me/",
+            {
+                "first_name": "Aida",
+                "last_name": "Omur",
+                "phone": "+996 700 11 22 33",
+                "cash_flow_chart_default": "tradingview",
+                "default_currency": "KGS",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        user.refresh_from_db()
+        self.assertEqual(user.first_name, "Aida")
+        self.assertEqual(user.last_name, "Omur")
+        self.assertEqual(user.phone, "+996 700 11 22 33")
+        self.assertEqual(response.data["phone"], "+996 700 11 22 33")
+        self.assertEqual(response.data["cash_flow_chart_default"], "tradingview")
+        self.assertEqual(user.profile.cash_flow_chart_default, "tradingview")
+        self.assertEqual(response.data["default_currency"], "KGS")
+        self.assertEqual(user.profile.default_currency, "KGS")

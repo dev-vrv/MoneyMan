@@ -32,6 +32,7 @@ services:
       retries: 5
 
   backend:
+    image: fin_man-backend:latest
     build:
       context: ./backend
       dockerfile: Dockerfile.debug
@@ -56,9 +57,7 @@ services:
         condition: service_healthy
 
   celery-worker:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile.debug
+    image: fin_man-backend:latest
     container_name: fin-man-celery-worker
     restart: unless-stopped
     env_file:
@@ -77,9 +76,7 @@ services:
         condition: service_healthy
 
   celery-beat:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile.debug
+    image: fin_man-backend:latest
     container_name: fin-man-celery-beat
     restart: unless-stopped
     env_file:

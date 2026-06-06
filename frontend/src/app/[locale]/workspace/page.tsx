@@ -12,5 +12,5 @@ export default async function WorkspacePage({ params }: WorkspacePageProps) {
   const { locale } = await params;
   const dictionary = await getLocaleDictionary(locale);
 
-  return <FinanceWorkspace locale={locale} content={dictionary.workspace} />;
+  return <FinanceWorkspace locale={locale} content={dictionary.workspace} section="overview" />;
 }

@@ -5,6 +5,8 @@ export type AuthUser = {
   last_name: string;
   phone: string;
   display_name: string;
+  cash_flow_chart_default: "bars" | "line" | "tradingview" | "candles" | "structure";
+  default_currency: string;
 };
 
 export type AuthSession = {

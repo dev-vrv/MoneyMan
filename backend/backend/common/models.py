@@ -13,12 +13,25 @@ class TimeStampedModel(models.Model):
 
 
 class UserProfile(TimeStampedModel):
+    class CashFlowChartDefault(models.TextChoices):
+        BARS = "bars", "Bars"
+        LINE = "line", "Line"
+        TRADINGVIEW = "tradingview", "TradingView"
+        CANDLES = "candles", "Candles"
+        STRUCTURE = "structure", "Structure"
+
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="profile",
     )
     phone = models.CharField(max_length=32, blank=True, default="")
+    cash_flow_chart_default = models.CharField(
+        max_length=16,
+        choices=CashFlowChartDefault.choices,
+        default=CashFlowChartDefault.BARS,
+    )
+    default_currency = models.CharField(max_length=8, default="USD")
 
     def __str__(self) -> str:
         return f"Profile<{self.user_id}>"

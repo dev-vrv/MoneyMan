@@ -1,0 +1,541 @@
+"use client";
+
+import type { ComponentType, Dispatch, SetStateAction } from "react";
+import { RiAddLine, RiArrowRightUpLine, RiPencilLine } from "react-icons/ri";
+
+import {
+  resolveAccountAppearance,
+  resolveAccountIcon,
+} from "@/components/workspace/account-appearance-picker";
+import type {
+  CurrencyBreakdownEntry,
+  UiCopy,
+} from "@/components/workspace/finance-workspace.types";
+import {
+  accountKindLabel,
+  formatMoney,
+  getAccountDisplayBalance,
+  statusTone,
+  transactionStatusLabel,
+} from "@/components/workspace/finance-workspace.utils";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { DateInput } from "@/components/ui/date-input";
+import {
+  Field,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import type {
+  AccountRecord,
+  CategoryRecord,
+  CreateTransactionPayload,
+} from "@/lib/api/finance";
+import { cn } from "@/lib/utils";
+
+export const EMPTY_SELECT_VALUE = "__empty__";
+
+export function WorkspaceSelect({
+  value,
+  onValueChange,
+  placeholder,
+  options,
+}: {
+  value?: string;
+  onValueChange: (value: string) => void;
+  placeholder?: string;
+  options: Array<{ value: string; label: string }>;
+}) {
+  const selectedOption = options.find((option) => option.value === value);
+
+  return (
+    <Select value={value} onValueChange={onValueChange}>
+      <SelectTrigger className="h-11 min-h-11 w-full rounded-2xl border-white/10 bg-white/5 px-4 text-zinc-100">
+        <span className={selectedOption ? "line-clamp-1" : "line-clamp-1 text-zinc-500"}>
+          {selectedOption?.label ?? placeholder ?? ""}
+        </span>
+      </SelectTrigger>
+      <SelectContent className="surface-floating rounded-2xl text-zinc-100">
+        {options.map((option) => (
+          <SelectItem key={option.value} value={option.value}>
+            {option.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
+export function TransactionDialogFields({
+  type,
+  status,
+  onTypeChange,
+  onStatusChange,
+  accounts,
+  categories,
+  exchangeRatePlaceholder,
+  values,
+  setValues,
+  ui,
+}: {
+  type: string;
+  status: string;
+  onTypeChange: (value: string) => void;
+  onStatusChange: (value: string) => void;
+  accounts: AccountRecord[];
+  categories: CategoryRecord[];
+  exchangeRatePlaceholder?: string;
+  values: CreateTransactionPayload;
+  setValues: Dispatch<SetStateAction<CreateTransactionPayload>>;
+  ui: UiCopy;
+}) {
+  const filteredCategories = categories.filter((item) => item.kind === type);
+
+  return (
+    <FieldGroup>
+      <div className="grid gap-4 md:grid-cols-2">
+        <Field>
+          <FieldLabel>{ui.type}</FieldLabel>
+          <WorkspaceSelect
+            value={type}
+            onValueChange={onTypeChange}
+            options={[
+              { value: "expense", label: ui.txTypeExpense },
+              { value: "income", label: ui.txTypeIncome },
+              { value: "transfer", label: ui.txTypeTransfer },
+            ]}
+          />
+        </Field>
+        <Field>
+          <FieldLabel>{ui.status}</FieldLabel>
+          <WorkspaceSelect
+            value={status}
+            onValueChange={onStatusChange}
+            options={[
+              { value: "cleared", label: ui.txStatusCleared },
+              { value: "pending", label: ui.txStatusPending },
+              { value: "draft", label: ui.txStatusDraft },
+              { value: "canceled", label: ui.txStatusCanceled },
+            ]}
+          />
+        </Field>
+      </div>
+      <div className="grid gap-4 md:grid-cols-2">
+        <Field>
+          <FieldLabel>{ui.accountName}</FieldLabel>
+          <WorkspaceSelect
+            value={String(values.account)}
+            onValueChange={(selectedValue) =>
+              setValues((current) => ({
+                ...current,
+                account: Number(selectedValue),
+              }))
+            }
+            options={accounts.map((account) => ({
+              value: String(account.id),
+              label: account.name,
+            }))}
+          />
+        </Field>
+        {type === "transfer" ? (
+          <Field>
+            <FieldLabel>{ui.destinationAccount}</FieldLabel>
+            <WorkspaceSelect
+              value={values.destination_account ? String(values.destination_account) : EMPTY_SELECT_VALUE}
+              onValueChange={(selectedValue) =>
+                setValues((current) => ({
+                  ...current,
+                  destination_account: selectedValue === EMPTY_SELECT_VALUE ? null : Number(selectedValue),
+                }))
+              }
+              options={[
+                { value: EMPTY_SELECT_VALUE, label: ui.selectDestination },
+                ...accounts.map((account) => ({
+                  value: String(account.id),
+                  label: account.name,
+                })),
+              ]}
+            />
+          </Field>
+        ) : (
+          <Field>
+            <FieldLabel>{ui.category}</FieldLabel>
+            <WorkspaceSelect
+              value={values.category ? String(values.category) : EMPTY_SELECT_VALUE}
+              onValueChange={(selectedValue) =>
+                setValues((current) => ({
+                  ...current,
+                  category: selectedValue === EMPTY_SELECT_VALUE ? null : Number(selectedValue),
+                }))
+              }
+              options={[
+                { value: EMPTY_SELECT_VALUE, label: ui.selectCategory },
+                ...filteredCategories.map((category) => ({
+                  value: String(category.id),
+                  label: category.name,
+                })),
+              ]}
+            />
+          </Field>
+        )}
+      </div>
+      <div className="grid gap-4 md:grid-cols-2">
+        <Field>
+          <FieldLabel>{ui.amount}</FieldLabel>
+          <Input
+            value={values.amount}
+            onChange={(event) => setValues((current) => ({ ...current, amount: event.target.value }))}
+            placeholder="0.00"
+          />
+        </Field>
+        <Field>
+          <FieldLabel>{ui.date}</FieldLabel>
+          <DateInput
+            value={values.occurred_on}
+            onChange={(nextValue) => setValues((current) => ({ ...current, occurred_on: nextValue }))}
+            placeholder={ui.date}
+          />
+        </Field>
+      </div>
+      {type === "transfer" ? (
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field>
+            <FieldLabel>{ui.destinationAmount}</FieldLabel>
+            <Input
+              value={values.destination_amount ?? ""}
+              onChange={(event) =>
+                setValues((current) => ({
+                  ...current,
+                  destination_amount: event.target.value || null,
+                }))
+              }
+              placeholder="0.00"
+            />
+          </Field>
+          <Field>
+            <FieldLabel>{ui.exchangeRate}</FieldLabel>
+            <Input
+              value={values.exchange_rate ?? ""}
+              onChange={(event) =>
+                setValues((current) => ({
+                  ...current,
+                  exchange_rate: event.target.value || null,
+                }))
+              }
+              placeholder={exchangeRatePlaceholder ?? ui.optional}
+            />
+          </Field>
+        </div>
+      ) : null}
+      <div className="grid gap-4 md:grid-cols-2">
+        <Field>
+          <FieldLabel>{ui.titleLabel}</FieldLabel>
+          <Input
+            value={values.title}
+            onChange={(event) => setValues((current) => ({ ...current, title: event.target.value }))}
+          />
+        </Field>
+        <Field>
+          <FieldLabel>{ui.merchant}</FieldLabel>
+          <Input
+            value={values.merchant}
+            onChange={(event) => setValues((current) => ({ ...current, merchant: event.target.value }))}
+          />
+        </Field>
+      </div>
+      <Field>
+        <FieldLabel>{ui.notes}</FieldLabel>
+        <Textarea
+          value={values.description}
+          onChange={(event) => setValues((current) => ({ ...current, description: event.target.value }))}
+        />
+      </Field>
+    </FieldGroup>
+  );
+}
+
+export function AccountCard({
+  account,
+  ui,
+  onEdit,
+  className,
+}: {
+  account: AccountRecord;
+  ui: UiCopy;
+  onEdit?: (account: AccountRecord) => void;
+  className?: string;
+}) {
+  const appearance = resolveAccountAppearance(account.color);
+  const accountIcon = resolveAccountIcon(account.icon, account.kind);
+  const AccountIcon = accountIcon.icon;
+  const balance = formatMoney(getAccountDisplayBalance(account), account.currency);
+  const accountMeta = account.institution || accountKindLabel(account.kind, ui);
+  const depositMeta = account.deposit_profile
+    ? [
+        `${ui.annualInterestRate}: ${account.deposit_profile.annual_interest_rate}%`,
+        `${ui.accruedInterest}: ${formatMoney(account.deposit_profile.accrued_interest, account.currency)}`,
+      ]
+    : account.kind === "credit_card" && account.available_credit
+      ? [
+          `${ui.creditLimit}: ${formatMoney(account.credit_limit, account.currency)}`,
+          `${ui.balanceOverview}: ${formatMoney(account.available_credit, account.currency)}`,
+        ]
+      : account.tax_profile
+        ? [
+            `${ui.taxLabel}: ${Number(account.tax_profile.tax_rate)}%`,
+            `${ui.socialFundLabel}: ${
+              account.tax_profile.manual_social_fund_amount
+                ? formatMoney(account.tax_profile.manual_social_fund_amount, account.currency)
+                : `${Number(account.tax_profile.social_fund_rate)}%`
+            }`,
+          ]
+        : [`${account.currency} · ${accountMeta}`];
+
+  return (
+    <div
+      className={cn(
+        "group relative overflow-hidden rounded-[1.45rem] border bg-[linear-gradient(180deg,rgba(11,17,15,0.98)_0%,rgba(8,13,12,0.96)_100%)] p-4 transition duration-200 hover:-translate-y-0.5",
+        className,
+      )}
+      style={{
+        borderColor: appearance.glow,
+        boxShadow: `inset 0 1px 0 rgba(255,255,255,0.04), 0 22px 44px -34px ${appearance.glow}`,
+      }}
+    >
+      <div
+        className="pointer-events-none absolute inset-x-6 top-0 h-px"
+        style={{ background: `linear-gradient(90deg, transparent 0%, ${appearance.border} 50%, transparent 100%)` }}
+      />
+      <div className="pointer-events-none absolute -right-10 top-4 h-20 w-20 rounded-full blur-3xl" style={{ backgroundColor: appearance.soft }} />
+      <div className="pointer-events-none absolute -left-4 bottom-4 h-12 w-12 rounded-full blur-2xl" style={{ backgroundColor: appearance.glow }} />
+
+      <div className="relative flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-start gap-3">
+          <div
+            className="flex size-11 shrink-0 items-center justify-center rounded-2xl border bg-black/30"
+            style={{
+              borderColor: appearance.border,
+              boxShadow: `0 0 0 1px ${appearance.glow}, 0 14px 28px -22px ${appearance.glow}`,
+            }}
+          >
+            <AccountIcon className="size-5" style={{ color: appearance.text }} />
+          </div>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-white">{account.name}</p>
+            <p className="mt-1 truncate text-xs text-zinc-500">{accountMeta}</p>
+          </div>
+        </div>
+        <Badge variant="outline" className={`shrink-0 rounded-full ${statusTone(account.status)}`}>
+          {transactionStatusLabel(account.status, ui)}
+        </Badge>
+      </div>
+
+      <div className="relative mt-4 flex items-end justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[0.7rem] uppercase tracking-[0.2em] text-zinc-500">{ui.balance}</p>
+          <p className="mt-1 break-words text-[1.45rem] font-semibold leading-none text-white sm:text-[1.6rem]">{balance}</p>
+        </div>
+        <div
+          className="hidden h-9 min-w-[4.5rem] items-center justify-center rounded-full border px-3 text-xs font-medium md:inline-flex"
+          style={{
+            borderColor: appearance.glow,
+            backgroundColor: appearance.soft,
+            color: appearance.text,
+          }}
+        >
+          {account.currency}
+        </div>
+      </div>
+
+      <div className="relative mt-4 flex flex-wrap gap-2">
+        {depositMeta.map((item) => (
+          <span
+            key={`${account.id}-${item}`}
+            className="rounded-full border px-3 py-1 text-xs text-zinc-200"
+            style={{ borderColor: "rgba(255,255,255,0.08)", backgroundColor: "rgba(255,255,255,0.04)" }}
+          >
+            {item}
+          </span>
+        ))}
+      </div>
+
+      {onEdit ? (
+        <div className="relative mt-4 flex justify-end">
+          <Button
+            variant="outline"
+            className="h-10 rounded-2xl border-white/10 bg-white/5 px-4 text-zinc-100 transition hover:border-white/16 hover:bg-white/[0.08]"
+            onClick={() => onEdit(account)}
+          >
+            <RiPencilLine className="size-4" />
+            {ui.editLabel}
+          </Button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+export function MetricCard({
+  icon: Icon,
+  label,
+  value,
+  actionLabel,
+  progressValue,
+  className,
+  breakdown = [],
+  breakdownLabel,
+  moreLabel,
+  onOpenBreakdown,
+}: {
+  icon: ComponentType<{ className?: string }>;
+  label: string;
+  value: string;
+  actionLabel?: string;
+  progressValue?: number;
+  className?: string;
+  breakdown?: CurrencyBreakdownEntry[];
+  breakdownLabel?: string;
+  moreLabel?: string;
+  onOpenBreakdown?: () => void;
+}) {
+  const previewEntries = breakdown.slice(0, 2);
+  const remainingCount = Math.max(breakdown.length - previewEntries.length, 0);
+
+  return (
+    <Card
+      className={cn(
+        "surface-panel-muted rounded-[1.8rem] border-white/8 bg-[linear-gradient(180deg,rgba(8,18,14,0.86)_0%,rgba(7,14,11,0.96)_100%)] py-0",
+        onOpenBreakdown ? "group cursor-pointer transition duration-200 hover:-translate-y-0.5 hover:border-emerald-300/18 hover:shadow-[0_24px_60px_rgba(16,185,129,0.16)]" : "",
+        className,
+      )}
+      onClick={onOpenBreakdown}
+      onKeyDown={(event) => {
+        if (!onOpenBreakdown) {
+          return;
+        }
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onOpenBreakdown();
+        }
+      }}
+      role={onOpenBreakdown ? "button" : undefined}
+      tabIndex={onOpenBreakdown ? 0 : undefined}
+    >
+      <CardHeader className="p-5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0 flex-1">
+            <div className="mb-3 inline-flex size-11 items-center justify-center rounded-2xl border border-emerald-300/16 bg-emerald-300/10 text-emerald-100">
+              <Icon className="size-5" />
+            </div>
+            <CardDescription className="text-zinc-400">{label}</CardDescription>
+            <CardTitle className="mt-2 break-words text-[1.05rem] text-white sm:text-[1.25rem]">{value}</CardTitle>
+            {previewEntries.length > 0 ? (
+              <div className="mt-3 grid gap-1.5">
+                {breakdownLabel ? <p className="text-xs uppercase tracking-[0.18em] text-zinc-500">{breakdownLabel}</p> : null}
+                {previewEntries.map((entry) => (
+                  <div key={`${label}-${entry.currency}`} className="flex items-center justify-between gap-3 text-sm">
+                    <span className="text-zinc-400">{entry.currency}</span>
+                    <span className="font-medium text-zinc-100">{formatMoney(String(entry.amount), entry.currency)}</span>
+                  </div>
+                ))}
+                {remainingCount > 0 && onOpenBreakdown && moreLabel ? (
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onOpenBreakdown();
+                    }}
+                    className="mt-1 text-left text-sm font-medium text-emerald-200 transition hover:text-emerald-100"
+                  >
+                    {moreLabel.replace("{count}", String(remainingCount))}
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+          <div className="flex shrink-0 flex-col items-start gap-3 sm:items-end">
+            {onOpenBreakdown ? (
+              <div className="inline-flex max-w-full items-center gap-2 self-start rounded-full border border-emerald-300/18 bg-emerald-300/10 px-3 py-1.5 text-xs font-medium text-emerald-100 transition group-hover:bg-emerald-300/14 sm:self-auto">
+                <span className="truncate">{actionLabel}</span>
+                <span className="inline-flex size-6 items-center justify-center rounded-full border border-emerald-300/18 bg-black/20 transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
+                  <RiArrowRightUpLine className="size-3.5" />
+                </span>
+              </div>
+            ) : null}
+            {typeof progressValue === "number" ? (
+              <div
+                className="grid size-16 place-items-center rounded-full border border-emerald-200/18 text-sm font-semibold text-white"
+                style={{ background: `conic-gradient(rgba(167,243,208,0.9) 0 ${progressValue}%, rgba(255,255,255,0.06) ${progressValue}% 100%)` }}
+              >
+                <div className="grid size-12 place-items-center rounded-full bg-[#07110c] text-xs">{Math.round(progressValue)}%</div>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </CardHeader>
+    </Card>
+  );
+}
+
+export function PriorityPill({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-[1.4rem] border border-white/8 bg-black/18 px-4 py-4">
+      <p className="text-xs uppercase tracking-[0.18em] text-zinc-500">{label}</p>
+      <p className="mt-2 break-words text-sm font-medium text-zinc-100 sm:text-base">{value}</p>
+    </div>
+  );
+}
+
+export function EmptyState({ text }: { text: string }) {
+  return (
+    <div className="rounded-[1.6rem] border border-dashed border-white/10 bg-black/12 px-5 py-10 text-center text-sm text-zinc-500">
+      {text}
+    </div>
+  );
+}
+
+export function QuickActionRow({
+  label,
+  icon: Icon,
+  onClick,
+  compact = false,
+}: {
+  label: string;
+  icon: ComponentType<{ className?: string }>;
+  onClick: () => void;
+  compact?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={
+        compact
+          ? "flex h-11 items-center gap-3 rounded-2xl border border-white/8 bg-black/15 px-4 text-left text-sm text-zinc-200 transition hover:bg-white/[0.04] hover:text-white"
+          : "flex w-full items-center justify-between rounded-[1.2rem] border border-white/8 bg-black/15 px-4 py-3 text-left text-sm text-zinc-200 transition hover:bg-white/[0.04] hover:text-white"
+      }
+    >
+      <span className="flex items-center gap-3">
+        <span className="inline-flex size-9 items-center justify-center rounded-2xl border border-white/8 bg-white/[0.03]">
+          <Icon className="size-4" />
+        </span>
+        <span>{label}</span>
+      </span>
+      {!compact ? <RiAddLine className="size-4 text-emerald-200" /> : null}
+    </button>
+  );
+}

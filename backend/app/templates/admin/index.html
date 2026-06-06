@@ -1,0 +1,58 @@
+{% extends "admin/base_site.html" %}
+{% load admin_groups %}
+
+{% block content %}
+  {% admin_grouped_app_list app_list as grouped_sections %}
+
+  <div class="finman-admin-dashboard">
+    {% if grouped_sections %}
+      {% for section in grouped_sections %}
+        <section class="finman-admin-section">
+          <header class="finman-admin-section__header">
+            <div>
+              <h2>{{ section.title }}</h2>
+              <p>{{ section.description }}</p>
+            </div>
+          </header>
+
+          <div class="finman-admin-grid">
+            {% for app in section.apps %}
+              <article class="finman-admin-card">
+                <div class="finman-admin-card__top">
+                  <div>
+                    <p class="finman-admin-card__eyebrow">{{ app.name }}</p>
+                    <h3>{{ app.name }}</h3>
+                  </div>
+                </div>
+
+                <div class="finman-admin-models">
+                  {% for model in app.models %}
+                    <div class="finman-admin-model">
+                      <div class="finman-admin-model__copy">
+                        <span class="finman-admin-model__name">{{ model.name }}</span>
+                        <span class="finman-admin-model__actions">
+                          {% if model.admin_url %}
+                            <a href="{{ model.admin_url }}">Открыть</a>
+                          {% endif %}
+                          {% if model.add_url %}
+                            <a href="{{ model.add_url }}">Создать</a>
+                          {% endif %}
+                        </span>
+                      </div>
+                    </div>
+                  {% empty %}
+                    <div class="finman-admin-model finman-admin-model--empty">
+                      <span>В этом разделе нет доступных моделей.</span>
+                    </div>
+                  {% endfor %}
+                </div>
+              </article>
+            {% endfor %}
+          </div>
+        </section>
+      {% endfor %}
+    {% else %}
+      <p>В админке пока нет доступных разделов.</p>
+    {% endif %}
+  </div>
+{% endblock %}

@@ -9,3 +9,7 @@ export function useLocale() {
 export function useTranslations() {
   return useLocaleContext().messages;
 }
+
+export function useLocalePreference() {
+  return useLocaleContext().setLocalePreference;
+}

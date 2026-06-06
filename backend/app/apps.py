@@ -4,4 +4,4 @@ from django.apps import AppConfig
 class FinanceAppConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
     name = "app"
-    verbose_name = "Finance Manager"
+    verbose_name = "Финансы"

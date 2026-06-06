@@ -22,7 +22,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Locale, locales, getLocalizedPath, isLocale } from "@/lib/i18n/config";
+import { useLocalePreference } from "@/lib/i18n/client";
+import { Locale, locales, getLocalizedPath, replacePathLocale } from "@/lib/i18n/config";
 import type { Dictionary } from "@/lib/i18n/dictionaries";
 
 type SiteHeaderProps = {
@@ -30,21 +31,11 @@ type SiteHeaderProps = {
   messages: Dictionary["header"];
 };
 
-function buildLocalizedHref(pathname: string, targetLocale: Locale) {
-  const segments = pathname.split("/").filter(Boolean);
-
-  if (segments.length > 0 && isLocale(segments[0])) {
-    segments[0] = targetLocale;
-    return `/${segments.join("/")}`;
-  }
-
-  return getLocalizedPath(targetLocale, pathname);
-}
-
 export function SiteHeader({ locale, messages }: SiteHeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { isAuthenticated } = useAuth();
+  const setLocalePreference = useLocalePreference();
 
   const navItems = [
     { label: messages.navigation.pricing, href: getLocalizedPath(locale, "/pricing") },
@@ -159,9 +150,10 @@ export function SiteHeader({ locale, messages }: SiteHeaderProps) {
                 {locales.map((targetLocale) => (
                   <DropdownMenuItem
                     key={targetLocale}
-                    onClick={() =>
-                      router.push(buildLocalizedHref(pathname, targetLocale))
-                    }
+                    onClick={() => {
+                      setLocalePreference(targetLocale);
+                      router.push(replacePathLocale(pathname, targetLocale));
+                    }}
                   >
                     {{
                       en: messages.language.en,

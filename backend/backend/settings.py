@@ -2,12 +2,18 @@ from datetime import timedelta
 from pathlib import Path
 
 import environ
+from celery.schedules import crontab
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 ROOT_DIR = BASE_DIR.parent
 
 env = environ.Env()
-environ.Env.read_env(ROOT_DIR / ".env")
+for env_path in (
+    ROOT_DIR / ".env",
+    BASE_DIR / ".env",
+):
+    if env_path.exists():
+        environ.Env.read_env(env_path)
 LOGS_DIR = Path(env.str("DJANGO_LOG_DIR", default=str(ROOT_DIR / "logs")))
 LOGS_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -101,7 +107,7 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-LANGUAGE_CODE = "en-us"
+LANGUAGE_CODE = "ru"
 TIME_ZONE = env("DJANGO_TIME_ZONE", default="UTC")
 USE_I18N = True
 USE_TZ = True
@@ -145,6 +151,20 @@ CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = TIME_ZONE
+CELERY_BEAT_SCHEDULE = {
+    "sync-fx-kg-rates-morning": {
+        "task": "app.sync_fx_kg_reference_data",
+        "schedule": crontab(hour=9, minute=0),
+    },
+    "sync-fx-kg-rates-evening": {
+        "task": "app.sync_fx_kg_reference_data",
+        "schedule": crontab(hour=18, minute=0),
+    },
+}
+
+FX_KG_API_BASE_URL = env("FX_KG_API_BASE_URL", default="https://data.fx.kg/api/v1")
+FX_KG_API_TOKEN = env("FX_KG_API_TOKEN", default="")
+FX_KG_API_TIMEOUT = env.int("FX_KG_API_TIMEOUT", default=15)
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SESSION_COOKIE_SECURE = not DEBUG
