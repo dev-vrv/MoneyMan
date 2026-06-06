@@ -1,18 +1,20 @@
 "use client";
 
-import type { Dispatch, SetStateAction } from "react";
+import { useState, type Dispatch, type SetStateAction } from "react";
 
 import { RiAddLine, RiDeleteBin6Line, RiGlobalLine, RiPencilLine, RiUserSettingsLine } from "react-icons/ri";
 
+import { resolveCategoryAppearance, resolveCategoryIcon } from "@/components/workspace/category-appearance-picker";
 import type { CashFlowChartMode, UiCopy } from "@/components/workspace/finance-workspace.types";
 import { EmptyState, PriorityPill, WorkspaceSelect } from "@/components/workspace/finance-workspace-ui";
 import { createProfileForm, localeDisplayLabel, statusTone, transactionTypeLabel } from "@/components/workspace/finance-workspace.utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import type { CategoryRecord, CurrencyRecord, WorkspaceOverview } from "@/lib/api/finance";
+import type { CategoryRecord, CurrencyRecord } from "@/lib/api/finance";
 import { locales, type Locale } from "@/lib/i18n/config";
 
 type ProfileFormState = ReturnType<typeof createProfileForm>;
@@ -20,8 +22,6 @@ type ProfileFormState = ReturnType<typeof createProfileForm>;
 type WorkspaceSettingsSectionProps = {
   ui: UiCopy;
   locale: Locale;
-  user: { email?: string | null; phone?: string | null } | null;
-  overview: WorkspaceOverview;
   currencies: CurrencyRecord[];
   categories: CategoryRecord[];
   filteredCategories: CategoryRecord[];
@@ -47,8 +47,6 @@ type WorkspaceSettingsSectionProps = {
 export function WorkspaceSettingsSection({
   ui,
   locale,
-  user,
-  overview,
   currencies,
   categories,
   filteredCategories,
@@ -70,6 +68,10 @@ export function WorkspaceSettingsSection({
   onUpdateProfileFormState,
   onSaveProfile,
 }: WorkspaceSettingsSectionProps) {
+  const [categoriesExpanded, setCategoriesExpanded] = useState(false);
+  const visibleCategories = categoriesExpanded ? filteredCategories : filteredCategories.slice(0, 6);
+  const hiddenCategoriesCount = Math.max(filteredCategories.length - visibleCategories.length, 0);
+
   return (
     <div className="space-y-6">
       <div className="surface-panel rounded-[2rem] border border-white/8 bg-white/[0.04] p-8">
@@ -77,8 +79,8 @@ export function WorkspaceSettingsSection({
         <p className="mt-3 max-w-3xl text-sm leading-7 text-zinc-400">{ui.settingsSectionBody}</p>
       </div>
       <div>
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_360px]">
-          <Card className="surface-panel rounded-[2rem] border-white/8 bg-white/[0.04] py-0">
+        <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.15fr)_360px]">
+          <Card className="surface-panel self-start rounded-[2rem] border-white/8 bg-white/[0.04] py-0">
             <CardHeader className="p-6">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div>
@@ -92,7 +94,7 @@ export function WorkspaceSettingsSection({
               </div>
             </CardHeader>
             <CardContent className="grid gap-4 p-6 pt-0">
-              <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px_220px_auto]">
+              <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px_220px]">
                 <Input
                   value={categorySearchQuery}
                   onChange={(event) => onCategorySearchChange(event.target.value)}
@@ -118,7 +120,7 @@ export function WorkspaceSettingsSection({
                     { value: "transfer", label: `${ui.categoryTypeFilter}: ${ui.txTypeTransfer}` },
                   ]}
                 />
-                <div className="grid grid-cols-3 gap-2 lg:min-w-[16rem]">
+                <div className="grid gap-2 sm:grid-cols-3 lg:col-span-3">
                   <PriorityPill label={ui.categoryAllFilter} value={ui.totalCategoriesValue.replace("{count}", String(categories.length))} />
                   <PriorityPill label={ui.systemLabel} value={ui.systemCategoriesValue.replace("{count}", String(systemCategoriesCount))} />
                   <PriorityPill label={ui.customLabel} value={ui.customCategoriesValue.replace("{count}", String(customCategoriesCount))} />
@@ -127,49 +129,129 @@ export function WorkspaceSettingsSection({
 
               <div className="grid gap-2">
                 {filteredCategories.length === 0 ? <EmptyState text={ui.emptyCategories} /> : null}
-                {filteredCategories.map((category) => (
-                  <div key={category.id} className="rounded-[1.3rem] border border-white/8 bg-black/18 px-4 py-3">
-                    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <p className="text-sm font-semibold text-white">{category.name}</p>
-                          <Badge variant="outline" className={`rounded-full ${category.is_system ? statusTone("active") : statusTone("pending")}`}>
-                            {category.is_system ? ui.systemLabel : ui.customLabel}
-                          </Badge>
-                          <Badge variant="outline" className="rounded-full border-white/10 bg-white/5 text-zinc-200">
-                            {transactionTypeLabel(category.kind, ui)}
-                          </Badge>
-                          <span className="rounded-full border border-white/8 bg-white/[0.03] px-2.5 py-1 text-[0.72rem] uppercase tracking-[0.16em] text-zinc-500">
-                            {category.color}
-                          </span>
+                {visibleCategories.map((category) => {
+                  const appearance = resolveCategoryAppearance(category.color, category.kind, category.slug);
+                  const CategoryIcon = resolveCategoryIcon(category.icon, category.kind, category.slug).icon;
+
+                  return (
+                    <div key={category.id} className="rounded-[1.2rem] border border-white/8 bg-black/18 px-4 py-3">
+                      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span
+                              className="inline-flex size-9 shrink-0 items-center justify-center rounded-2xl border bg-black/25"
+                              style={{
+                                borderColor: appearance.border,
+                                boxShadow: `0 0 0 1px ${appearance.glow}, 0 14px 28px -22px ${appearance.glow}`,
+                              }}
+                            >
+                              <CategoryIcon className="size-4.5" style={{ color: appearance.text }} />
+                            </span>
+                            <p className="text-sm font-semibold text-white">{category.name}</p>
+                            <Badge variant="outline" className={`rounded-full ${category.is_system ? statusTone("active") : statusTone("pending")}`}>
+                              {category.is_system ? ui.systemLabel : ui.customLabel}
+                            </Badge>
+                            <Badge variant="outline" className="rounded-full border-white/10 bg-white/5 text-zinc-200">
+                              {transactionTypeLabel(category.kind, ui)}
+                            </Badge>
                         </div>
-                        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-zinc-500">
-                          <span>{category.slug}</span>
-                          {category.parent_name ? <span>{ui.category}: {category.parent_name}</span> : null}
-                          <span>{category.is_active ? ui.activeLabel : ui.inactiveLabel}</span>
+                          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-zinc-500">
+                            <span>{category.slug}</span>
+                            {category.parent_name ? <span>{ui.category}: {category.parent_name}</span> : null}
+                            <span>{category.is_active ? ui.activeLabel : ui.inactiveLabel}</span>
+                          </div>
+                          {category.description ? <p className="mt-2 line-clamp-2 text-sm leading-6 text-zinc-400">{category.description}</p> : null}
                         </div>
-                        {category.description ? <p className="mt-2 text-sm leading-6 text-zinc-400">{category.description}</p> : null}
+                        {!category.is_system ? (
+                          <div className="flex shrink-0 items-center gap-2">
+                            <Button variant="ghost" className="rounded-2xl text-zinc-300 hover:text-white" onClick={() => onOpenCategoryEditDialog(category)}>
+                              <RiPencilLine className="size-4" />
+                              {ui.editLabel}
+                            </Button>
+                            <Button variant="ghost" className="rounded-2xl text-zinc-300 hover:text-white" onClick={() => onDeleteCategoryRequest(category)}>
+                              <RiDeleteBin6Line className="size-4" />
+                              {ui.deleteLabel}
+                            </Button>
+                          </div>
+                        ) : null}
                       </div>
-                      {!category.is_system ? (
-                        <div className="flex shrink-0 items-center gap-2">
-                          <Button variant="ghost" className="rounded-2xl text-zinc-300 hover:text-white" onClick={() => onOpenCategoryEditDialog(category)}>
-                            <RiPencilLine className="size-4" />
-                            {ui.editLabel}
-                          </Button>
-                          <Button variant="ghost" className="rounded-2xl text-zinc-300 hover:text-white" onClick={() => onDeleteCategoryRequest(category)}>
-                            <RiDeleteBin6Line className="size-4" />
-                            {ui.deleteLabel}
-                          </Button>
-                        </div>
-                      ) : null}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
+                {filteredCategories.length > 6 ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="mt-2 w-full rounded-2xl border-white/10 bg-white/5 text-zinc-100 hover:bg-white/[0.08]"
+                    onClick={() => setCategoriesExpanded((current) => !current)}
+                  >
+                    {categoriesExpanded
+                      ? ui.showLessCategories
+                      : ui.showMoreCategories.replace("{count}", String(hiddenCategoriesCount))}
+                  </Button>
+                ) : null}
               </div>
             </CardContent>
           </Card>
 
           <div className="space-y-6">
+            <Card className="surface-panel rounded-[2rem] border-white/8 bg-white/[0.04] py-0">
+              <CardHeader className="p-6">
+                <CardTitle className="text-white">{ui.saveProfile}</CardTitle>
+                <CardDescription className="text-zinc-400">{ui.settingsDescription}</CardDescription>
+              </CardHeader>
+              <CardContent className="p-6 pt-0">
+                <form
+                  className="space-y-4"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    onSaveProfile();
+                  }}
+                >
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <Field>
+                      <FieldLabel>{ui.firstName}</FieldLabel>
+                      <Input value={activeProfileForm.first_name} onChange={(event) => onUpdateProfileFormState((current) => ({ ...current, first_name: event.target.value }))} />
+                    </Field>
+                    <Field>
+                      <FieldLabel>{ui.lastName}</FieldLabel>
+                      <Input value={activeProfileForm.last_name} onChange={(event) => onUpdateProfileFormState((current) => ({ ...current, last_name: event.target.value }))} />
+                    </Field>
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <Field>
+                      <FieldLabel>{ui.email}</FieldLabel>
+                      <Input type="email" value={activeProfileForm.email} onChange={(event) => onUpdateProfileFormState((current) => ({ ...current, email: event.target.value }))} />
+                    </Field>
+                    <Field>
+                      <FieldLabel>{ui.phone}</FieldLabel>
+                      <Input value={activeProfileForm.phone} onChange={(event) => onUpdateProfileFormState((current) => ({ ...current, phone: event.target.value }))} />
+                    </Field>
+                  </div>
+                  <label className="flex items-start gap-3 rounded-[1.4rem] border border-white/8 bg-black/18 px-4 py-3 text-zinc-100">
+                    <Checkbox
+                      checked={activeProfileForm.two_factor_enabled}
+                      onCheckedChange={(nextValue) =>
+                        onUpdateProfileFormState((current) => ({
+                          ...current,
+                          two_factor_enabled: Boolean(nextValue),
+                        }))
+                      }
+                      className="mt-0.5 size-4.5 rounded-md border-white/16 bg-white/5 data-checked:border-emerald-300 data-checked:bg-emerald-300 data-checked:text-slate-950"
+                    />
+                    <span className="min-w-0">
+                      <span className="block text-sm font-medium text-white">{ui.twoFactorAuth}</span>
+                      <span className="mt-1 block text-sm leading-6 text-zinc-400">{ui.twoFactorAuthDescription}</span>
+                    </span>
+                  </label>
+                  <Button type="submit" className="rounded-2xl bg-emerald-300 text-slate-950" disabled={updateProfilePending}>
+                    <RiUserSettingsLine className="size-4" />
+                    {ui.saveProfile}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+
             <Card className="surface-panel rounded-[2rem] border-white/8 bg-white/[0.04] py-0">
               <CardHeader className="p-6">
                 <CardTitle className="text-white">{ui.interfaceSettingsTitle}</CardTitle>
@@ -228,77 +310,19 @@ export function WorkspaceSettingsSection({
                     <p className="mt-3 text-sm leading-6 text-zinc-400">{ui.defaultCashFlowViewDescription}</p>
                   </Field>
                 </div>
-              </CardContent>
-            </Card>
-
-            <Card className="surface-panel rounded-[2rem] border-white/8 bg-white/[0.04] py-0">
-              <CardHeader className="p-6">
-                <CardTitle className="text-white">{ui.saveProfile}</CardTitle>
-                <CardDescription className="text-zinc-400">{ui.settingsDescription}</CardDescription>
-              </CardHeader>
-              <CardContent className="grid gap-3 p-6 pt-0">
-                <PriorityPill label={ui.email} value={user?.email ?? overview.user.email} />
-                <PriorityPill label={ui.phone} value={user?.phone || overview.user.phone || ui.notAvailable} />
-                <PriorityPill label={ui.interfaceLanguage} value={localeDisplayLabel(locale)} />
-                <PriorityPill label={ui.defaultCurrency} value={activeProfileForm.default_currency} />
-                <PriorityPill
-                  label={ui.defaultCashFlowView}
-                  value={
-                    activeProfileForm.cash_flow_chart_default === "bars"
-                      ? ui.chartBarsView
-                      : activeProfileForm.cash_flow_chart_default === "line"
-                        ? ui.chartLineView
-                        : activeProfileForm.cash_flow_chart_default === "tradingview"
-                          ? ui.chartTradingView
-                          : activeProfileForm.cash_flow_chart_default === "candles"
-                            ? ui.chartCandlesView
-                            : ui.chartStructureView
-                  }
-                />
+                <Button
+                  type="button"
+                  className="rounded-2xl bg-emerald-300 text-slate-950"
+                  disabled={updateProfilePending}
+                  onClick={onSaveProfile}
+                >
+                  <RiUserSettingsLine className="size-4" />
+                  {ui.saveProfile}
+                </Button>
               </CardContent>
             </Card>
           </div>
         </div>
-        <Card className="surface-panel rounded-[2rem] border-white/8 bg-white/[0.04] py-0">
-          <CardHeader className="p-6">
-            <CardTitle className="text-white">{ui.saveProfile}</CardTitle>
-            <CardDescription className="text-zinc-400">{ui.settingsDescription}</CardDescription>
-          </CardHeader>
-          <CardContent className="p-6 pt-0">
-            <form
-              className="space-y-4"
-              onSubmit={(event) => {
-                event.preventDefault();
-                onSaveProfile();
-              }}
-            >
-              <div className="grid gap-4 md:grid-cols-2">
-                <Field>
-                  <FieldLabel>{ui.firstName}</FieldLabel>
-                  <Input value={activeProfileForm.first_name} onChange={(event) => onUpdateProfileFormState((current) => ({ ...current, first_name: event.target.value }))} />
-                </Field>
-                <Field>
-                  <FieldLabel>{ui.lastName}</FieldLabel>
-                  <Input value={activeProfileForm.last_name} onChange={(event) => onUpdateProfileFormState((current) => ({ ...current, last_name: event.target.value }))} />
-                </Field>
-              </div>
-              <div className="grid gap-4 md:grid-cols-2">
-                <Field>
-                  <FieldLabel>{ui.email}</FieldLabel>
-                  <Input type="email" value={activeProfileForm.email} onChange={(event) => onUpdateProfileFormState((current) => ({ ...current, email: event.target.value }))} />
-                </Field>
-                <Field>
-                  <FieldLabel>{ui.phone}</FieldLabel>
-                  <Input value={activeProfileForm.phone} onChange={(event) => onUpdateProfileFormState((current) => ({ ...current, phone: event.target.value }))} />
-                </Field>
-              </div>
-              <Button type="submit" className="rounded-2xl bg-emerald-300 text-slate-950" disabled={updateProfilePending}>
-                <RiUserSettingsLine className="size-4" />
-                {ui.saveProfile}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );

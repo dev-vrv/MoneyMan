@@ -55,10 +55,17 @@ run_backend_manage() {
   docker compose -f "$COMPOSE_FILE" run --rm backend python manage.py "$@"
 }
 
+stop_existing_stack() {
+  docker compose -f "$COMPOSE_FILE" down --remove-orphans
+}
+
 if [[ "$RESET_MODE" -eq 1 ]]; then
   echo "Reset mode enabled: removing containers, volumes, and migration files."
   docker compose -f "$COMPOSE_FILE" down -v --remove-orphans
   remove_migration_files
+else
+  echo "Stopping existing debug stack before startup."
+  stop_existing_stack
 fi
 
 docker compose -f "$COMPOSE_FILE" up -d --build postgres redis
@@ -69,6 +76,7 @@ run_backend_manage shell -c "from django.contrib.auth import get_user_model; Use
 docker compose -f "$COMPOSE_FILE" up -d --build backend celery-worker celery-beat frontend nginx
 
 printf '\nProject is running in debug mode.\n'
-printf 'App:   http://localhost\n'
-printf 'Admin: http://localhost/admin\n'
-printf 'API:   http://localhost/api/v1/health/\n'
+printf 'App:   http://localhost:3000\n'
+printf 'Admin: http://localhost:3000/admin\n'
+printf 'API:   http://localhost:3000/api/v1/health/\n'
+printf 'Django direct: http://localhost:8000\n'

@@ -583,6 +583,7 @@ export function createProfileForm(user: {
   last_name?: string;
   email?: string;
   phone?: string;
+  two_factor_enabled?: boolean;
   cash_flow_chart_default?: "bars" | "line" | "tradingview" | "candles" | "structure";
   default_currency?: string;
 } | null) {
@@ -591,6 +592,7 @@ export function createProfileForm(user: {
     last_name: user?.last_name ?? "",
     email: user?.email ?? "",
     phone: user?.phone ?? "",
+    two_factor_enabled: user?.two_factor_enabled ?? false,
     cash_flow_chart_default: user?.cash_flow_chart_default ?? "bars",
     default_currency: user?.default_currency ?? "USD",
   };

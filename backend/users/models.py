@@ -18,6 +18,7 @@ class User(AbstractUser):
     )
     email = models.EmailField(_("email address"), unique=True)
     phone = models.CharField(max_length=32, blank=True, default="")
+    two_factor_enabled = models.BooleanField(default=False)
     groups = models.ManyToManyField(
         Group,
         verbose_name=_("groups"),

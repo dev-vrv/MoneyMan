@@ -418,7 +418,7 @@ export function MetricCard({
   return (
     <Card
       className={cn(
-        "surface-panel-muted rounded-[1.8rem] border-white/8 bg-[linear-gradient(180deg,rgba(8,18,14,0.86)_0%,rgba(7,14,11,0.96)_100%)] py-0",
+        "surface-panel-muted h-full rounded-[1.8rem] border-white/8 bg-[linear-gradient(180deg,rgba(8,18,14,0.86)_0%,rgba(7,14,11,0.96)_100%)] py-0",
         onOpenBreakdown ? "group cursor-pointer transition duration-200 hover:-translate-y-0.5 hover:border-emerald-300/18 hover:shadow-[0_24px_60px_rgba(16,185,129,0.16)]" : "",
         className,
       )}
@@ -435,9 +435,9 @@ export function MetricCard({
       role={onOpenBreakdown ? "button" : undefined}
       tabIndex={onOpenBreakdown ? 0 : undefined}
     >
-      <CardHeader className="p-5">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="min-w-0 flex-1">
+      <CardHeader className="flex-1 p-5">
+        <div className="flex h-full flex-col gap-4 sm:flex-row sm:items-stretch sm:justify-between">
+          <div className="flex min-w-0 flex-1 flex-col">
             <div className="mb-3 inline-flex size-11 items-center justify-center rounded-2xl border border-emerald-300/16 bg-emerald-300/10 text-emerald-100">
               <Icon className="size-5" />
             </div>
@@ -459,23 +459,26 @@ export function MetricCard({
                       event.stopPropagation();
                       onOpenBreakdown();
                     }}
-                    className="mt-1 text-left text-sm font-medium text-emerald-200 transition hover:text-emerald-100"
+                    className="mt-2 inline-flex w-full items-center justify-between rounded-2xl border border-white/8 bg-white/[0.04] px-3 py-2 text-left text-sm font-medium text-emerald-100 transition hover:border-emerald-300/18 hover:bg-emerald-300/10"
                   >
-                    {moreLabel.replace("{count}", String(remainingCount))}
+                    <span>{moreLabel.replace("{count}", String(remainingCount))}</span>
+                    <RiArrowRightUpLine className="size-4 shrink-0 text-emerald-200" />
                   </button>
                 ) : null}
               </div>
             ) : null}
-          </div>
-          <div className="flex shrink-0 flex-col items-start gap-3 sm:items-end">
             {onOpenBreakdown ? (
-              <div className="inline-flex max-w-full items-center gap-2 self-start rounded-full border border-emerald-300/18 bg-emerald-300/10 px-3 py-1.5 text-xs font-medium text-emerald-100 transition group-hover:bg-emerald-300/14 sm:self-auto">
-                <span className="truncate">{actionLabel}</span>
-                <span className="inline-flex size-6 items-center justify-center rounded-full border border-emerald-300/18 bg-black/20 transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
-                  <RiArrowRightUpLine className="size-3.5" />
-                </span>
+              <div className="mt-auto pt-4">
+                <div className="inline-flex max-w-full items-center overflow-hidden rounded-full border border-emerald-300/18 bg-emerald-300/10 px-3 py-1.5 text-xs font-medium text-emerald-100 transition group-hover:bg-emerald-300/14">
+                  <span className="min-w-0 truncate">{actionLabel}</span>
+                  <span className="ml-2 inline-flex size-6 shrink-0 items-center justify-center rounded-full border border-emerald-300/18 bg-black/20 transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
+                    <RiArrowRightUpLine className="size-3.5" />
+                  </span>
+                </div>
               </div>
             ) : null}
+          </div>
+          <div className="flex min-w-0 flex-col items-start gap-3 sm:items-end">
             {typeof progressValue === "number" ? (
               <div
                 className="grid size-16 place-items-center rounded-full border border-emerald-200/18 text-sm font-semibold text-white"
@@ -493,8 +496,8 @@ export function MetricCard({
 
 export function PriorityPill({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[1.4rem] border border-white/8 bg-black/18 px-4 py-4">
-      <p className="text-xs uppercase tracking-[0.18em] text-zinc-500">{label}</p>
+    <div className="min-w-0 rounded-[1.4rem] border border-white/8 bg-black/18 px-4 py-4">
+      <p className="break-words text-xs uppercase leading-5 tracking-[0.14em] text-zinc-500">{label}</p>
       <p className="mt-2 break-words text-sm font-medium text-zinc-100 sm:text-base">{value}</p>
     </div>
   );

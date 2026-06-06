@@ -52,6 +52,7 @@ class AuthFlowTests(TestCase):
         user = User.objects.get(email="member@example.com")
         self.assertEqual(response.data["user"]["email"], user.email)
         self.assertEqual(response.data["user"]["phone"], "+7 701 000 00 00")
+        self.assertFalse(response.data["user"]["two_factor_enabled"])
         self.assertEqual(user.phone, "+7 701 000 00 00")
         self.assertTrue(UserProfile.objects.filter(user=user, phone=user.phone).exists())
         self.assertEqual(FinancialAccount.objects.filter(owner=user).count(), 0)
@@ -78,6 +79,7 @@ class AuthFlowTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["user"]["email"], user.email)
         self.assertEqual(response.data["user"]["phone"], user.phone)
+        self.assertFalse(response.data["user"]["two_factor_enabled"])
         self.assertIn("access", response.data)
         self.assertIn("refresh", response.data)
 
@@ -95,6 +97,7 @@ class AuthFlowTests(TestCase):
                 "first_name": "Aida",
                 "last_name": "Omur",
                 "phone": "+996 700 11 22 33",
+                "two_factor_enabled": True,
                 "cash_flow_chart_default": "tradingview",
                 "default_currency": "KGS",
             },
@@ -106,7 +109,9 @@ class AuthFlowTests(TestCase):
         self.assertEqual(user.first_name, "Aida")
         self.assertEqual(user.last_name, "Omur")
         self.assertEqual(user.phone, "+996 700 11 22 33")
+        self.assertTrue(user.two_factor_enabled)
         self.assertEqual(response.data["phone"], "+996 700 11 22 33")
+        self.assertTrue(response.data["two_factor_enabled"])
         self.assertEqual(response.data["cash_flow_chart_default"], "tradingview")
         self.assertEqual(user.profile.cash_flow_chart_default, "tradingview")
         self.assertEqual(response.data["default_currency"], "KGS")

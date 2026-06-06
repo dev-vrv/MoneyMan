@@ -176,6 +176,10 @@ AUTH_USER_MODEL = "users.User"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+default_log_handlers = ["django_file", "django_error_file"]
+if DEBUG:
+    default_log_handlers.insert(0, "console")
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
@@ -185,6 +189,11 @@ LOGGING = {
         },
     },
     "handlers": {
+        "console": {
+            "level": "WARNING" if DEBUG else "INFO",
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+        },
         "django_file": {
             "level": "INFO",
             "class": "logging.FileHandler",
@@ -199,27 +208,32 @@ LOGGING = {
         },
     },
     "root": {
-        "handlers": ["django_file", "django_error_file"],
-        "level": "INFO",
+        "handlers": default_log_handlers,
+        "level": "DEBUG" if DEBUG else "INFO",
     },
     "loggers": {
         "django": {
-            "handlers": ["django_file", "django_error_file"],
-            "level": "INFO",
+            "handlers": default_log_handlers,
+            "level": "DEBUG" if DEBUG else "INFO",
             "propagate": False,
         },
         "django.request": {
-            "handlers": ["django_error_file"],
-            "level": "ERROR",
+            "handlers": default_log_handlers,
+            "level": "DEBUG" if DEBUG else "ERROR",
             "propagate": False,
         },
         "django.server": {
-            "handlers": ["django_file", "django_error_file"],
-            "level": "INFO",
+            "handlers": default_log_handlers,
+            "level": "DEBUG" if DEBUG else "INFO",
             "propagate": False,
         },
         "backend": {
-            "handlers": ["django_file", "django_error_file"],
+            "handlers": default_log_handlers,
+            "level": "DEBUG" if DEBUG else "INFO",
+            "propagate": False,
+        },
+        "django.utils.autoreload": {
+            "handlers": default_log_handlers,
             "level": "INFO",
             "propagate": False,
         },

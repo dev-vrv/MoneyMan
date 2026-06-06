@@ -86,6 +86,10 @@ export type UiCopy = {
   lastName: string;
   email: string;
   phone: string;
+  twoFactorAuth: string;
+  twoFactorAuthDescription: string;
+  enabledLabel: string;
+  disabledLabel: string;
   saveProfile: string;
   profileUpdated: string;
   localeControl: string;
@@ -104,6 +108,8 @@ export type UiCopy = {
   totalCategoriesValue: string;
   systemCategoriesValue: string;
   customCategoriesValue: string;
+  showMoreCategories: string;
+  showLessCategories: string;
   interfaceSettingsTitle: string;
   interfaceSettingsBody: string;
   languageUpdated: string;

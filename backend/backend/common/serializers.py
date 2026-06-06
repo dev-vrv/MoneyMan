@@ -23,6 +23,7 @@ class UserSerializer(serializers.ModelSerializer):
             "first_name",
             "last_name",
             "phone",
+            "two_factor_enabled",
             "display_name",
             "cash_flow_chart_default",
             "default_currency",
@@ -66,7 +67,7 @@ class UserUpdateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ("email", "first_name", "last_name", "phone", "cash_flow_chart_default", "default_currency")
+        fields = ("email", "first_name", "last_name", "phone", "two_factor_enabled", "cash_flow_chart_default", "default_currency")
 
     def validate_email(self, value):
         normalized_email = normalize_email(value)
@@ -91,7 +92,7 @@ class UserUpdateSerializer(serializers.ModelSerializer):
 
         instance.phone = phone
         instance.username = instance.email
-        instance.save(update_fields=["email", "first_name", "last_name", "phone", "username"])
+        instance.save(update_fields=["email", "first_name", "last_name", "phone", "two_factor_enabled", "username"])
 
         try:
             profile = instance.profile

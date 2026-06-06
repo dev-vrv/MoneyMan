@@ -31,6 +31,68 @@ from .services import (
     update_transaction,
 )
 
+DEFAULT_CATEGORY_KIND_ICON = {
+    Category.CategoryKind.INCOME: "income",
+    Category.CategoryKind.EXPENSE: "expense",
+    Category.CategoryKind.TRANSFER: "transfer",
+}
+
+DEFAULT_CATEGORY_KIND_COLOR = {
+    Category.CategoryKind.INCOME: "emerald",
+    Category.CategoryKind.EXPENSE: "rose",
+    Category.CategoryKind.TRANSFER: "blue",
+}
+
+DEFAULT_SYSTEM_CATEGORY_ICON_BY_SLUG = {
+    "salary": "salary",
+    "employment-income": "salary",
+    "freelance-income": "business",
+    "business-income": "business",
+    "rental-income": "home",
+    "investment-income": "growth",
+    "interest-income": "fund",
+    "gift-income": "gift",
+    "food": "food",
+    "groceries": "food",
+    "dining": "food",
+    "transport": "transport",
+    "taxi": "taxi",
+    "travel": "travel",
+    "housing": "home",
+    "rent": "home",
+    "utilities": "utility",
+    "healthcare": "health",
+    "education": "education",
+    "shopping": "shopping",
+    "entertainment": "sparkles",
+    "tax": "tax",
+    "taxes": "tax",
+    "fees": "payments",
+    "subscriptions": "phone",
+}
+
+DEFAULT_SYSTEM_CATEGORY_COLOR_BY_SLUG = {
+    "salary": "emerald",
+    "employment-income": "emerald",
+    "freelance-income": "cyan",
+    "business-income": "amber",
+    "rental-income": "blue",
+    "investment-income": "violet",
+    "food": "orange",
+    "groceries": "orange",
+    "dining": "amber",
+    "transport": "blue",
+    "travel": "cyan",
+    "housing": "slate",
+    "healthcare": "rose",
+    "education": "indigo",
+    "shopping": "violet",
+    "entertainment": "teal",
+    "tax": "amber",
+    "taxes": "amber",
+    "fees": "slate",
+}
+
 
 def get_request_locale(request) -> str:
     if not request:
@@ -182,6 +244,18 @@ class CategorySerializer(serializers.ModelSerializer):
         representation["name"] = instance.get_localized_name(
             get_request_locale(self.context.get("request"))
         )
+        if not representation.get("icon"):
+            representation["icon"] = (
+                DEFAULT_SYSTEM_CATEGORY_ICON_BY_SLUG.get(instance.slug)
+                if instance.is_system
+                else None
+            ) or DEFAULT_CATEGORY_KIND_ICON.get(instance.kind, "tag")
+        if not representation.get("color"):
+            representation["color"] = (
+                DEFAULT_SYSTEM_CATEGORY_COLOR_BY_SLUG.get(instance.slug)
+                if instance.is_system
+                else None
+            ) or DEFAULT_CATEGORY_KIND_COLOR.get(instance.kind, "slate")
         return representation
 
 

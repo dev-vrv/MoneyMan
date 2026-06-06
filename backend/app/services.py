@@ -17,10 +17,14 @@ from .models import (
     AccountTaxProfile,
     Budget,
     Category,
+    Currency,
     CryptoAsset,
     CryptoAssetNetwork,
     CryptoHolding,
     CryptoNetwork,
+    ExchangeRate,
+    Notification,
+    NotificationReceipt,
     Transaction,
 )
 
@@ -776,7 +780,35 @@ def ensure_user_finance_setup(*, user) -> None:
     ensure_default_currencies()
     ensure_system_categories()
     ensure_default_crypto_reference_data()
+    ensure_default_account(user=user)
     refresh_all_budget_spent_amounts(user=user)
+
+
+@transaction.atomic
+def ensure_default_account(*, user) -> None:
+    if Account.objects.filter(owner=user).exists():
+        return
+
+    currency = (
+        Currency.objects.filter(is_active=True, is_default=True).order_by("code").first()
+        or Currency.objects.filter(is_active=True).order_by("code").first()
+    )
+    if currency is None:
+        return
+
+    Account.objects.create(
+        owner=user,
+        currency=currency,
+        name="Main account",
+        kind=Account.AccountKind.BANK,
+        status=Account.AccountStatus.ACTIVE,
+        institution="FinMan",
+        opening_balance=ZERO,
+        current_balance=ZERO,
+        include_in_net_worth=True,
+        color="emerald",
+        icon="RiBankLine",
+    )
 
 
 @transaction.atomic

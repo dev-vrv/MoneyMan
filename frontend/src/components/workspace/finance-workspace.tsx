@@ -10,7 +10,6 @@ import {
   RiBankCardLine,
   RiBarChartBoxLine,
   RiBookletLine,
-  RiCalendarLine,
   RiCoinsLine,
   RiDashboardLine,
   RiDeleteBin6Line,
@@ -24,6 +23,7 @@ import {
 
 import { useAuth } from "@/components/providers/auth-provider";
 import { AccountAppearancePicker } from "@/components/workspace/account-appearance-picker";
+import { CategoryAppearancePicker } from "@/components/workspace/category-appearance-picker";
 import { WorkspaceAccountsSection } from "@/components/workspace/sections/workspace-accounts-section";
 import { WorkspaceAnalyticsSection } from "@/components/workspace/sections/workspace-analytics-section";
 import { WorkspaceBudgetsSection } from "@/components/workspace/sections/workspace-budgets-section";
@@ -227,6 +227,10 @@ function getUiCopy(locale: Locale): UiCopy {
       lastName: "Фамилия",
       email: "Email",
       phone: "Телефон",
+      twoFactorAuth: "Двухфакторная аутентификация",
+      twoFactorAuthDescription: "Требовать дополнительное подтверждение при входе в аккаунт.",
+      enabledLabel: "Включено",
+      disabledLabel: "Выключено",
       saveProfile: "Сохранить профиль",
       profileUpdated: "Профиль обновлен.",
       localeControl: "Локализация",
@@ -245,6 +249,8 @@ function getUiCopy(locale: Locale): UiCopy {
       totalCategoriesValue: "{count} всего",
       systemCategoriesValue: "{count} общих",
       customCategoriesValue: "{count} личных",
+      showMoreCategories: "Показать еще {count}",
+      showLessCategories: "Свернуть список",
       interfaceSettingsTitle: "Интерфейс и локализация",
       interfaceSettingsBody: "Переключайте язык интерфейса и управляйте рабочими параметрами пространства.",
       languageUpdated: "Язык интерфейса обновлен.",
@@ -489,6 +495,10 @@ function getUiCopy(locale: Locale): UiCopy {
       lastName: "Фамилиясы",
       email: "Email",
       phone: "Телефон",
+      twoFactorAuth: "Эки факторлуу аутентификация",
+      twoFactorAuthDescription: "Аккаунтка киргенде кошумча ырастоону талап кылуу.",
+      enabledLabel: "Күйгүзүлгөн",
+      disabledLabel: "Өчүрүлгөн",
       saveProfile: "Профилди сактоо",
       profileUpdated: "Профиль жаңыртылды.",
       localeControl: "Локалдаштыруу",
@@ -507,6 +517,8 @@ function getUiCopy(locale: Locale): UiCopy {
       totalCategoriesValue: "{count} жалпы",
       systemCategoriesValue: "{count} жалпы",
       customCategoriesValue: "{count} жеке",
+      showMoreCategories: "Дагы {count} көрсөтүү",
+      showLessCategories: "Тизмени жыйноо",
       interfaceSettingsTitle: "Интерфейс жана локалдаштыруу",
       interfaceSettingsBody: "Интерфейс тилин алмаштырып, жумуш мейкиндигинин параметрлерин башкарыңыз.",
       languageUpdated: "Интерфейс тили жаңыртылды.",
@@ -750,6 +762,10 @@ function getUiCopy(locale: Locale): UiCopy {
     lastName: "Last name",
     email: "Email",
     phone: "Phone",
+    twoFactorAuth: "Two-factor authentication",
+    twoFactorAuthDescription: "Require an extra verification step when signing in to the account.",
+    enabledLabel: "Enabled",
+    disabledLabel: "Disabled",
     saveProfile: "Save profile",
     profileUpdated: "Profile updated.",
     localeControl: "Localization",
@@ -768,6 +784,8 @@ function getUiCopy(locale: Locale): UiCopy {
     totalCategoriesValue: "{count} total",
     systemCategoriesValue: "{count} shared",
     customCategoriesValue: "{count} personal",
+    showMoreCategories: "Show {count} more",
+    showLessCategories: "Collapse list",
     interfaceSettingsTitle: "Interface and localization",
     interfaceSettingsBody: "Switch interface language and control workspace-level preferences.",
     languageUpdated: "Interface language updated.",
@@ -1697,42 +1715,35 @@ export function FinanceWorkspace({
       <section className="relative z-10 mx-auto flex w-full max-w-[1680px] flex-col px-4 pb-12 pt-6 sm:px-6 lg:px-8">
         <header className="surface-panel rounded-[2rem] border border-white/8 bg-[linear-gradient(180deg,rgba(8,18,14,0.92)_0%,rgba(7,14,11,0.96)_100%)] px-5 py-5 sm:px-6">
           <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
-            <div className="min-w-0">
-              <div className="flex items-center gap-4">
-                <span className="inline-flex size-12 shrink-0 items-center justify-center rounded-2xl border border-emerald-300/18 bg-emerald-300/10 text-emerald-100">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-start gap-4">
+                <span className="mt-1 inline-flex size-12 shrink-0 items-center justify-center rounded-2xl border border-emerald-300/18 bg-emerald-300/10 text-emerald-100">
                   <ActiveSectionIcon className="size-5" />
                 </span>
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-zinc-300" variant="outline">
-                      FinMan
-                    </Badge>
-                    <Badge className="rounded-full border border-emerald-300/15 bg-emerald-300/10 px-3 py-1 text-emerald-100" variant="outline">
-                      {content.badge}
-                    </Badge>
-                  </div>
-                  <h1 className="mt-3 truncate text-2xl font-semibold tracking-tight text-white sm:text-[2.15rem]">
-                    {content.greeting.replace("{name}", user?.display_name ?? overview.user.display_name)}
-                  </h1>
-                  <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <p className="text-sm text-zinc-400">{content.description}</p>
-                    <Badge className="rounded-full border border-emerald-300/15 bg-emerald-300/10 px-3 py-1 text-emerald-100" variant="outline">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2 text-xs uppercase tracking-[0.18em] text-zinc-500 lg:flex-nowrap">
+                    <Badge className="shrink-0 rounded-full border border-emerald-300/15 bg-emerald-300/10 px-3 py-1 text-emerald-100" variant="outline">
                       {content.attention.replace("{count}", String(overview.summary.attention_count))}
                     </Badge>
+                    <span className="rounded-full border border-white/8 bg-white/[0.03] px-3 py-1 text-zinc-300">
+                      FinMan
+                    </span>
+                    <span className="rounded-full border border-white/8 bg-black/20 px-3 py-1 text-zinc-400">
+                      {currentMonthLabel}
+                    </span>
                   </div>
+                  <h1 className="mt-4 text-2xl font-semibold tracking-tight text-white sm:text-[2.05rem]">
+                    {activeNavigationItem.label}
+                  </h1>
                 </div>
               </div>
             </div>
 
-            <div className="grid gap-3 lg:grid-cols-[auto_auto_auto]">
-              <div className="flex h-12 items-center gap-3 rounded-2xl border border-white/8 bg-black/20 px-4 text-zinc-300">
-                <RiCalendarLine className="size-4 shrink-0" />
-                <span className="text-sm">{currentMonthLabel}</span>
-              </div>
+            <div className="flex flex-wrap items-stretch gap-3 xl:max-w-[30rem] xl:justify-end">
               <button
                 type="button"
                 onClick={() => setNotificationsOpen(true)}
-                className="relative flex h-12 w-12 items-center justify-center rounded-2xl border border-white/8 bg-black/20 text-zinc-300 transition hover:bg-white/[0.04] hover:text-white"
+                className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/8 bg-black/20 text-zinc-300 transition hover:bg-white/[0.04] hover:text-white"
               >
                 <RiNotification3Line className="size-4" />
                 {unreadNotificationsCount > 0 ? (
@@ -1741,8 +1752,8 @@ export function FinanceWorkspace({
                   </span>
                 ) : null}
               </button>
-              <div className="flex h-12 items-center gap-3 rounded-2xl border border-white/8 bg-black/20 px-3 pr-4">
-                <div className="flex size-9 items-center justify-center rounded-full border border-white/8 bg-white/[0.05] text-sm font-semibold text-white">
+              <div className="flex min-w-[210px] flex-1 items-center gap-3 rounded-2xl border border-white/8 bg-black/20 px-3 pr-4">
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-full border border-white/8 bg-white/[0.05] text-sm font-semibold text-white">
                   {(user?.display_name ?? overview.user.display_name).slice(0, 1).toUpperCase()}
                 </div>
                 <div className="min-w-0">
@@ -1752,7 +1763,7 @@ export function FinanceWorkspace({
               </div>
             </div>
           </div>
-          <div className="mt-5 flex flex-wrap gap-3">
+          <div className="mt-5 flex flex-wrap gap-2">
             <QuickActionRow
               compact
               label={content.actions.addTransaction}
@@ -1780,9 +1791,9 @@ export function FinanceWorkspace({
           </div>
         </header>
 
-        <div className="mt-6 flex flex-wrap gap-4">
+        <div className="mt-6 grid auto-rows-fr gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,1.35fr)_repeat(4,minmax(0,1fr))]">
           <Card
-            className="group surface-panel min-w-[280px] flex-[1_1_320px] cursor-pointer rounded-[1.8rem] border-white/8 bg-[linear-gradient(180deg,rgba(8,18,14,0.86)_0%,rgba(7,14,11,0.96)_100%)] py-0 transition duration-200 hover:-translate-y-0.5 hover:border-emerald-300/18 hover:shadow-[0_24px_60px_rgba(16,185,129,0.16)]"
+            className="group surface-panel h-full cursor-pointer rounded-[1.8rem] border-white/8 bg-[linear-gradient(180deg,rgba(8,18,14,0.86)_0%,rgba(7,14,11,0.96)_100%)] py-0 transition duration-200 hover:-translate-y-0.5 hover:border-emerald-300/18 hover:shadow-[0_24px_60px_rgba(16,185,129,0.16)] md:col-span-2 xl:col-span-1"
             onClick={() => setAccountsSnapshotOpen(true)}
             onKeyDown={(event) => {
               if (event.key === "Enter" || event.key === " ") {
@@ -1793,9 +1804,9 @@ export function FinanceWorkspace({
             role="button"
             tabIndex={0}
           >
-            <CardHeader className="p-5">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                <div className="min-w-0 flex-1">
+            <CardHeader className="flex h-full flex-1 flex-col p-5">
+              <div className="flex flex-1 flex-col gap-4 sm:flex-row sm:items-stretch sm:justify-between">
+                <div className="flex min-w-0 flex-1 flex-col">
                   <div className="mb-3 inline-flex size-11 items-center justify-center rounded-2xl border border-emerald-300/16 bg-emerald-300/10 text-emerald-100">
                     <RiSafe2Line className="size-5" />
                   </div>
@@ -1813,12 +1824,14 @@ export function FinanceWorkspace({
                       ? `${ui.totalApproximate} · ${accountBalanceSnapshot.convertedTotal.currency}`
                       : workspaceSummaryCurrency}
                   </p>
-                </div>
-                <div className="inline-flex max-w-full items-center gap-2 self-start rounded-full border border-emerald-300/18 bg-emerald-300/10 px-3 py-1.5 text-xs font-medium text-emerald-100 transition group-hover:bg-emerald-300/14 sm:self-auto">
-                  <span className="truncate">{ui.openDetails}</span>
-                  <span className="inline-flex size-6 items-center justify-center rounded-full border border-emerald-300/18 bg-black/20 transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
-                    <RiArrowRightUpLine className="size-3.5" />
-                  </span>
+                  <div className="mt-auto pt-4">
+                    <div className="inline-flex max-w-full items-center overflow-hidden rounded-full border border-emerald-300/18 bg-emerald-300/10 px-3 py-1.5 text-xs font-medium text-emerald-100 transition group-hover:bg-emerald-300/14">
+                      <span className="min-w-0 truncate">{ui.openDetails}</span>
+                      <span className="ml-2 inline-flex size-6 shrink-0 items-center justify-center rounded-full border border-emerald-300/18 bg-black/20 transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
+                        <RiArrowRightUpLine className="size-3.5" />
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </CardHeader>
@@ -1831,7 +1844,7 @@ export function FinanceWorkspace({
             breakdown={monthlyIncomeBreakdown}
             breakdownLabel={ui.currencyBreakdown}
             moreLabel={ui.currenciesMore}
-            className="min-w-[220px] flex-[1_1_220px]"
+            className="h-full"
             onOpenBreakdown={() =>
               setSummaryBreakdownModal({
                 title: content.summary.income,
@@ -1849,7 +1862,7 @@ export function FinanceWorkspace({
             breakdown={monthlyExpenseBreakdown}
             breakdownLabel={ui.currencyBreakdown}
             moreLabel={ui.currenciesMore}
-            className="min-w-[220px] flex-[1_1_220px]"
+            className="h-full"
             onOpenBreakdown={() =>
               setSummaryBreakdownModal({
                 title: content.summary.expenses,
@@ -1870,7 +1883,7 @@ export function FinanceWorkspace({
             breakdown={monthlyNetBreakdown}
             breakdownLabel={ui.currencyBreakdown}
             moreLabel={ui.currenciesMore}
-            className="min-w-[220px] flex-[1_1_220px]"
+            className="h-full"
             onOpenBreakdown={() =>
               setSummaryBreakdownModal({
                 title: ui.cashFlowLabel,
@@ -1885,7 +1898,7 @@ export function FinanceWorkspace({
             label={content.summary.savingsRate}
             value={`${overview.summary.savings_rate}%`}
             progressValue={Math.max(0, Math.min(100, overview.summary.savings_rate))}
-            className="min-w-[220px] flex-[1_1_220px]"
+            className="h-full"
           />
         </div>
 
@@ -1983,6 +1996,33 @@ export function FinanceWorkspace({
                     payload: { is_active: !budget.is_active },
                   })
                 }
+              />
+            ) : null}
+
+            {displaySection === "settings" ? (
+              <WorkspaceSettingsSection
+                ui={ui}
+                locale={locale}
+                currencies={currencies}
+                categories={categories}
+                filteredCategories={filteredCategories}
+                categorySearchQuery={categorySearchQuery}
+                categorySourceFilter={categorySourceFilter}
+                categoryKindFilter={categoryKindFilter}
+                systemCategoriesCount={systemCategoriesCount}
+                customCategoriesCount={customCategoriesCount}
+                activeProfileForm={activeProfileForm}
+                updateProfilePending={updateProfileMutation.isPending}
+                setCashFlowChartMode={setCashFlowChartMode}
+                onOpenCategoryDialog={openCategoryDialog}
+                onCategorySearchChange={setCategorySearchQuery}
+                onCategorySourceFilterChange={setCategorySourceFilter}
+                onCategoryKindFilterChange={setCategoryKindFilter}
+                onOpenCategoryEditDialog={openCategoryEditDialog}
+                onDeleteCategoryRequest={setCategoryToDelete}
+                onLocaleChange={handleLocaleChange}
+                onUpdateProfileFormState={updateProfileFormState}
+                onSaveProfile={() => updateProfileMutation.mutate(activeProfileForm)}
               />
             ) : null}
 
@@ -2821,10 +2861,29 @@ export function FinanceWorkspace({
                     <Input value={categoryForm.slug} onChange={(event) => setCategoryForm((current) => ({ ...current, slug: event.target.value }))} />
                   </Field>
                   <Field>
-                    <FieldLabel>{ui.colorToken}</FieldLabel>
-                    <Input value={categoryForm.color} onChange={(event) => setCategoryForm((current) => ({ ...current, color: event.target.value }))} />
+                    <FieldLabel>{ui.status}</FieldLabel>
+                    <WorkspaceSelect
+                      value={categoryForm.is_active ? "active" : "inactive"}
+                      onValueChange={(value) => setCategoryForm((current) => ({ ...current, is_active: value === "active" }))}
+                      options={[
+                        { value: "active", label: ui.activeLabel },
+                        { value: "inactive", label: ui.inactiveLabel },
+                      ]}
+                    />
                   </Field>
                 </div>
+                <CategoryAppearancePicker
+                  color={categoryForm.color}
+                  icon={categoryForm.icon}
+                  kind={categoryForm.kind}
+                  slug={categoryForm.slug}
+                  colorLabel={ui.colorToken}
+                  iconLabel={ui.accountIcon}
+                  helperText={ui.appearanceHint}
+                  clearLabel={ui.clearSelection}
+                  onColorChange={(value) => setCategoryForm((current) => ({ ...current, color: value }))}
+                  onIconChange={(value) => setCategoryForm((current) => ({ ...current, icon: value }))}
+                />
                 <Field>
                   <FieldLabel>{ui.notes}</FieldLabel>
                   <Textarea value={categoryForm.description} onChange={(event) => setCategoryForm((current) => ({ ...current, description: event.target.value }))} />
@@ -2857,35 +2916,6 @@ export function FinanceWorkspace({
           </form>
         </DialogContent>
       </Dialog>
-
-      {displaySection === "settings" ? (
-        <WorkspaceSettingsSection
-          ui={ui}
-          locale={locale}
-          user={user}
-          overview={overview}
-          currencies={currencies}
-          categories={categories}
-          filteredCategories={filteredCategories}
-          categorySearchQuery={categorySearchQuery}
-          categorySourceFilter={categorySourceFilter}
-          categoryKindFilter={categoryKindFilter}
-          systemCategoriesCount={systemCategoriesCount}
-          customCategoriesCount={customCategoriesCount}
-          activeProfileForm={activeProfileForm}
-          updateProfilePending={updateProfileMutation.isPending}
-          setCashFlowChartMode={setCashFlowChartMode}
-          onOpenCategoryDialog={openCategoryDialog}
-          onCategorySearchChange={setCategorySearchQuery}
-          onCategorySourceFilterChange={setCategorySourceFilter}
-          onCategoryKindFilterChange={setCategoryKindFilter}
-          onOpenCategoryEditDialog={openCategoryEditDialog}
-          onDeleteCategoryRequest={setCategoryToDelete}
-          onLocaleChange={handleLocaleChange}
-          onUpdateProfileFormState={updateProfileFormState}
-          onSaveProfile={() => updateProfileMutation.mutate(activeProfileForm)}
-        />
-      ) : null}
 
       <AlertDialog open={!!transactionToDelete} onOpenChange={(open) => !open && setTransactionToDelete(null)}>
         <AlertDialogContent size="sm">

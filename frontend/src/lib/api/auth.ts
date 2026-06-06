@@ -33,7 +33,7 @@ export async function fetchCurrentUser() {
 }
 
 export type UpdateCurrentUserPayload = Partial<
-  Pick<AuthUser, "email" | "first_name" | "last_name" | "phone" | "cash_flow_chart_default" | "default_currency">
+  Pick<AuthUser, "email" | "first_name" | "last_name" | "phone" | "two_factor_enabled" | "cash_flow_chart_default" | "default_currency">
 >;
 
 export async function updateCurrentUser(payload: UpdateCurrentUserPayload) {

@@ -106,6 +106,16 @@ class FinanceAPITestCase(TestCase):
         self.assertEqual(category_map["food"], "Тамак-аш")
         self.assertEqual(category_map["pet-care"], "Pet Care")
 
+    def test_category_list_returns_fallback_icon_and_color_for_system_categories(self):
+        response = self.client.get(reverse("api:finance-category-list"))
+
+        self.assertEqual(response.status_code, 200)
+        category_map = {item["slug"]: item for item in response.data["results"]}
+        self.assertEqual(category_map["salary"]["icon"], "salary")
+        self.assertEqual(category_map["salary"]["color"], "emerald")
+        self.assertEqual(category_map["food"]["icon"], "food")
+        self.assertEqual(category_map["food"]["color"], "orange")
+
     def test_user_can_create_personal_subcategory_under_system_category(self):
         response = self.client.post(
             reverse("api:finance-category-list"),
@@ -115,6 +125,8 @@ class FinanceAPITestCase(TestCase):
                 "name": "Dog food",
                 "slug": "dog-food",
                 "description": "Personal subcategory",
+                "icon": "food",
+                "color": "amber",
             },
             format="json",
         )
@@ -125,6 +137,8 @@ class FinanceAPITestCase(TestCase):
         self.assertEqual(created_category.parent, self.food_category)
         self.assertFalse(created_category.is_system)
         self.assertEqual(created_category.name, "Dog food")
+        self.assertEqual(created_category.icon, "food")
+        self.assertEqual(created_category.color, "amber")
 
     def test_create_expense_transaction_updates_balance(self):
         response = self.client.post(
@@ -409,12 +423,15 @@ class CategorySeedTestCase(TestCase):
         self.assertTrue(employment_income.is_system)
         self.assertTrue(groceries.is_system)
 
-    def test_ensure_user_finance_setup_keeps_new_user_empty(self):
+    def test_ensure_user_finance_setup_creates_base_account_for_new_user(self):
         user = User.objects.create_user(email="empty@example.com", password="testpass123")
 
         ensure_user_finance_setup(user=user)
 
-        self.assertEqual(Account.objects.filter(owner=user).count(), 0)
+        account = Account.objects.get(owner=user)
+        self.assertEqual(account.kind, Account.AccountKind.BANK)
+        self.assertEqual(account.status, Account.AccountStatus.ACTIVE)
+        self.assertEqual(account.current_balance, Decimal("0.00"))
         self.assertEqual(Transaction.objects.filter(owner=user).count(), 0)
         self.assertEqual(Budget.objects.filter(owner=user).count(), 0)
         self.assertGreater(Category.objects.filter(owner__isnull=True, is_system=True).count(), 0)

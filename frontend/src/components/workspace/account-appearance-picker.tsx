@@ -69,17 +69,34 @@ export type AccountAppearancePreset = {
 };
 
 export const ACCOUNT_COLOR_PRESETS: AccountAppearancePreset[] = [
-  { token: "emerald", label: "Emerald", border: "#34d399", glow: "rgba(52,211,153,0.24)", soft: "rgba(6,95,70,0.18)", orb: "rgba(110,231,183,0.34)", text: "#d1fae5" },
-  { token: "teal", label: "Teal", border: "#2dd4bf", glow: "rgba(45,212,191,0.22)", soft: "rgba(15,118,110,0.18)", orb: "rgba(153,246,228,0.34)", text: "#ccfbf1" },
-  { token: "cyan", label: "Cyan", border: "#67e8f9", glow: "rgba(103,232,249,0.22)", soft: "rgba(8,145,178,0.16)", orb: "rgba(165,243,252,0.32)", text: "#cffafe" },
-  { token: "blue", label: "Blue", border: "#60a5fa", glow: "rgba(96,165,250,0.22)", soft: "rgba(29,78,216,0.16)", orb: "rgba(147,197,253,0.34)", text: "#dbeafe" },
-  { token: "indigo", label: "Indigo", border: "#818cf8", glow: "rgba(129,140,248,0.22)", soft: "rgba(67,56,202,0.16)", orb: "rgba(165,180,252,0.34)", text: "#e0e7ff" },
-  { token: "violet", label: "Violet", border: "#a78bfa", glow: "rgba(167,139,250,0.22)", soft: "rgba(109,40,217,0.16)", orb: "rgba(196,181,253,0.34)", text: "#ede9fe" },
-  { token: "rose", label: "Rose", border: "#fb7185", glow: "rgba(251,113,133,0.22)", soft: "rgba(190,24,93,0.16)", orb: "rgba(253,164,175,0.34)", text: "#ffe4e6" },
-  { token: "amber", label: "Amber", border: "#fbbf24", glow: "rgba(251,191,36,0.2)", soft: "rgba(180,83,9,0.16)", orb: "rgba(252,211,77,0.32)", text: "#fef3c7" },
-  { token: "orange", label: "Orange", border: "#fb923c", glow: "rgba(251,146,60,0.2)", soft: "rgba(194,65,12,0.16)", orb: "rgba(253,186,116,0.32)", text: "#ffedd5" },
-  { token: "slate", label: "Slate", border: "#94a3b8", glow: "rgba(148,163,184,0.18)", soft: "rgba(51,65,85,0.18)", orb: "rgba(203,213,225,0.22)", text: "#e2e8f0" },
+  { token: "emerald", label: "Emerald", border: "#3ecf8e", glow: "rgba(62,207,142,0.2)", soft: "rgba(7,53,36,0.88)", orb: "rgba(110,231,183,0.18)", text: "#d7fff0" },
+  { token: "teal", label: "Teal", border: "#36cbb8", glow: "rgba(54,203,184,0.19)", soft: "rgba(7,50,48,0.88)", orb: "rgba(94,234,212,0.17)", text: "#d4fffb" },
+  { token: "cyan", label: "Cyan", border: "#57cde8", glow: "rgba(87,205,232,0.18)", soft: "rgba(9,42,54,0.88)", orb: "rgba(125,211,252,0.16)", text: "#dbf8ff" },
+  { token: "blue", label: "Blue", border: "#6395f9", glow: "rgba(99,149,249,0.18)", soft: "rgba(11,33,66,0.88)", orb: "rgba(147,197,253,0.16)", text: "#dfeaff" },
+  { token: "indigo", label: "Indigo", border: "#7d87f8", glow: "rgba(125,135,248,0.18)", soft: "rgba(24,24,70,0.88)", orb: "rgba(165,180,252,0.16)", text: "#e5e9ff" },
+  { token: "violet", label: "Violet", border: "#a383f6", glow: "rgba(163,131,246,0.18)", soft: "rgba(44,22,73,0.88)", orb: "rgba(196,181,253,0.16)", text: "#f0e9ff" },
+  { token: "rose", label: "Rose", border: "#f06f97", glow: "rgba(240,111,151,0.18)", soft: "rgba(68,22,46,0.88)", orb: "rgba(251,146,176,0.16)", text: "#ffe3ee" },
+  { token: "amber", label: "Amber", border: "#e9b64b", glow: "rgba(233,182,75,0.16)", soft: "rgba(73,43,16,0.9)", orb: "rgba(252,211,77,0.14)", text: "#fff1cc" },
+  { token: "orange", label: "Orange", border: "#ea9352", glow: "rgba(234,147,82,0.16)", soft: "rgba(76,35,16,0.9)", orb: "rgba(251,191,116,0.14)", text: "#ffeadc" },
+  { token: "slate", label: "Slate", border: "#97a6ba", glow: "rgba(151,166,186,0.15)", soft: "rgba(29,36,49,0.9)", orb: "rgba(203,213,225,0.12)", text: "#ebf2ff" },
 ];
+
+export function buildAppearanceSwatchStyle(
+  preset: AccountAppearancePreset,
+  isSelected: boolean,
+) {
+  return {
+    borderColor: isSelected ? preset.border : "rgba(255,255,255,0.08)",
+    background: [
+      `radial-gradient(circle at 30% 24%, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.08) 18%, transparent 42%)`,
+      `radial-gradient(circle at 62% 72%, ${preset.orb} 0%, transparent 46%)`,
+      `linear-gradient(145deg, rgba(255,255,255,0.05) 0%, ${preset.soft} 38%, rgba(3,7,10,0.96) 100%)`,
+    ].join(", "),
+    boxShadow: isSelected
+      ? `inset 0 1px 0 rgba(255,255,255,0.22), inset 0 -10px 18px rgba(0,0,0,0.28), 0 0 0 1px ${preset.glow}, 0 14px 32px -20px ${preset.glow}`
+      : "inset 0 1px 0 rgba(255,255,255,0.14), inset 0 -10px 18px rgba(0,0,0,0.22)",
+  };
+}
 
 export const ACCOUNT_ICON_OPTIONS: Array<{ value: string; icon: IconType; label: string }> = [
   { value: "wallet", icon: RiWallet3Line, label: "Wallet" },
@@ -207,7 +224,7 @@ export function AccountAppearancePicker({
 
       <div>
         <p className="mb-3 text-xs uppercase tracking-[0.18em] text-zinc-500">{colorLabel}</p>
-        <div className="flex flex-wrap gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           {ACCOUNT_COLOR_PRESETS.map((preset) => {
             const isSelected = preset.token === color;
             return (
@@ -216,17 +233,22 @@ export function AccountAppearancePicker({
                 type="button"
                 onClick={() => onColorChange(preset.token)}
                 className={cn(
-                  "relative flex h-10 w-10 items-center justify-center rounded-2xl border transition hover:-translate-y-0.5",
-                  isSelected ? "scale-[1.03]" : "",
+                  "flex items-center gap-3 rounded-2xl border px-3 py-2 text-left transition duration-200 hover:-translate-y-0.5",
+                  isSelected ? "bg-white/[0.06]" : "bg-white/[0.03]",
                 )}
                 style={{
                   borderColor: isSelected ? preset.border : "rgba(255,255,255,0.08)",
-                  background: `radial-gradient(circle at 30% 30%, ${preset.orb} 0%, ${preset.soft} 58%, rgba(5,8,7,0.76) 100%)`,
-                  boxShadow: isSelected ? `0 0 0 1px ${preset.glow}, 0 12px 28px -18px ${preset.glow}` : undefined,
+                  boxShadow: isSelected ? `0 0 0 1px ${preset.glow}, 0 12px 26px -20px ${preset.glow}` : undefined,
                 }}
                 aria-label={preset.label}
               >
-                {isSelected ? <span className="size-2.5 rounded-full bg-white/90" /> : null}
+                <span
+                  className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border"
+                  style={buildAppearanceSwatchStyle(preset, isSelected)}
+                >
+                  {isSelected ? <span className="size-2 rounded-full bg-white/90 shadow-[0_0_10px_rgba(255,255,255,0.35)]" /> : null}
+                </span>
+                <span className="min-w-0 text-sm font-medium text-zinc-100">{preset.label}</span>
               </button>
             );
           })}

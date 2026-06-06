@@ -4,6 +4,7 @@ export type AuthUser = {
   first_name: string;
   last_name: string;
   phone: string;
+  two_factor_enabled: boolean;
   display_name: string;
   cash_flow_chart_default: "bars" | "line" | "tradingview" | "candles" | "structure";
   default_currency: string;
