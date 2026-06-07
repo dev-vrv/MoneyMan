@@ -78,6 +78,7 @@ export type CurrencyRecord = {
   code: string;
   name: string;
   symbol: string;
+  flag_emoji: string;
   numeric_code: string;
   decimal_places: number;
   is_active: boolean;

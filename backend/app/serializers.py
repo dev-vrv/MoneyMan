@@ -97,6 +97,33 @@ DEFAULT_SYSTEM_CATEGORY_COLOR_BY_SLUG = {
     "fees": "slate",
 }
 
+CURRENCY_FLAG_COUNTRY_BY_CODE = {
+    "AUD": "AU",
+    "BYN": "BY",
+    "CAD": "CA",
+    "CHF": "CH",
+    "CNY": "CN",
+    "EUR": "EU",
+    "GBP": "GB",
+    "JPY": "JP",
+    "KGS": "KG",
+    "KZT": "KZ",
+    "RUB": "RU",
+    "TRY": "TR",
+    "UAH": "UA",
+    "USD": "US",
+    "UZS": "UZ",
+}
+
+
+def currency_code_to_flag_emoji(currency_code: str) -> str:
+    country_code = CURRENCY_FLAG_COUNTRY_BY_CODE.get((currency_code or "").upper())
+    if not country_code:
+        return "💱"
+    if country_code == "EU":
+        return "🇪🇺"
+    return "".join(chr(127397 + ord(letter)) for letter in country_code)
+
 
 def get_request_locale(request) -> str:
     if not request:
@@ -112,17 +139,23 @@ def get_request_locale(request) -> str:
 
 
 class CurrencySerializer(serializers.ModelSerializer):
+    flag_emoji = serializers.SerializerMethodField()
+
     class Meta:
         model = Currency
         fields = (
             "code",
             "name",
             "symbol",
+            "flag_emoji",
             "numeric_code",
             "decimal_places",
             "is_active",
             "is_default",
         )
+
+    def get_flag_emoji(self, obj):
+        return currency_code_to_flag_emoji(obj.code)
 
 
 class ExchangeRateSerializer(serializers.ModelSerializer):

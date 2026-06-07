@@ -24,6 +24,7 @@ import {
 import { useAuth } from "@/components/providers/auth-provider";
 import { AccountAppearancePicker } from "@/components/workspace/account-appearance-picker";
 import { CategoryAppearancePicker } from "@/components/workspace/category-appearance-picker";
+import { CurrencyFlag, CurrencyOptionLabel } from "@/components/workspace/currency-flag";
 import { WorkspaceAccountsSection } from "@/components/workspace/sections/workspace-accounts-section";
 import { WorkspaceAnalyticsSection } from "@/components/workspace/sections/workspace-analytics-section";
 import { WorkspaceBudgetsSection } from "@/components/workspace/sections/workspace-budgets-section";
@@ -2136,6 +2137,7 @@ export function FinanceWorkspace({
             breakdown={monthlyIncomeBreakdown}
             breakdownLabel={ui.currencyBreakdown}
             moreLabel={ui.currenciesMore}
+            collapseLabel={ui.showLessCategories}
             className="h-full"
             onOpenBreakdown={() =>
               setSummaryBreakdownModal({
@@ -2154,6 +2156,7 @@ export function FinanceWorkspace({
             breakdown={monthlyExpenseBreakdown}
             breakdownLabel={ui.currencyBreakdown}
             moreLabel={ui.currenciesMore}
+            collapseLabel={ui.showLessCategories}
             className="h-full"
             onOpenBreakdown={() =>
               setSummaryBreakdownModal({
@@ -2175,6 +2178,7 @@ export function FinanceWorkspace({
             breakdown={monthlyNetBreakdown}
             breakdownLabel={ui.currencyBreakdown}
             moreLabel={ui.currenciesMore}
+            collapseLabel={ui.showLessCategories}
             className="h-full"
             onOpenBreakdown={() =>
               setSummaryBreakdownModal({
@@ -2412,7 +2416,7 @@ export function FinanceWorkspace({
                       }}
                       options={currencies.map((currency: CurrencyRecord) => ({
                         value: currency.code,
-                        label: `${currency.code} · ${currency.name}`,
+                        label: <CurrencyOptionLabel currencyCode={currency.code} text={`${currency.code} · ${currency.name}`} />,
                       }))}
                     />
                     <FieldError>{accountFormErrors.currency}</FieldError>
@@ -3066,7 +3070,7 @@ export function FinanceWorkspace({
                       onValueChange={(value) => setBudgetForm((current) => ({ ...current, currency: value }))}
                       options={currencies.map((currency) => ({
                         value: currency.code,
-                        label: currency.code,
+                        label: <CurrencyOptionLabel currencyCode={currency.code} text={currency.code} />,
                       }))}
                     />
                   </Field>
@@ -3608,12 +3612,27 @@ export function FinanceWorkspace({
                 <div className="flex items-center justify-between gap-4">
                   <div>
                     <p className="text-sm font-medium text-white">
-                      {rate.base_currency.code} / {rate.quote_currency.code}
+                      <span className="inline-flex items-center gap-2">
+                        <CurrencyFlag currencyCode={rate.base_currency.code} />
+                        <span>{rate.base_currency.code}</span>
+                        <span className="text-zinc-500">/</span>
+                        <CurrencyFlag currencyCode={rate.quote_currency.code} />
+                        <span>{rate.quote_currency.code}</span>
+                      </span>
                     </p>
-                    <p className="mt-1 text-sm text-zinc-500">1 {rate.base_currency.code}</p>
+                    <p className="mt-1 text-sm text-zinc-500">
+                      <span className="inline-flex items-center gap-2">
+                        <span>1</span>
+                        <CurrencyFlag currencyCode={rate.base_currency.code} />
+                        <span>{rate.base_currency.code}</span>
+                      </span>
+                    </p>
                   </div>
                   <Badge variant="outline" className="rounded-full border-white/10 text-zinc-200">
-                    {rate.quote_currency.code}
+                    <span className="inline-flex items-center gap-2">
+                      <CurrencyFlag currencyCode={rate.quote_currency.code} />
+                      <span>{rate.quote_currency.code}</span>
+                    </span>
                   </Badge>
                 </div>
                 <p className="mt-4 text-2xl font-semibold text-white">{formatRate(rate.rate)}</p>

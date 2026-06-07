@@ -14,6 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { CurrencyOptionLabel } from "@/components/workspace/currency-flag";
 import type { CategoryRecord, CurrencyRecord } from "@/lib/api/finance";
 import { locales, type Locale } from "@/lib/i18n/config";
 
@@ -268,7 +269,7 @@ export function WorkspaceSettingsSection({
                         onValueChange={onDefaultCurrencyChange}
                         options={currencies.map((currency) => ({
                           value: currency.code,
-                          label: `${currency.code} · ${currency.name}`,
+                          label: <CurrencyOptionLabel currencyCode={currency.code} text={`${currency.code} · ${currency.name}`} />,
                         }))}
                       />
                       <p className="mt-3 text-sm leading-6 text-zinc-400">{ui.defaultCurrencyDescription}</p>

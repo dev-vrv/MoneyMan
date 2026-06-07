@@ -3,6 +3,7 @@
 import type { ChangeEvent } from "react";
 
 import type { UiCopy } from "@/components/workspace/finance-workspace.types";
+import { CurrencyFlag } from "@/components/workspace/currency-flag";
 import { formatDate, formatRate } from "@/components/workspace/finance-workspace.utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -62,9 +63,16 @@ export function WorkspaceRatesSection({
               featuredFilteredExchangeRates.map((rate) => (
                 <div key={rate.id} className="rounded-[1.4rem] border border-white/8 bg-black/18 px-4 py-4">
                   <div className="flex items-center justify-between gap-4">
-                    <p className="text-sm text-zinc-400">1 {rate.base_currency.code}</p>
+                    <p className="inline-flex items-center gap-2 text-sm text-zinc-400">
+                      <span>1</span>
+                      <CurrencyFlag currencyCode={rate.base_currency.code} />
+                      <span>{rate.base_currency.code}</span>
+                    </p>
                     <Badge variant="outline" className="rounded-full border-white/10 text-zinc-200">
-                      {rate.quote_currency.code}
+                      <span className="inline-flex items-center gap-2">
+                        <CurrencyFlag currencyCode={rate.quote_currency.code} />
+                        <span>{rate.quote_currency.code}</span>
+                      </span>
                     </Badge>
                   </div>
                   <p className="mt-3 text-2xl font-semibold text-white">{formatRate(rate.rate)}</p>

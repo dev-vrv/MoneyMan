@@ -1,6 +1,7 @@
 "use client";
 
-import type { ComponentType, Dispatch, SetStateAction } from "react";
+import { useState } from "react";
+import type { ComponentType, Dispatch, ReactNode, SetStateAction } from "react";
 import { RiAddLine, RiArrowRightUpLine, RiPencilLine } from "react-icons/ri";
 
 import {
@@ -63,7 +64,7 @@ export function WorkspaceSelect({
   value?: string;
   onValueChange: (value: string) => void;
   placeholder?: string;
-  options: Array<{ value: string; label: string }>;
+  options: Array<{ value: string; label: ReactNode }>;
   invalid?: boolean;
 }) {
   const selectedOption = options.find((option) => option.value === value);
@@ -464,6 +465,7 @@ export function MetricCard({
   breakdown = [],
   breakdownLabel,
   moreLabel,
+  collapseLabel,
   onOpenBreakdown,
 }: {
   icon: ComponentType<{ className?: string }>;
@@ -475,10 +477,12 @@ export function MetricCard({
   breakdown?: CurrencyBreakdownEntry[];
   breakdownLabel?: string;
   moreLabel?: string;
+  collapseLabel?: string;
   onOpenBreakdown?: () => void;
 }) {
-  const previewEntries = breakdown.slice(0, 2);
-  const remainingCount = Math.max(breakdown.length - previewEntries.length, 0);
+  const [breakdownExpanded, setBreakdownExpanded] = useState(false);
+  const visibleEntries = breakdownExpanded ? breakdown : breakdown.slice(0, 2);
+  const remainingCount = Math.max(breakdown.length - visibleEntries.length, 0);
 
   return (
     <Card
@@ -508,26 +512,33 @@ export function MetricCard({
             </div>
             <CardDescription className="text-zinc-400">{label}</CardDescription>
             <CardTitle className="mt-2 break-words text-[1.05rem] text-white sm:text-[1.25rem]">{value}</CardTitle>
-            {previewEntries.length > 0 ? (
+            {visibleEntries.length > 0 ? (
               <div className="mt-3 grid gap-1.5">
                 {breakdownLabel ? <p className="text-xs uppercase tracking-[0.18em] text-zinc-500">{breakdownLabel}</p> : null}
-                {previewEntries.map((entry) => (
+                {visibleEntries.map((entry) => (
                   <div key={`${label}-${entry.currency}`} className="flex items-center justify-between gap-3 text-sm">
                     <span className="text-zinc-400">{entry.currency}</span>
                     <span className="font-medium text-zinc-100">{formatMoney(String(entry.amount), entry.currency)}</span>
                   </div>
                 ))}
-                {remainingCount > 0 && onOpenBreakdown && moreLabel ? (
+                {breakdown.length > 2 && moreLabel && collapseLabel ? (
                   <button
                     type="button"
                     onClick={(event) => {
                       event.stopPropagation();
-                      onOpenBreakdown();
+                      setBreakdownExpanded((current) => !current);
                     }}
-                    className="mt-2 inline-flex w-full items-center justify-between rounded-2xl border border-white/8 bg-white/[0.04] px-3 py-2 text-left text-sm font-medium text-emerald-100 transition hover:border-emerald-300/18 hover:bg-emerald-300/10"
+                    className="mt-2 inline-flex w-full items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-3 py-2.5 text-left text-sm font-medium text-zinc-100 transition hover:bg-white/[0.08]"
                   >
-                    <span>{moreLabel.replace("{count}", String(remainingCount))}</span>
-                    <RiArrowRightUpLine className="size-4 shrink-0 text-emerald-200" />
+                    <span>
+                      {breakdownExpanded ? collapseLabel : moreLabel.replace("{count}", String(remainingCount))}
+                    </span>
+                    <RiArrowRightUpLine
+                      className={cn(
+                        "size-4 shrink-0 transition-transform",
+                        breakdownExpanded ? "rotate-90 text-zinc-200" : "text-zinc-200",
+                      )}
+                    />
                   </button>
                 ) : null}
               </div>
