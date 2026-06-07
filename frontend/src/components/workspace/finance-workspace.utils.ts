@@ -110,6 +110,44 @@ function startOfWeek(value: Date) {
   return result;
 }
 
+function startOfDay(value: Date) {
+  const result = new Date(value);
+  result.setHours(0, 0, 0, 0);
+  return result;
+}
+
+function endOfDay(value: Date) {
+  const result = new Date(value);
+  result.setHours(23, 59, 59, 999);
+  return result;
+}
+
+function startOfMonth(value: Date) {
+  return new Date(value.getFullYear(), value.getMonth(), 1);
+}
+
+function endOfMonth(value: Date) {
+  return new Date(value.getFullYear(), value.getMonth() + 1, 0, 23, 59, 59, 999);
+}
+
+function startOfQuarter(value: Date) {
+  const quarterMonth = Math.floor(value.getMonth() / 3) * 3;
+  return new Date(value.getFullYear(), quarterMonth, 1);
+}
+
+function endOfQuarter(value: Date) {
+  const quarterStart = startOfQuarter(value);
+  return new Date(quarterStart.getFullYear(), quarterStart.getMonth() + 3, 0, 23, 59, 59, 999);
+}
+
+function startOfYear(value: Date) {
+  return new Date(value.getFullYear(), 0, 1);
+}
+
+function endOfYear(value: Date) {
+  return new Date(value.getFullYear(), 11, 31, 23, 59, 59, 999);
+}
+
 export function normalizeCashFlowDateRange(startDate: string, endDate: string) {
   if (!startDate || !endDate) {
     return { startDate, endDate };
@@ -125,6 +163,7 @@ export function buildCashFlowSeries(
   range: CashFlowRange,
   locale: Locale,
   customRange?: { startDate: string; endDate: string },
+  anchorDate?: string,
 ) {
   const grouped = new Map<
     string,
@@ -134,6 +173,41 @@ export function buildCashFlowSeries(
     range === "custom" && customRange
       ? normalizeCashFlowDateRange(customRange.startDate, customRange.endDate)
       : null;
+  const anchor = anchorDate ? new Date(anchorDate) : new Date(getToday());
+  const normalizedAnchor = Number.isNaN(anchor.getTime()) ? new Date(getToday()) : anchor;
+  const boundedRange =
+    range === "custom"
+      ? null
+      : (() => {
+          if (range === "day") {
+            const end = endOfDay(normalizedAnchor);
+            const start = startOfDay(new Date(end.getFullYear(), end.getMonth(), end.getDate() - 7));
+            return { start, end };
+          }
+          if (range === "week") {
+            const currentWeekStart = startOfWeek(normalizedAnchor);
+            const start = new Date(currentWeekStart.getFullYear(), currentWeekStart.getMonth(), currentWeekStart.getDate() - 7 * 7);
+            const end = endOfDay(new Date(currentWeekStart.getFullYear(), currentWeekStart.getMonth(), currentWeekStart.getDate() + 6));
+            return { start: startOfWeek(start), end };
+          }
+          if (range === "month") {
+            return {
+              start: startOfMonth(new Date(normalizedAnchor.getFullYear(), normalizedAnchor.getMonth() - 7, 1)),
+              end: endOfMonth(normalizedAnchor),
+            };
+          }
+          if (range === "quarter") {
+            const currentQuarterStart = startOfQuarter(normalizedAnchor);
+            return {
+              start: startOfQuarter(new Date(currentQuarterStart.getFullYear(), currentQuarterStart.getMonth() - 21, 1)),
+              end: endOfQuarter(normalizedAnchor),
+            };
+          }
+          return {
+            start: startOfYear(new Date(normalizedAnchor.getFullYear() - 7, 0, 1)),
+            end: endOfYear(normalizedAnchor),
+          };
+        })();
 
   for (const item of transactions) {
     const occurredOn = new Date(item.occurred_on);
@@ -143,6 +217,12 @@ export function buildCashFlowSeries(
     if (
       normalizedCustomRange
       && (item.occurred_on < normalizedCustomRange.startDate || item.occurred_on > normalizedCustomRange.endDate)
+    ) {
+      continue;
+    }
+    if (
+      boundedRange
+      && (occurredOn.getTime() < boundedRange.start.getTime() || occurredOn.getTime() > boundedRange.end.getTime())
     ) {
       continue;
     }
@@ -170,6 +250,27 @@ export function buildCashFlowSeries(
       label = formatShortMonthLabel(occurredOn, locale);
       tooltipLabel = formatMonthLabel(occurredOn, locale);
       sortValue = new Date(occurredOn.getFullYear(), occurredOn.getMonth(), 1).getTime();
+    }
+
+    if (range === "quarter") {
+      const quarter = Math.floor(occurredOn.getMonth() / 3) + 1;
+      const quarterStart = startOfQuarter(occurredOn);
+      bucketKey = `${occurredOn.getFullYear()}-Q${quarter}`;
+      label = `Q${quarter}`;
+      tooltipLabel =
+        locale === "ru"
+          ? `${quarter} квартал ${occurredOn.getFullYear()}`
+          : locale === "kg"
+            ? `${occurredOn.getFullYear()}-ж. ${quarter}-чейрек`
+            : `Q${quarter} ${occurredOn.getFullYear()}`;
+      sortValue = quarterStart.getTime();
+    }
+
+    if (range === "year") {
+      bucketKey = String(occurredOn.getFullYear());
+      label = String(occurredOn.getFullYear());
+      tooltipLabel = String(occurredOn.getFullYear());
+      sortValue = new Date(occurredOn.getFullYear(), 0, 1).getTime();
     }
 
     const current = grouped.get(bucketKey) ?? { income: 0, expense: 0, label, tooltipLabel, sortValue };
@@ -259,17 +360,59 @@ export function buildSvgLinePath(points: Array<{ x: number; y: number }>) {
   return points.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`).join(" ");
 }
 
-export function cashFlowRangeDescription(range: CashFlowRange, locale: Locale, ui: UiCopy) {
+export function buildSmoothSvgLinePath(points: Array<{ x: number; y: number }>) {
+  if (points.length === 0) {
+    return "";
+  }
+
+  if (points.length === 1) {
+    const point = points[0];
+    return `M ${point.x} ${point.y}`;
+  }
+
+  let path = `M ${points[0]?.x ?? 0} ${points[0]?.y ?? 0}`;
+
+  for (let index = 0; index < points.length - 1; index += 1) {
+    const current = points[index];
+    const next = points[index + 1];
+    const controlX = (current.x + next.x) / 2;
+    path += ` Q ${controlX} ${current.y}, ${next.x} ${next.y}`;
+  }
+
+  return path;
+}
+
+export function cashFlowRangeDescription(
+  range: CashFlowRange,
+  locale: Locale,
+  ui: UiCopy,
+  anchorDate?: string,
+  customRange?: { startDate: string; endDate: string },
+) {
+  if (range === "custom" && customRange?.startDate && customRange?.endDate) {
+    return `${formatDate(customRange.startDate)} - ${formatDate(customRange.endDate)}`;
+  }
+
+  const anchor = anchorDate ? new Date(anchorDate) : new Date(getToday());
+  const anchorValue = Number.isNaN(anchor.getTime()) ? getToday() : anchor.toISOString().slice(0, 10);
+  const formattedAnchor = formatDate(anchorValue);
+
   if (range === "day") {
-    return locale === "ru" ? "Последние 8 дней" : locale === "kg" ? "Акыркы 8 күн" : "Last 8 days";
+    return locale === "ru" ? `Последние 8 дней до ${formattedAnchor}` : locale === "kg" ? `${formattedAnchor} чейин акыркы 8 күн` : `Last 8 days to ${formattedAnchor}`;
   }
   if (range === "week") {
-    return locale === "ru" ? "Последние 8 недель" : locale === "kg" ? "Акыркы 8 жума" : "Last 8 weeks";
+    return locale === "ru" ? `Последние 8 недель до ${formattedAnchor}` : locale === "kg" ? `${formattedAnchor} чейин акыркы 8 жума` : `Last 8 weeks to ${formattedAnchor}`;
   }
-  if (range === "custom") {
-    return ui.customPeriod;
+  if (range === "month") {
+    return locale === "ru" ? `Последние 8 месяцев до ${formattedAnchor}` : locale === "kg" ? `${formattedAnchor} чейин акыркы 8 ай` : `Last 8 months to ${formattedAnchor}`;
   }
-  return formatMonthLabel(new Date(), locale) || ui.monthly;
+  if (range === "quarter") {
+    return locale === "ru" ? `Последние 8 кварталов до ${formattedAnchor}` : locale === "kg" ? `${formattedAnchor} чейин акыркы 8 чейрек` : `Last 8 quarters to ${formattedAnchor}`;
+  }
+  if (range === "year") {
+    return locale === "ru" ? `Последние 8 лет до ${formattedAnchor}` : locale === "kg" ? `${formattedAnchor} чейин акыркы 8 жыл` : `Last 8 years to ${formattedAnchor}`;
+  }
+  return ui.customPeriod;
 }
 
 export function buildMonthlyCurrencyBreakdown(

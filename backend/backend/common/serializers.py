@@ -4,6 +4,7 @@ from django.db import DatabaseError
 from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from .models import UserProfile
 from .services import create_user_with_workspace, normalize_email
 
 User = get_user_model()
@@ -12,8 +13,6 @@ User = get_user_model()
 class UserSerializer(serializers.ModelSerializer):
     phone = serializers.SerializerMethodField()
     display_name = serializers.SerializerMethodField()
-    cash_flow_chart_default = serializers.SerializerMethodField()
-    default_currency = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -25,8 +24,6 @@ class UserSerializer(serializers.ModelSerializer):
             "phone",
             "two_factor_enabled",
             "display_name",
-            "cash_flow_chart_default",
-            "default_currency",
         )
 
     def get_display_name(self, obj):
@@ -41,33 +38,13 @@ class UserSerializer(serializers.ModelSerializer):
         except (ObjectDoesNotExist, DatabaseError):
             return ""
 
-    def get_cash_flow_chart_default(self, obj):
-        try:
-            return obj.profile.cash_flow_chart_default
-        except (ObjectDoesNotExist, DatabaseError):
-            return "bars"
-
-    def get_default_currency(self, obj):
-        try:
-            return obj.profile.default_currency
-        except (ObjectDoesNotExist, DatabaseError):
-            return "USD"
-
 
 class UserUpdateSerializer(serializers.ModelSerializer):
     phone = serializers.CharField(max_length=32, required=False, allow_blank=True)
-    cash_flow_chart_default = serializers.ChoiceField(
-        choices=("bars", "line", "tradingview", "candles", "structure"),
-        required=False,
-    )
-    default_currency = serializers.CharField(
-        max_length=8,
-        required=False,
-    )
 
     class Meta:
         model = User
-        fields = ("email", "first_name", "last_name", "phone", "two_factor_enabled", "cash_flow_chart_default", "default_currency")
+        fields = ("email", "first_name", "last_name", "phone", "two_factor_enabled")
 
     def validate_email(self, value):
         normalized_email = normalize_email(value)
@@ -79,13 +56,8 @@ class UserUpdateSerializer(serializers.ModelSerializer):
     def validate_phone(self, value):
         return value.strip()
 
-    def validate_default_currency(self, value):
-        return value.strip().upper()
-
     def update(self, instance, validated_data):
         phone = validated_data.pop("phone", instance.phone)
-        cash_flow_chart_default = validated_data.pop("cash_flow_chart_default", None)
-        default_currency = validated_data.pop("default_currency", None)
 
         for field, value in validated_data.items():
             setattr(instance, field, value)
@@ -95,8 +67,11 @@ class UserUpdateSerializer(serializers.ModelSerializer):
         instance.save(update_fields=["email", "first_name", "last_name", "phone", "two_factor_enabled", "username"])
 
         try:
-            profile = instance.profile
-        except (ObjectDoesNotExist, DatabaseError):
+            profile, _ = UserProfile.objects.get_or_create(
+                user=instance,
+                defaults={"phone": instance.phone},
+            )
+        except DatabaseError:
             profile = None
 
         if profile:
@@ -104,15 +79,6 @@ class UserUpdateSerializer(serializers.ModelSerializer):
             if profile.phone != instance.phone:
                 profile.phone = instance.phone
                 update_fields.append("phone")
-            if (
-                cash_flow_chart_default is not None
-                and profile.cash_flow_chart_default != cash_flow_chart_default
-            ):
-                profile.cash_flow_chart_default = cash_flow_chart_default
-                update_fields.append("cash_flow_chart_default")
-            if default_currency is not None and profile.default_currency != default_currency:
-                profile.default_currency = default_currency
-                update_fields.append("default_currency")
             if update_fields:
                 profile.save(update_fields=update_fields)
 

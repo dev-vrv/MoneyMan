@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type Dispatch, type SetStateAction } from "react";
+import { useState } from "react";
 
 import { RiAddLine, RiDeleteBin6Line, RiGlobalLine, RiPencilLine, RiUserSettingsLine } from "react-icons/ri";
 
@@ -32,7 +32,8 @@ type WorkspaceSettingsSectionProps = {
   customCategoriesCount: number;
   activeProfileForm: ProfileFormState;
   updateProfilePending: boolean;
-  setCashFlowChartMode: Dispatch<SetStateAction<CashFlowChartMode | null>>;
+  onDefaultCurrencyChange: (value: string) => void;
+  onCashFlowChartModeChange: (value: CashFlowChartMode) => void;
   onOpenCategoryDialog: () => void;
   onCategorySearchChange: (value: string) => void;
   onCategorySourceFilterChange: (value: "all" | "system" | "custom") => void;
@@ -57,7 +58,8 @@ export function WorkspaceSettingsSection({
   customCategoriesCount,
   activeProfileForm,
   updateProfilePending,
-  setCashFlowChartMode,
+  onDefaultCurrencyChange,
+  onCashFlowChartModeChange,
   onOpenCategoryDialog,
   onCategorySearchChange,
   onCategorySourceFilterChange,
@@ -74,10 +76,6 @@ export function WorkspaceSettingsSection({
 
   return (
     <div className="space-y-6">
-      <div className="surface-panel rounded-[2rem] border border-white/8 bg-white/[0.04] p-8">
-        <h1 className="text-2xl font-semibold text-white">{ui.settingsSectionTitle}</h1>
-        <p className="mt-3 max-w-3xl text-sm leading-7 text-zinc-400">{ui.settingsSectionBody}</p>
-      </div>
       <div>
         <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.15fr)_360px]">
           <Card className="surface-panel self-start rounded-[2rem] border-white/8 bg-white/[0.04] py-0">
@@ -197,8 +195,8 @@ export function WorkspaceSettingsSection({
           <div className="space-y-6">
             <Card className="surface-panel rounded-[2rem] border-white/8 bg-white/[0.04] py-0">
               <CardHeader className="p-6">
-                <CardTitle className="text-white">{ui.saveProfile}</CardTitle>
-                <CardDescription className="text-zinc-400">{ui.settingsDescription}</CardDescription>
+                <CardTitle className="text-white">{ui.interfaceSettingsTitle}</CardTitle>
+                <CardDescription className="text-zinc-400">{ui.interfaceSettingsBody}</CardDescription>
               </CardHeader>
               <CardContent className="p-6 pt-0">
                 <form
@@ -221,7 +219,7 @@ export function WorkspaceSettingsSection({
                   <div className="grid gap-4 md:grid-cols-2">
                     <Field>
                       <FieldLabel>{ui.email}</FieldLabel>
-                      <Input type="email" value={activeProfileForm.email} onChange={(event) => onUpdateProfileFormState((current) => ({ ...current, email: event.target.value }))} />
+                      <Input type="email" value={activeProfileForm.email} disabled readOnly />
                     </Field>
                     <Field>
                       <FieldLabel>{ui.phone}</FieldLabel>
@@ -244,81 +242,60 @@ export function WorkspaceSettingsSection({
                       <span className="mt-1 block text-sm leading-6 text-zinc-400">{ui.twoFactorAuthDescription}</span>
                     </span>
                   </label>
+                  <div className="grid gap-3 border-t border-white/8 pt-4">
+                    {locales.map((targetLocale) => (
+                      <Button
+                        key={targetLocale}
+                        type="button"
+                        variant={locale === targetLocale ? "default" : "outline"}
+                        className={
+                          locale === targetLocale
+                            ? "justify-start rounded-2xl bg-emerald-300 text-slate-950"
+                            : "justify-start rounded-2xl border-white/10 bg-white/5 text-zinc-100"
+                        }
+                        onClick={() => onLocaleChange(targetLocale)}
+                      >
+                        <RiGlobalLine className="size-4" />
+                      {ui.interfaceLanguage}: {localeDisplayLabel(targetLocale)}
+                      </Button>
+                    ))}
+                  </div>
+                  <div className="mt-2 rounded-[1.4rem] border border-white/8 bg-black/18 p-4">
+                    <Field>
+                      <FieldLabel>{ui.defaultCurrency}</FieldLabel>
+                      <WorkspaceSelect
+                        value={activeProfileForm.default_currency}
+                        onValueChange={onDefaultCurrencyChange}
+                        options={currencies.map((currency) => ({
+                          value: currency.code,
+                          label: `${currency.code} · ${currency.name}`,
+                        }))}
+                      />
+                      <p className="mt-3 text-sm leading-6 text-zinc-400">{ui.defaultCurrencyDescription}</p>
+                    </Field>
+                  </div>
+                  <div className="rounded-[1.4rem] border border-white/8 bg-black/18 p-4">
+                    <Field>
+                      <FieldLabel>{ui.defaultCashFlowView}</FieldLabel>
+                      <WorkspaceSelect
+                        value={activeProfileForm.cash_flow_chart_default}
+                        onValueChange={(value) => onCashFlowChartModeChange(value as CashFlowChartMode)}
+                        options={[
+                          { value: "bars", label: ui.chartBarsView },
+                          { value: "line", label: ui.chartLineView },
+                          { value: "tradingview", label: ui.chartTradingView },
+                          { value: "candles", label: ui.chartCandlesView },
+                          { value: "structure", label: ui.chartStructureView },
+                        ]}
+                      />
+                      <p className="mt-3 text-sm leading-6 text-zinc-400">{ui.defaultCashFlowViewDescription}</p>
+                    </Field>
+                  </div>
                   <Button type="submit" className="rounded-2xl bg-emerald-300 text-slate-950" disabled={updateProfilePending}>
                     <RiUserSettingsLine className="size-4" />
                     {ui.saveProfile}
                   </Button>
                 </form>
-              </CardContent>
-            </Card>
-
-            <Card className="surface-panel rounded-[2rem] border-white/8 bg-white/[0.04] py-0">
-              <CardHeader className="p-6">
-                <CardTitle className="text-white">{ui.interfaceSettingsTitle}</CardTitle>
-                <CardDescription className="text-zinc-400">{ui.interfaceSettingsBody}</CardDescription>
-              </CardHeader>
-              <CardContent className="grid gap-3 p-6 pt-0">
-                {locales.map((targetLocale) => (
-                  <Button
-                    key={targetLocale}
-                    variant={locale === targetLocale ? "default" : "outline"}
-                    className={
-                      locale === targetLocale
-                        ? "justify-start rounded-2xl bg-emerald-300 text-slate-950"
-                        : "justify-start rounded-2xl border-white/10 bg-white/5 text-zinc-100"
-                    }
-                    onClick={() => onLocaleChange(targetLocale)}
-                  >
-                    <RiGlobalLine className="size-4" />
-                    {ui.interfaceLanguage}: {localeDisplayLabel(targetLocale)}
-                  </Button>
-                ))}
-                <div className="mt-2 rounded-[1.4rem] border border-white/8 bg-black/18 p-4">
-                  <Field>
-                    <FieldLabel>{ui.defaultCurrency}</FieldLabel>
-                    <WorkspaceSelect
-                      value={activeProfileForm.default_currency}
-                      onValueChange={(value) => onUpdateProfileFormState((current) => ({ ...current, default_currency: value }))}
-                      options={currencies.map((currency) => ({
-                        value: currency.code,
-                        label: `${currency.code} · ${currency.name}`,
-                      }))}
-                    />
-                    <p className="mt-3 text-sm leading-6 text-zinc-400">{ui.defaultCurrencyDescription}</p>
-                  </Field>
-                </div>
-                <div className="rounded-[1.4rem] border border-white/8 bg-black/18 p-4">
-                  <Field>
-                    <FieldLabel>{ui.defaultCashFlowView}</FieldLabel>
-                    <WorkspaceSelect
-                      value={activeProfileForm.cash_flow_chart_default}
-                      onValueChange={(value) => {
-                        setCashFlowChartMode(value as CashFlowChartMode);
-                        onUpdateProfileFormState((current) => ({
-                          ...current,
-                          cash_flow_chart_default: value as CashFlowChartMode,
-                        }));
-                      }}
-                      options={[
-                        { value: "bars", label: ui.chartBarsView },
-                        { value: "line", label: ui.chartLineView },
-                        { value: "tradingview", label: ui.chartTradingView },
-                        { value: "candles", label: ui.chartCandlesView },
-                        { value: "structure", label: ui.chartStructureView },
-                      ]}
-                    />
-                    <p className="mt-3 text-sm leading-6 text-zinc-400">{ui.defaultCashFlowViewDescription}</p>
-                  </Field>
-                </div>
-                <Button
-                  type="button"
-                  className="rounded-2xl bg-emerald-300 text-slate-950"
-                  disabled={updateProfilePending}
-                  onClick={onSaveProfile}
-                >
-                  <RiUserSettingsLine className="size-4" />
-                  {ui.saveProfile}
-                </Button>
               </CardContent>
             </Card>
           </div>

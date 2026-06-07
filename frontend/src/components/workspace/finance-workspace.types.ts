@@ -234,6 +234,21 @@ export type UiCopy = {
   taxRateLabel: string;
   taxQuarterlyAutoHint: string;
   noTaxProfiles: string;
+  createTaxPayment: string;
+  createTaxPaymentDescription: string;
+  createTaxPaymentSuccess: string;
+  taxPaymentModeLabel: string;
+  taxPaymentModeTax: string;
+  taxPaymentModeSocialFund: string;
+  taxPaymentModeBoth: string;
+  sourceAccountLabel: string;
+  taxCategoryLabel: string;
+  socialFundCategoryLabel: string;
+  taxTitleLabel: string;
+  socialFundTitleLabel: string;
+  createLinkedTransactionsLabel: string;
+  selectSourceAccount: string;
+  fillTaxPaymentFields: string;
   entrepreneurLabel: string;
   companyLabel: string;
   depositSettingsTitle: string;
@@ -275,7 +290,7 @@ export type UiCopy = {
   defaultCashFlowViewDescription: string;
 };
 
-export type CashFlowRange = "day" | "week" | "month" | "custom";
+export type CashFlowRange = "day" | "week" | "month" | "quarter" | "year" | "custom";
 export type CashFlowChartMode = "bars" | "line" | "tradingview" | "candles" | "structure";
 
 export type CashFlowTrajectoryPoint = {

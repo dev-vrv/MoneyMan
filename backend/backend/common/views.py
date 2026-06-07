@@ -88,8 +88,8 @@ class CurrentUserView(APIView):
         ensure_user_bootstrap(request.user)
         serializer = UserUpdateSerializer(request.user, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(UserSerializer(request.user).data)
+        user = serializer.save()
+        return Response(UserSerializer(user).data)
 
 
 class WorkspaceOverviewView(APIView):

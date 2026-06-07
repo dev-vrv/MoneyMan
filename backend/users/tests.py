@@ -98,8 +98,6 @@ class AuthFlowTests(TestCase):
                 "last_name": "Omur",
                 "phone": "+996 700 11 22 33",
                 "two_factor_enabled": True,
-                "cash_flow_chart_default": "tradingview",
-                "default_currency": "KGS",
             },
             format="json",
         )
@@ -112,7 +110,3 @@ class AuthFlowTests(TestCase):
         self.assertTrue(user.two_factor_enabled)
         self.assertEqual(response.data["phone"], "+996 700 11 22 33")
         self.assertTrue(response.data["two_factor_enabled"])
-        self.assertEqual(response.data["cash_flow_chart_default"], "tradingview")
-        self.assertEqual(user.profile.cash_flow_chart_default, "tradingview")
-        self.assertEqual(response.data["default_currency"], "KGS")
-        self.assertEqual(user.profile.default_currency, "KGS")

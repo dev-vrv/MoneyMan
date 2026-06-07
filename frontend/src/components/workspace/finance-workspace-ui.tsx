@@ -13,9 +13,12 @@ import type {
 } from "@/components/workspace/finance-workspace.types";
 import {
   accountKindLabel,
+  formatDate,
   formatMoney,
   getAccountDisplayBalance,
+  reportingPeriodLabel,
   statusTone,
+  taxEntityLabel,
   transactionStatusLabel,
 } from "@/components/workspace/finance-workspace.utils";
 import { Badge } from "@/components/ui/badge";
@@ -28,6 +31,7 @@ import {
 } from "@/components/ui/card";
 import { DateInput } from "@/components/ui/date-input";
 import {
+  FieldError,
   Field,
   FieldGroup,
   FieldLabel,
@@ -54,17 +58,22 @@ export function WorkspaceSelect({
   onValueChange,
   placeholder,
   options,
+  invalid = false,
 }: {
   value?: string;
   onValueChange: (value: string) => void;
   placeholder?: string;
   options: Array<{ value: string; label: string }>;
+  invalid?: boolean;
 }) {
   const selectedOption = options.find((option) => option.value === value);
 
   return (
     <Select value={value} onValueChange={onValueChange}>
-      <SelectTrigger className="h-11 min-h-11 w-full rounded-2xl border-white/10 bg-white/5 px-4 text-zinc-100">
+      <SelectTrigger
+        aria-invalid={invalid}
+        className="h-11 min-h-11 w-full rounded-2xl border-white/10 bg-white/5 px-4 text-zinc-100"
+      >
         <span className={selectedOption ? "line-clamp-1" : "line-clamp-1 text-zinc-500"}>
           {selectedOption?.label ?? placeholder ?? ""}
         </span>
@@ -90,6 +99,8 @@ export function TransactionDialogFields({
   exchangeRatePlaceholder,
   values,
   setValues,
+  fieldErrors,
+  clearFieldError,
   ui,
 }: {
   type: string;
@@ -101,6 +112,8 @@ export function TransactionDialogFields({
   exchangeRatePlaceholder?: string;
   values: CreateTransactionPayload;
   setValues: Dispatch<SetStateAction<CreateTransactionPayload>>;
+  fieldErrors?: Record<string, string>;
+  clearFieldError?: (fieldName: string) => void;
   ui: UiCopy;
 }) {
   const filteredCategories = categories.filter((item) => item.kind === type);
@@ -112,19 +125,28 @@ export function TransactionDialogFields({
           <FieldLabel>{ui.type}</FieldLabel>
           <WorkspaceSelect
             value={type}
-            onValueChange={onTypeChange}
+            onValueChange={(value) => {
+              clearFieldError?.("type");
+              onTypeChange(value);
+            }}
+            invalid={Boolean(fieldErrors?.type)}
             options={[
               { value: "expense", label: ui.txTypeExpense },
               { value: "income", label: ui.txTypeIncome },
               { value: "transfer", label: ui.txTypeTransfer },
             ]}
           />
+          <FieldError>{fieldErrors?.type}</FieldError>
         </Field>
         <Field>
           <FieldLabel>{ui.status}</FieldLabel>
           <WorkspaceSelect
             value={status}
-            onValueChange={onStatusChange}
+            onValueChange={(value) => {
+              clearFieldError?.("status");
+              onStatusChange(value);
+            }}
+            invalid={Boolean(fieldErrors?.status)}
             options={[
               { value: "cleared", label: ui.txStatusCleared },
               { value: "pending", label: ui.txStatusPending },
@@ -132,6 +154,7 @@ export function TransactionDialogFields({
               { value: "canceled", label: ui.txStatusCanceled },
             ]}
           />
+          <FieldError>{fieldErrors?.status}</FieldError>
         </Field>
       </div>
       <div className="grid gap-4 md:grid-cols-2">
@@ -139,29 +162,34 @@ export function TransactionDialogFields({
           <FieldLabel>{ui.accountName}</FieldLabel>
           <WorkspaceSelect
             value={String(values.account)}
-            onValueChange={(selectedValue) =>
+            onValueChange={(selectedValue) => {
+              clearFieldError?.("account");
               setValues((current) => ({
                 ...current,
                 account: Number(selectedValue),
-              }))
-            }
+              }));
+            }}
+            invalid={Boolean(fieldErrors?.account)}
             options={accounts.map((account) => ({
               value: String(account.id),
               label: account.name,
             }))}
           />
+          <FieldError>{fieldErrors?.account}</FieldError>
         </Field>
         {type === "transfer" ? (
           <Field>
             <FieldLabel>{ui.destinationAccount}</FieldLabel>
             <WorkspaceSelect
               value={values.destination_account ? String(values.destination_account) : EMPTY_SELECT_VALUE}
-              onValueChange={(selectedValue) =>
+              onValueChange={(selectedValue) => {
+                clearFieldError?.("destination_account");
                 setValues((current) => ({
                   ...current,
                   destination_account: selectedValue === EMPTY_SELECT_VALUE ? null : Number(selectedValue),
-                }))
-              }
+                }));
+              }}
+              invalid={Boolean(fieldErrors?.destination_account)}
               options={[
                 { value: EMPTY_SELECT_VALUE, label: ui.selectDestination },
                 ...accounts.map((account) => ({
@@ -170,18 +198,21 @@ export function TransactionDialogFields({
                 })),
               ]}
             />
+            <FieldError>{fieldErrors?.destination_account}</FieldError>
           </Field>
         ) : (
           <Field>
             <FieldLabel>{ui.category}</FieldLabel>
             <WorkspaceSelect
               value={values.category ? String(values.category) : EMPTY_SELECT_VALUE}
-              onValueChange={(selectedValue) =>
+              onValueChange={(selectedValue) => {
+                clearFieldError?.("category");
                 setValues((current) => ({
                   ...current,
                   category: selectedValue === EMPTY_SELECT_VALUE ? null : Number(selectedValue),
-                }))
-              }
+                }));
+              }}
+              invalid={Boolean(fieldErrors?.category)}
               options={[
                 { value: EMPTY_SELECT_VALUE, label: ui.selectCategory },
                 ...filteredCategories.map((category) => ({
@@ -190,6 +221,7 @@ export function TransactionDialogFields({
                 })),
               ]}
             />
+            <FieldError>{fieldErrors?.category}</FieldError>
           </Field>
         )}
       </div>
@@ -198,17 +230,27 @@ export function TransactionDialogFields({
           <FieldLabel>{ui.amount}</FieldLabel>
           <Input
             value={values.amount}
-            onChange={(event) => setValues((current) => ({ ...current, amount: event.target.value }))}
+            aria-invalid={Boolean(fieldErrors?.amount)}
+            onChange={(event) => {
+              clearFieldError?.("amount");
+              setValues((current) => ({ ...current, amount: event.target.value }));
+            }}
             placeholder="0.00"
           />
+          <FieldError>{fieldErrors?.amount}</FieldError>
         </Field>
         <Field>
           <FieldLabel>{ui.date}</FieldLabel>
           <DateInput
             value={values.occurred_on}
-            onChange={(nextValue) => setValues((current) => ({ ...current, occurred_on: nextValue }))}
+            aria-invalid={Boolean(fieldErrors?.occurred_on)}
+            onChange={(nextValue) => {
+              clearFieldError?.("occurred_on");
+              setValues((current) => ({ ...current, occurred_on: nextValue }));
+            }}
             placeholder={ui.date}
           />
+          <FieldError>{fieldErrors?.occurred_on}</FieldError>
         </Field>
       </div>
       {type === "transfer" ? (
@@ -217,27 +259,37 @@ export function TransactionDialogFields({
             <FieldLabel>{ui.destinationAmount}</FieldLabel>
             <Input
               value={values.destination_amount ?? ""}
+              aria-invalid={Boolean(fieldErrors?.destination_amount)}
               onChange={(event) =>
-                setValues((current) => ({
-                  ...current,
-                  destination_amount: event.target.value || null,
-                }))
+                {
+                  clearFieldError?.("destination_amount");
+                  setValues((current) => ({
+                    ...current,
+                    destination_amount: event.target.value || null,
+                  }));
+                }
               }
               placeholder="0.00"
             />
+            <FieldError>{fieldErrors?.destination_amount}</FieldError>
           </Field>
           <Field>
             <FieldLabel>{ui.exchangeRate}</FieldLabel>
             <Input
               value={values.exchange_rate ?? ""}
+              aria-invalid={Boolean(fieldErrors?.exchange_rate)}
               onChange={(event) =>
-                setValues((current) => ({
-                  ...current,
-                  exchange_rate: event.target.value || null,
-                }))
+                {
+                  clearFieldError?.("exchange_rate");
+                  setValues((current) => ({
+                    ...current,
+                    exchange_rate: event.target.value || null,
+                  }));
+                }
               }
               placeholder={exchangeRatePlaceholder ?? ui.optional}
             />
+            <FieldError>{fieldErrors?.exchange_rate}</FieldError>
           </Field>
         </div>
       ) : null}
@@ -284,26 +336,35 @@ export function AccountCard({
   const AccountIcon = accountIcon.icon;
   const balance = formatMoney(getAccountDisplayBalance(account), account.currency);
   const accountMeta = account.institution || accountKindLabel(account.kind, ui);
-  const depositMeta = account.deposit_profile
+  const hasCreditLimit = Number(account.credit_limit) > 0;
+  const accountNote = account.note.trim();
+  const taxProfile = account.tax_profile;
+  const taxBaseLabel = taxProfile?.calculation_source === "transactions" ? ui.receivedLabel : ui.taxBaseLabel;
+  const detailChips = account.deposit_profile
     ? [
         `${ui.annualInterestRate}: ${account.deposit_profile.annual_interest_rate}%`,
         `${ui.accruedInterest}: ${formatMoney(account.deposit_profile.accrued_interest, account.currency)}`,
       ]
     : account.kind === "credit_card" && account.available_credit
       ? [
-          `${ui.creditLimit}: ${formatMoney(account.credit_limit, account.currency)}`,
           `${ui.balanceOverview}: ${formatMoney(account.available_credit, account.currency)}`,
         ]
-      : account.tax_profile
+      : taxProfile
         ? [
-            `${ui.taxLabel}: ${Number(account.tax_profile.tax_rate)}%`,
-            `${ui.socialFundLabel}: ${
-              account.tax_profile.manual_social_fund_amount
-                ? formatMoney(account.tax_profile.manual_social_fund_amount, account.currency)
-                : `${Number(account.tax_profile.social_fund_rate)}%`
-            }`,
+            `${taxEntityLabel(taxProfile.entity_type, ui)} · ${reportingPeriodLabel(taxProfile.reporting_period, ui)}`,
+            `${formatDate(taxProfile.period_start)} - ${formatDate(taxProfile.period_end)}`,
+            `${taxBaseLabel}: ${formatMoney(taxProfile.tax_base, account.currency)}`,
+            `${ui.taxLabel}: ${formatMoney(taxProfile.tax_amount, account.currency)} (${Number(taxProfile.tax_rate)}%)`,
+            `${
+              ui.socialFundLabel
+            }: ${formatMoney(taxProfile.social_fund_amount, account.currency)} (${
+              taxProfile.manual_social_fund_amount ? ui.socialFundModeFixed : `${Number(taxProfile.social_fund_rate)}%`
+            })`,
           ]
         : [`${account.currency} · ${accountMeta}`];
+  const metaChips = hasCreditLimit
+    ? [...detailChips, `${ui.creditLimit}: ${formatMoney(account.credit_limit, account.currency)}`]
+    : detailChips;
 
   return (
     <div
@@ -362,7 +423,7 @@ export function AccountCard({
       </div>
 
       <div className="relative mt-4 flex flex-wrap gap-2">
-        {depositMeta.map((item) => (
+        {metaChips.map((item) => (
           <span
             key={`${account.id}-${item}`}
             className="rounded-full border px-3 py-1 text-xs text-zinc-200"
@@ -372,6 +433,10 @@ export function AccountCard({
           </span>
         ))}
       </div>
+
+      {accountNote ? (
+        <p className="relative mt-3 line-clamp-2 break-words text-sm leading-6 text-zinc-400">{accountNote}</p>
+      ) : null}
 
       {onEdit ? (
         <div className="relative mt-4 flex justify-end">

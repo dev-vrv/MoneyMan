@@ -1,5 +1,7 @@
-{% extends "admin/base_site.html" %}
+{% extends "admin/base.html" %}
 {% load static %}
+
+{% block title %}Fin Man Admin{% endblock %}
 
 {% block extrastyle %}
   {{ block.super }}
@@ -9,7 +11,42 @@
 {% block branding %}
   <div class="finman-branding">
     <a href="{% url 'admin:index' %}" class="finman-brand-link">
-      <span class="finman-brand-mark">FM</span>
+      <span class="finman-brand-mark finman-brand-mark--svg" aria-hidden="true">
+        <svg viewBox="0 0 72 72" class="finman-brand-svg" role="img" focusable="false">
+          <defs>
+            <linearGradient id="finman-brand-panel" x1="6" y1="6" x2="66" y2="66" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#d9ffee" />
+              <stop offset="52%" stop-color="#6effb8" />
+              <stop offset="100%" stop-color="#67e8f9" />
+            </linearGradient>
+            <linearGradient id="finman-brand-stroke" x1="12" y1="14" x2="60" y2="56" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#082015" />
+              <stop offset="100%" stop-color="#0b2b1d" />
+            </linearGradient>
+            <filter id="finman-brand-glow" x="-40%" y="-40%" width="180%" height="180%">
+              <feGaussianBlur stdDeviation="4" result="blur" />
+              <feColorMatrix
+                in="blur"
+                type="matrix"
+                values="1 0 0 0 0
+                        0 1 0 0 0.95
+                        0 0 1 0 0.75
+                        0 0 0 1 0"
+              />
+            </filter>
+          </defs>
+          <rect x="8" y="8" width="56" height="56" rx="20" fill="url(#finman-brand-panel)" />
+          <rect x="8" y="8" width="56" height="56" rx="20" fill="none" stroke="rgba(255,255,255,0.38)" />
+          <g filter="url(#finman-brand-glow)" opacity="0.58">
+            <path d="M17 49L28 38L37 42L53 24" fill="none" stroke="#6effb8" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+          </g>
+          <path d="M18 49L28 38L37 42L53 24" fill="none" stroke="url(#finman-brand-stroke)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" />
+          <path d="M47 24H53V30" fill="none" stroke="url(#finman-brand-stroke)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" />
+          <rect x="18" y="49" width="8" height="7" rx="2.5" fill="#0b2217" opacity="0.92" />
+          <rect x="31" y="43" width="8" height="13" rx="2.5" fill="#0b2217" opacity="0.92" />
+          <rect x="44" y="34" width="8" height="22" rx="2.5" fill="#0b2217" opacity="0.92" />
+        </svg>
+      </span>
       <span class="finman-brand-copy">
         <span class="finman-brand-title">Fin Man</span>
         <span class="finman-brand-subtitle">Панель управления</span>

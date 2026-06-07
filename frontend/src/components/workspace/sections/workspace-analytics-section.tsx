@@ -4,7 +4,7 @@ import type { Dispatch, SetStateAction } from "react";
 
 import type { CashFlowChartMode, CashFlowRange, UiCopy } from "@/components/workspace/finance-workspace.types";
 import { EmptyState, PriorityPill } from "@/components/workspace/finance-workspace-ui";
-import { buildSvgLinePath, formatMoney, normalizeCashFlowDateRange } from "@/components/workspace/finance-workspace.utils";
+import { buildSmoothSvgLinePath, formatMoney, normalizeCashFlowDateRange } from "@/components/workspace/finance-workspace.utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DateInput } from "@/components/ui/date-input";
 import { Field, FieldLabel } from "@/components/ui/field";
@@ -34,10 +34,12 @@ type WorkspaceAnalyticsSectionProps = {
   cashFlowRangeLabel: string;
   cashFlowRange: CashFlowRange;
   setCashFlowRange: Dispatch<SetStateAction<CashFlowRange>>;
+  cashFlowAnchorDate: string;
+  setCashFlowAnchorDate: Dispatch<SetStateAction<string>>;
   cashFlowCustomRange: { startDate: string; endDate: string };
   setCashFlowCustomRange: Dispatch<SetStateAction<{ startDate: string; endDate: string }>>;
   effectiveCashFlowChartMode: CashFlowChartMode;
-  setCashFlowChartMode: Dispatch<SetStateAction<CashFlowChartMode | null>>;
+  setCashFlowChartMode: (value: CashFlowChartMode) => void;
   cashFlowVisibleTotals: { income: number; expense: number; net: number };
   workspaceSummaryCurrency: string;
   cashFlowTrajectory: {
@@ -58,6 +60,8 @@ export function WorkspaceAnalyticsSection({
   cashFlowRangeLabel,
   cashFlowRange,
   setCashFlowRange,
+  cashFlowAnchorDate,
+  setCashFlowAnchorDate,
   cashFlowCustomRange,
   setCashFlowCustomRange,
   effectiveCashFlowChartMode,
@@ -67,56 +71,86 @@ export function WorkspaceAnalyticsSection({
   cashFlowTrajectory,
   cashFlowSeries,
 }: WorkspaceAnalyticsSectionProps) {
+  const chartWidth = 1000;
+  const chartHeight = 250;
+  const chartLinePoints = cashFlowTrajectory.items.map((point, pointIndex) => ({
+    x:
+      cashFlowTrajectory.items.length === 1
+        ? chartWidth / 2
+        : (pointIndex / (cashFlowTrajectory.items.length - 1)) * chartWidth,
+    y: 18 + ((cashFlowTrajectory.max - point.close) / cashFlowTrajectory.range) * 204,
+  }));
+  const smoothLinePath = buildSmoothSvgLinePath(chartLinePoints);
+  const areaPath =
+    chartLinePoints.length > 1
+      ? `${smoothLinePath} L ${chartLinePoints[chartLinePoints.length - 1]?.x ?? chartWidth} 238 L ${chartLinePoints[0]?.x ?? 0} 238 Z`
+      : "";
+
   return (
     <Card className="surface-panel rounded-[2rem] border-white/8 bg-white/[0.04] py-0">
       <CardHeader className="flex flex-col gap-4 p-6">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
           <div>
             <CardTitle className="text-white">{ui.cashFlowLabel}</CardTitle>
             <CardDescription className="text-zinc-400">{cashFlowRangeLabel}</CardDescription>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {[
-              { value: "day" as const, label: ui.daily },
-              { value: "week" as const, label: ui.weekly },
-              { value: "month" as const, label: ui.monthly },
-              { value: "custom" as const, label: ui.customPeriod },
-            ].map((item) => (
-              <button
-                key={item.value}
-                type="button"
-                onClick={() => setCashFlowRange(item.value)}
-                className={`inline-flex h-9 items-center rounded-2xl border px-3 text-xs transition ${
-                  cashFlowRange === item.value
-                    ? "border-emerald-300/20 bg-emerald-300/12 text-emerald-100"
-                    : "border-white/8 bg-white/[0.03] text-zinc-400 hover:bg-white/[0.06] hover:text-zinc-200"
-                }`}
-              >
-                {item.label}
-              </button>
-            ))}
+          <div className="flex flex-col gap-3 xl:items-end">
+            <div className="flex flex-wrap gap-2">
+              {[
+                { value: "day" as const, label: ui.daily },
+                { value: "week" as const, label: ui.weekly },
+                { value: "month" as const, label: ui.monthly },
+                { value: "quarter" as const, label: ui.quarterly },
+                { value: "year" as const, label: ui.yearly },
+                { value: "custom" as const, label: ui.customPeriod },
+              ].map((item) => (
+                <button
+                  key={item.value}
+                  type="button"
+                  onClick={() => setCashFlowRange(item.value)}
+                  className={`inline-flex h-9 items-center rounded-2xl border px-3 text-xs transition ${
+                    cashFlowRange === item.value
+                      ? "border-emerald-300/20 bg-emerald-300/12 text-emerald-100"
+                      : "border-white/8 bg-white/[0.03] text-zinc-400 hover:bg-white/[0.06] hover:text-zinc-200"
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+            {cashFlowRange === "custom" ? (
+              <div className="grid gap-3 sm:grid-cols-2 xl:w-[26rem]">
+                <Field>
+                  <FieldLabel>{ui.startDate}</FieldLabel>
+                  <DateInput
+                    value={cashFlowCustomRange.startDate}
+                    onChange={(nextValue) => setCashFlowCustomRange((current) => normalizeCashFlowDateRange(nextValue, current.endDate))}
+                    placeholder={ui.startDate}
+                  />
+                </Field>
+                <Field>
+                  <FieldLabel>{ui.endDate}</FieldLabel>
+                  <DateInput
+                    value={cashFlowCustomRange.endDate}
+                    onChange={(nextValue) => setCashFlowCustomRange((current) => normalizeCashFlowDateRange(current.startDate, nextValue))}
+                    placeholder={ui.endDate}
+                  />
+                </Field>
+              </div>
+            ) : (
+              <div className="grid sm:min-w-[18rem]">
+                <Field>
+                  <FieldLabel>{ui.date}</FieldLabel>
+                  <DateInput
+                    value={cashFlowAnchorDate}
+                    onChange={setCashFlowAnchorDate}
+                    placeholder={ui.date}
+                  />
+                </Field>
+              </div>
+            )}
           </div>
         </div>
-        {cashFlowRange === "custom" ? (
-          <div className="grid gap-3 md:grid-cols-2">
-            <Field>
-              <FieldLabel>{ui.startDate}</FieldLabel>
-              <DateInput
-                value={cashFlowCustomRange.startDate}
-                onChange={(nextValue) => setCashFlowCustomRange((current) => normalizeCashFlowDateRange(nextValue, current.endDate))}
-                placeholder={ui.startDate}
-              />
-            </Field>
-            <Field>
-              <FieldLabel>{ui.endDate}</FieldLabel>
-              <DateInput
-                value={cashFlowCustomRange.endDate}
-                onChange={(nextValue) => setCashFlowCustomRange((current) => normalizeCashFlowDateRange(current.startDate, nextValue))}
-                placeholder={ui.endDate}
-              />
-            </Field>
-          </div>
-        ) : null}
         <div className="flex flex-wrap gap-2">
           {[
             { value: "bars" as const, label: ui.chartBarsView },
@@ -292,22 +326,131 @@ export function WorkspaceAnalyticsSection({
                     </div>
                   </div>
                 </div>
+              ) : effectiveCashFlowChartMode === "line" || effectiveCashFlowChartMode === "tradingview" ? (
+                <>
+                  <div className="rounded-[1.6rem] border border-white/8 bg-[radial-gradient(circle_at_top,rgba(148,163,184,0.08),transparent_30%),linear-gradient(180deg,rgba(9,15,16,0.98)_0%,rgba(7,11,12,1)_100%)] p-4">
+                    <div className="relative h-[320px] overflow-hidden rounded-[1.3rem] border border-white/8 bg-black/20 p-4">
+                      <div
+                        className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.035)_1px,transparent_1px)] opacity-30"
+                        style={{
+                          backgroundSize: `${100 / Math.max(chartLinePoints.length, 1)}% 64px`,
+                        }}
+                      />
+                      <div className="pointer-events-none absolute inset-x-4 top-1/2 border-t border-dashed border-white/10" />
+                      <svg
+                        viewBox={`0 0 ${chartWidth} ${chartHeight}`}
+                        preserveAspectRatio="none"
+                        className="absolute inset-x-4 top-4 h-[250px] w-auto"
+                      >
+                        {effectiveCashFlowChartMode === "tradingview" ? (
+                          <defs>
+                            <linearGradient id="cashflow-area-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                              <stop offset="0%" stopColor="rgba(96,165,250,0.36)" />
+                              <stop offset="60%" stopColor="rgba(56,189,248,0.14)" />
+                              <stop offset="100%" stopColor="rgba(15,23,42,0.01)" />
+                            </linearGradient>
+                            <linearGradient id="cashflow-line-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                              <stop offset="0%" stopColor="rgba(125,211,252,1)" />
+                              <stop offset="100%" stopColor="rgba(99,102,241,0.92)" />
+                            </linearGradient>
+                          </defs>
+                        ) : null}
+                        {effectiveCashFlowChartMode === "tradingview" ? (
+                          <path d={areaPath} fill="url(#cashflow-area-gradient)" />
+                        ) : null}
+                        <path
+                          d={smoothLinePath}
+                          fill="none"
+                          stroke={
+                            effectiveCashFlowChartMode === "line"
+                              ? "rgba(52,211,153,0.96)"
+                              : "url(#cashflow-line-gradient)"
+                          }
+                          strokeWidth={effectiveCashFlowChartMode === "line" ? "3.5" : "4"}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="drop-shadow-[0_0_10px_rgba(52,211,153,0.18)]"
+                        />
+                        {chartLinePoints.map((point, index) => (
+                          <circle
+                            key={`${cashFlowTrajectory.items[index]?.day ?? index}-point`}
+                            cx={point.x}
+                            cy={point.y}
+                            r={effectiveCashFlowChartMode === "line" ? "4.5" : "4"}
+                            fill={
+                              effectiveCashFlowChartMode === "line"
+                                ? cashFlowTrajectory.items[index]?.close >= 0
+                                  ? "rgba(52,211,153,1)"
+                                  : "rgba(251,113,133,1)"
+                                : "rgba(224,231,255,0.98)"
+                            }
+                            stroke={
+                              effectiveCashFlowChartMode === "line"
+                                ? "rgba(255,255,255,0.85)"
+                                : "rgba(99,102,241,0.95)"
+                            }
+                            strokeWidth="2"
+                          />
+                        ))}
+                      </svg>
+                      <div
+                        className="absolute inset-x-4 bottom-4 grid gap-2"
+                        style={{
+                          gridTemplateColumns: `repeat(${Math.max(cashFlowSeries.items.length, 1)}, minmax(0, 1fr))`,
+                        }}
+                      >
+                        {cashFlowSeries.items.map((item, index) => (
+                          <div key={item.day} className="min-w-0 rounded-xl border border-white/8 bg-black/20 px-2 py-2 text-center">
+                            <p className="truncate text-[11px] text-zinc-500">{item.label}</p>
+                            <p className={`mt-1 truncate text-xs font-medium ${cashFlowTrajectory.items[index]?.close >= 0 ? "text-emerald-200" : "text-rose-200"}`}>
+                              {formatMoney(String(cashFlowTrajectory.items[index]?.close ?? 0), workspaceSummaryCurrency)}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <div
+                    className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4"
+                  >
+                    {cashFlowSeries.items.map((item, index) => (
+                      <div key={item.day} className="rounded-[1.2rem] border border-white/8 bg-black/18 p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium text-white">{item.tooltipLabel}</p>
+                            <p className="mt-1 text-xs text-zinc-500">{item.label}</p>
+                          </div>
+                          <Badge variant="outline" className="rounded-full border-white/10 bg-white/5 text-zinc-200">
+                            {formatMoney(String(cashFlowTrajectory.items[index]?.close ?? 0), workspaceSummaryCurrency)}
+                          </Badge>
+                        </div>
+                        <div className="mt-3 space-y-1.5 text-xs">
+                          <div className="flex items-center justify-between text-zinc-400">
+                            <span>{ui.receivedLabel}</span>
+                            <span className="text-emerald-200">{formatMoney(String(item.income), workspaceSummaryCurrency)}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-zinc-400">
+                            <span>{ui.spentLabel}</span>
+                            <span className="text-rose-200">{formatMoney(String(item.expense), workspaceSummaryCurrency)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-4 flex flex-wrap gap-5 text-xs text-zinc-500">
+                    <span className="flex items-center gap-2"><span className="size-2 rounded-full bg-emerald-300" />{ui.txTypeIncome}</span>
+                    <span className="flex items-center gap-2"><span className="size-2 rounded-full bg-rose-400" />{ui.txTypeExpense}</span>
+                    <span className="flex items-center gap-2"><span className="size-2 rounded-full bg-white" />{ui.totalByRates}</span>
+                  </div>
+                </>
               ) : (
                 <>
-                  <div className="flex h-[300px] items-end gap-3">
+                  <div className="relative h-[300px]">
+                    <div className="flex h-[300px] items-end gap-3">
                     {cashFlowSeries.items.map((item, index) => {
                       const trajectoryPoint = cashFlowTrajectory.items[index];
                       const incomeHeight = Math.max((Math.abs(item.income) / cashFlowSeries.maxMagnitude) * 118, item.income > 0 ? 10 : 2);
                       const expenseHeight = Math.max((Math.abs(item.expense) / cashFlowSeries.maxMagnitude) * 118, item.expense > 0 ? 10 : 2);
-                      const linePoints = cashFlowTrajectory.items.map((point, pointIndex) => ({
-                        x: cashFlowTrajectory.items.length === 1 ? 118 : (pointIndex / (cashFlowTrajectory.items.length - 1)) * 236,
-                        y: 18 + ((cashFlowTrajectory.max - point.close) / cashFlowTrajectory.range) * 204,
-                      }));
-                      const linePath = buildSvgLinePath(linePoints);
-                      const areaPath =
-                        linePoints.length > 1
-                          ? `${linePath} L ${linePoints[linePoints.length - 1]?.x ?? 236} 238 L ${linePoints[0]?.x ?? 0} 238 Z`
-                          : "";
                       const candleTop = 18 + ((cashFlowTrajectory.max - trajectoryPoint.high) / cashFlowTrajectory.range) * 204;
                       const candleBottom = 18 + ((cashFlowTrajectory.max - trajectoryPoint.low) / cashFlowTrajectory.range) * 204;
                       const candleOpenY = 18 + ((cashFlowTrajectory.max - trajectoryPoint.open) / cashFlowTrajectory.range) * 204;
@@ -356,43 +499,10 @@ export function WorkspaceAnalyticsSection({
                                 </div>
                               ) : null}
                               {effectiveCashFlowChartMode === "line" ? (
-                                <svg viewBox="0 0 236 250" className="absolute inset-0 h-full w-full">
-                                  <path d={areaPath} fill="rgba(52,211,153,0.10)" />
-                                  <path d={linePath} fill="none" stroke="rgba(52,211,153,0.9)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-                                  <circle
-                                    cx={linePoints[index]?.x ?? 0}
-                                    cy={linePoints[index]?.y ?? 0}
-                                    r="5"
-                                    fill={trajectoryPoint.close >= 0 ? "rgba(52,211,153,1)" : "rgba(251,113,133,1)"}
-                                    stroke="rgba(255,255,255,0.85)"
-                                    strokeWidth="1.5"
-                                  />
-                                </svg>
+                                <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(52,211,153,0.06)_0%,rgba(52,211,153,0.01)_45%,rgba(0,0,0,0)_100%)]" />
                               ) : null}
                               {effectiveCashFlowChartMode === "tradingview" ? (
-                                <svg viewBox="0 0 236 250" className="absolute inset-0 h-full w-full">
-                                  <defs>
-                                    <linearGradient id={`tv-area-${item.day}`} x1="0%" y1="0%" x2="0%" y2="100%">
-                                      <stop offset="0%" stopColor="rgba(96,165,250,0.32)" />
-                                      <stop offset="60%" stopColor="rgba(56,189,248,0.12)" />
-                                      <stop offset="100%" stopColor="rgba(15,23,42,0.01)" />
-                                    </linearGradient>
-                                    <linearGradient id={`tv-line-${item.day}`} x1="0%" y1="0%" x2="100%" y2="0%">
-                                      <stop offset="0%" stopColor="rgba(125,211,252,0.96)" />
-                                      <stop offset="100%" stopColor="rgba(99,102,241,0.9)" />
-                                    </linearGradient>
-                                  </defs>
-                                  <path d={areaPath} fill={`url(#tv-area-${item.day})`} />
-                                  <path d={linePath} fill="none" stroke={`url(#tv-line-${item.day})`} strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
-                                  <circle
-                                    cx={linePoints[index]?.x ?? 0}
-                                    cy={linePoints[index]?.y ?? 0}
-                                    r="4.5"
-                                    fill="rgba(224,231,255,0.96)"
-                                    stroke="rgba(99,102,241,0.95)"
-                                    strokeWidth="2"
-                                  />
-                                </svg>
+                                <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(96,165,250,0.07)_0%,rgba(56,189,248,0.02)_45%,rgba(0,0,0,0)_100%)]" />
                               ) : null}
                               {effectiveCashFlowChartMode === "candles" ? (
                                 <div className="relative h-full w-full">
@@ -419,6 +529,7 @@ export function WorkspaceAnalyticsSection({
                         </div>
                       );
                     })}
+                    </div>
                   </div>
                   <div className="mt-4 flex flex-wrap gap-5 text-xs text-zinc-500">
                     <span className="flex items-center gap-2"><span className="size-2 rounded-full bg-emerald-300" />{ui.txTypeIncome}</span>

@@ -14,11 +14,11 @@ class TimeStampedModel(models.Model):
 
 class UserProfile(TimeStampedModel):
     class CashFlowChartDefault(models.TextChoices):
-        BARS = "bars", "Bars"
-        LINE = "line", "Line"
-        TRADINGVIEW = "tradingview", "TradingView"
-        CANDLES = "candles", "Candles"
-        STRUCTURE = "structure", "Structure"
+        BARS = "bars", "Столбцы"
+        LINE = "line", "Кривая"
+        TRADINGVIEW = "tradingview", "Область"
+        CANDLES = "candles", "Свечи"
+        STRUCTURE = "structure", "Структура"
 
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
@@ -33,16 +33,20 @@ class UserProfile(TimeStampedModel):
     )
     default_currency = models.CharField(max_length=8, default="USD")
 
+    class Meta:
+        verbose_name = "Профиль пользователя"
+        verbose_name_plural = "Профили пользователей"
+
     def __str__(self) -> str:
         return f"Profile<{self.user_id}>"
 
 
 class FinancialAccount(TimeStampedModel):
     class AccountKind(models.TextChoices):
-        CASH = "cash", "Cash"
-        SAVINGS = "savings", "Savings"
-        INVESTMENT = "investment", "Investment"
-        CREDIT = "credit", "Credit"
+        CASH = "cash", "Наличные"
+        SAVINGS = "savings", "Сбережения"
+        INVESTMENT = "investment", "Инвестиции"
+        CREDIT = "credit", "Кредит"
 
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -58,6 +62,8 @@ class FinancialAccount(TimeStampedModel):
 
     class Meta:
         ordering = ("name",)
+        verbose_name = "Финансовый счет"
+        verbose_name_plural = "Финансовые счета"
 
     def __str__(self) -> str:
         return f"{self.name} ({self.owner_id})"
@@ -65,9 +71,9 @@ class FinancialAccount(TimeStampedModel):
 
 class TransactionCategory(TimeStampedModel):
     class CategoryKind(models.TextChoices):
-        INCOME = "income", "Income"
-        EXPENSE = "expense", "Expense"
-        TRANSFER = "transfer", "Transfer"
+        INCOME = "income", "Доход"
+        EXPENSE = "expense", "Расход"
+        TRANSFER = "transfer", "Перевод"
 
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -81,6 +87,8 @@ class TransactionCategory(TimeStampedModel):
     class Meta:
         ordering = ("kind", "name")
         unique_together = ("owner", "name", "kind")
+        verbose_name = "Категория транзакций"
+        verbose_name_plural = "Категории транзакций"
 
     def __str__(self) -> str:
         return f"{self.name} ({self.kind})"
@@ -88,9 +96,9 @@ class TransactionCategory(TimeStampedModel):
 
 class Transaction(TimeStampedModel):
     class TransactionStatus(models.TextChoices):
-        CLEARED = "cleared", "Cleared"
-        PENDING = "pending", "Pending"
-        SCHEDULED = "scheduled", "Scheduled"
+        CLEARED = "cleared", "Проведена"
+        PENDING = "pending", "В ожидании"
+        SCHEDULED = "scheduled", "Запланирована"
 
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -118,6 +126,8 @@ class Transaction(TimeStampedModel):
 
     class Meta:
         ordering = ("-transaction_date", "-created_at")
+        verbose_name = "Транзакция"
+        verbose_name_plural = "Транзакции"
 
     def __str__(self) -> str:
         return f"{self.title} {self.amount}"
@@ -141,6 +151,8 @@ class Budget(TimeStampedModel):
     class Meta:
         ordering = ("category__name",)
         unique_together = ("owner", "category")
+        verbose_name = "Бюджет"
+        verbose_name_plural = "Бюджеты"
 
     def __str__(self) -> str:
         return f"Budget<{self.category.name}>"

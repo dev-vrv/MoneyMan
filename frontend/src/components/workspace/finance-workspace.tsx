@@ -105,6 +105,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   Field,
+  FieldError,
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -114,6 +115,7 @@ import {
   createAccount,
   createBudget,
   createCategory,
+  createTaxObligationTransactions,
   deleteAccount,
   deleteBudget,
   createTransaction,
@@ -140,6 +142,7 @@ import {
   type CreateAccountPayload,
   type CreateBudgetPayload,
   type CreateCategoryPayload,
+  type CreateTaxObligationTransactionsPayload,
   type CreateTransactionPayload,
   type CurrencyRecord,
   type TransactionRecord,
@@ -147,6 +150,149 @@ import {
 import { useLocalePreference } from "@/lib/i18n/client";
 import { getLocalizedPath, replacePathLocale, type Locale } from "@/lib/i18n/config";
 import { buildAccountBalanceSnapshot } from "@/lib/finance/account-balance-summary";
+
+const workspacePreferenceStorageKey = "fin-man-workspace-preferences";
+
+type StoredWorkspacePreferences = {
+  cash_flow_chart_default?: CashFlowChartMode;
+  default_currency?: string;
+};
+
+type FormFieldErrors = Record<string, string>;
+
+function resolveWorkspacePreferences(
+  preferences: StoredWorkspacePreferences,
+): Required<StoredWorkspacePreferences> {
+  return {
+    cash_flow_chart_default: preferences.cash_flow_chart_default ?? "bars",
+    default_currency: preferences.default_currency ?? "USD",
+  };
+}
+
+function readStoredWorkspacePreferences(): StoredWorkspacePreferences {
+  if (typeof window === "undefined") {
+    return {};
+  }
+
+  try {
+    const rawValue = window.localStorage.getItem(workspacePreferenceStorageKey);
+    if (!rawValue) {
+      return {};
+    }
+
+    const parsed = JSON.parse(rawValue) as StoredWorkspacePreferences;
+    return {
+      cash_flow_chart_default: parsed.cash_flow_chart_default,
+      default_currency: parsed.default_currency,
+    };
+  } catch {
+    return {};
+  }
+}
+
+function persistWorkspacePreferences(preferences: StoredWorkspacePreferences) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const current = readStoredWorkspacePreferences();
+  window.localStorage.setItem(
+    workspacePreferenceStorageKey,
+    JSON.stringify({
+      ...current,
+      ...preferences,
+    }),
+  );
+}
+
+function buildProfileFormWithPreferences(
+  user: Parameters<typeof createProfileForm>[0],
+  storedPreferences: StoredWorkspacePreferences,
+) {
+  const resolvedPreferences = resolveWorkspacePreferences(storedPreferences);
+  return createProfileForm({
+    ...user,
+    cash_flow_chart_default: resolvedPreferences.cash_flow_chart_default,
+    default_currency: resolvedPreferences.default_currency,
+  });
+}
+
+function extractFieldErrors(error: unknown): FormFieldErrors {
+  if (!error || typeof error !== "object" || !("response" in error)) {
+    return {};
+  }
+
+  const payload = (error as { response?: { data?: unknown } }).response?.data;
+  if (!payload || typeof payload !== "object") {
+    return {};
+  }
+
+  return Object.fromEntries(
+    Object.entries(payload).flatMap(([field, value]) => {
+      if (Array.isArray(value) && value[0]) {
+        return [[field, String(value[0])]];
+      }
+      if (typeof value === "string" && value) {
+        return [[field, value]];
+      }
+      return [];
+    }),
+  );
+}
+
+function validateAccountForm(values: CreateAccountPayload): FormFieldErrors {
+  const errors: FormFieldErrors = {};
+
+  if (!values.name.trim()) {
+    errors.name = "Укажите название счета."
+  }
+  if (!values.currency.trim()) {
+    errors.currency = "Выберите валюту."
+  }
+  if (!values.kind.trim()) {
+    errors.kind = "Выберите тип счета."
+  }
+  if (!values.status.trim()) {
+    errors.status = "Выберите статус."
+  }
+  if (values.kind === "deposit" && !values.deposit_profile?.term_start_date) {
+    errors.deposit_profile = "Для депозита укажите параметры вклада."
+  }
+  if ((values.kind === "entrepreneur" || values.kind === "company") && !values.tax_profile?.tax_rate) {
+    errors.tax_profile = "Для бизнес-счета укажите налоговый профиль."
+  }
+
+  return errors;
+}
+
+function validateTransactionForm(values: CreateTransactionPayload): FormFieldErrors {
+  const errors: FormFieldErrors = {};
+
+  if (!values.account) {
+    errors.account = "Выберите счет."
+  }
+  if (!values.type.trim()) {
+    errors.type = "Выберите тип транзакции."
+  }
+  if (!values.status.trim()) {
+    errors.status = "Выберите статус."
+  }
+  if (!values.amount.trim()) {
+    errors.amount = "Укажите сумму."
+  }
+  if (!values.occurred_on.trim()) {
+    errors.occurred_on = "Укажите дату."
+  }
+  if (values.type === "transfer") {
+    if (!values.destination_account) {
+      errors.destination_account = "Выберите счет назначения."
+    }
+  } else if (!values.category) {
+    errors.category = "Выберите категорию."
+  }
+
+  return errors;
+}
 
 function getUiCopy(locale: Locale): UiCopy {
   if (locale === "ru") {
@@ -251,8 +397,8 @@ function getUiCopy(locale: Locale): UiCopy {
       customCategoriesValue: "{count} личных",
       showMoreCategories: "Показать еще {count}",
       showLessCategories: "Свернуть список",
-      interfaceSettingsTitle: "Интерфейс и локализация",
-      interfaceSettingsBody: "Переключайте язык интерфейса и управляйте рабочими параметрами пространства.",
+      interfaceSettingsTitle: "Профиль и настройки интерфейса",
+      interfaceSettingsBody: "Управляйте личными данными, безопасностью, языком интерфейса и рабочими параметрами пространства.",
       languageUpdated: "Язык интерфейса обновлен.",
       interfaceLanguage: "Язык интерфейса",
       defaultCurrency: "Валюта по умолчанию",
@@ -375,6 +521,21 @@ function getUiCopy(locale: Locale): UiCopy {
       taxRateLabel: "Ставка налога, %",
       taxQuarterlyAutoHint: "Квартальный расчет по поступлениям, дедлайн оплаты до 20 числа следующего квартала.",
       noTaxProfiles: "Добавьте налоговый профиль к счету ИП или ОсОО, чтобы видеть обязательства здесь.",
+      createTaxPayment: "Создать списание",
+      createTaxPaymentDescription: "Создайте расход по налогу, соцфонду или обе связанные транзакции с одного счета списания.",
+      createTaxPaymentSuccess: "Налоговые транзакции созданы.",
+      taxPaymentModeLabel: "Что создать",
+      taxPaymentModeTax: "Только налог",
+      taxPaymentModeSocialFund: "Только соцфонд",
+      taxPaymentModeBoth: "Налог и соцфонд",
+      sourceAccountLabel: "Счет списания",
+      taxCategoryLabel: "Категория налога",
+      socialFundCategoryLabel: "Категория соцфонда",
+      taxTitleLabel: "Название транзакции по налогу",
+      socialFundTitleLabel: "Название транзакции по соцфонду",
+      createLinkedTransactionsLabel: "Связанные транзакции будут объединены в одну группу обязательства.",
+      selectSourceAccount: "Выберите счет списания",
+      fillTaxPaymentFields: "Заполните обязательные поля для налогового списания.",
       entrepreneurLabel: "ИП",
       companyLabel: "ОсОО",
       depositSettingsTitle: "Параметры депозита",
@@ -406,7 +567,7 @@ function getUiCopy(locale: Locale): UiCopy {
       openDetails: "Подробнее",
       chartBarsView: "Столбцы",
       chartLineView: "Кривая",
-      chartTradingView: "TradingView",
+      chartTradingView: "Площадь",
       chartCandlesView: "Свечи",
       chartStructureView: "Круговая",
       receivedLabel: "Получено",
@@ -519,8 +680,8 @@ function getUiCopy(locale: Locale): UiCopy {
       customCategoriesValue: "{count} жеке",
       showMoreCategories: "Дагы {count} көрсөтүү",
       showLessCategories: "Тизмени жыйноо",
-      interfaceSettingsTitle: "Интерфейс жана локалдаштыруу",
-      interfaceSettingsBody: "Интерфейс тилин алмаштырып, жумуш мейкиндигинин параметрлерин башкарыңыз.",
+      interfaceSettingsTitle: "Профиль жана интерфейс жөндөөлөрү",
+      interfaceSettingsBody: "Жеке маалыматтарды, коопсуздукту, интерфейс тилин жана жумуш мейкиндигинин параметрлерин башкарыңыз.",
       languageUpdated: "Интерфейс тили жаңыртылды.",
       interfaceLanguage: "Интерфейс тили",
       defaultCurrency: "Демейки валюта",
@@ -643,6 +804,21 @@ function getUiCopy(locale: Locale): UiCopy {
       taxRateLabel: "Салык ставкасы, %",
       taxQuarterlyAutoHint: "Кварталдык эсептөө түшүүлөр боюнча, төлөө мөөнөтү кийинки кварталдын 20сына чейин.",
       noTaxProfiles: "Милдеттенмелерди бул жерден көрүү үчүн ИП же ОсОО эсебине салык профилин кошуңуз.",
+      createTaxPayment: "Чыгаша түзүү",
+      createTaxPaymentDescription: "Салык, соцфонд же экөөнө тең бир эсептен байланышкан чыгаша транзакцияларын түзүңүз.",
+      createTaxPaymentSuccess: "Салык транзакциялары түзүлдү.",
+      taxPaymentModeLabel: "Эмне түзүлөт",
+      taxPaymentModeTax: "Салык гана",
+      taxPaymentModeSocialFund: "Соцфонд гана",
+      taxPaymentModeBoth: "Салык жана соцфонд",
+      sourceAccountLabel: "Чыгаруучу эсеп",
+      taxCategoryLabel: "Салык категориясы",
+      socialFundCategoryLabel: "Соцфонд категориясы",
+      taxTitleLabel: "Салык транзакциясынын аталышы",
+      socialFundTitleLabel: "Соцфонд транзакциясынын аталышы",
+      createLinkedTransactionsLabel: "Байланышкан транзакциялар бир милдеттенме тобуна бириктирилет.",
+      selectSourceAccount: "Чыгаруучу эсепти тандаңыз",
+      fillTaxPaymentFields: "Салык чыгашасы үчүн милдеттүү талааларды толтуруңуз.",
       entrepreneurLabel: "ИП",
       companyLabel: "ОсОО",
       depositSettingsTitle: "Депозит параметрлери",
@@ -674,7 +850,7 @@ function getUiCopy(locale: Locale): UiCopy {
       openDetails: "Толугураак",
       chartBarsView: "Тилкелер",
       chartLineView: "Өсүү сызыгы",
-      chartTradingView: "TradingView",
+      chartTradingView: "Аянт",
       chartCandlesView: "Шамдар",
       chartStructureView: "Айланма",
       receivedLabel: "Түшкөн",
@@ -786,8 +962,8 @@ function getUiCopy(locale: Locale): UiCopy {
     customCategoriesValue: "{count} personal",
     showMoreCategories: "Show {count} more",
     showLessCategories: "Collapse list",
-    interfaceSettingsTitle: "Interface and localization",
-    interfaceSettingsBody: "Switch interface language and control workspace-level preferences.",
+    interfaceSettingsTitle: "Profile and interface settings",
+    interfaceSettingsBody: "Manage personal details, security, interface language and workspace-level preferences.",
     languageUpdated: "Interface language updated.",
     interfaceLanguage: "Interface language",
     defaultCurrency: "Default currency",
@@ -910,6 +1086,21 @@ function getUiCopy(locale: Locale): UiCopy {
     taxRateLabel: "Tax rate, %",
     taxQuarterlyAutoHint: "Quarterly calculation from inflows, payment deadline on the 20th of the next quarter.",
     noTaxProfiles: "Add a tax profile to an entrepreneur or company account to see obligations here.",
+    createTaxPayment: "Create payout",
+    createTaxPaymentDescription: "Create expense transactions for tax, social fund, or both from a selected funding account.",
+    createTaxPaymentSuccess: "Tax transactions created.",
+    taxPaymentModeLabel: "Create",
+    taxPaymentModeTax: "Tax only",
+    taxPaymentModeSocialFund: "Social fund only",
+    taxPaymentModeBoth: "Tax and social fund",
+    sourceAccountLabel: "Funding account",
+    taxCategoryLabel: "Tax category",
+    socialFundCategoryLabel: "Social fund category",
+    taxTitleLabel: "Tax transaction title",
+    socialFundTitleLabel: "Social fund transaction title",
+    createLinkedTransactionsLabel: "Created transactions will be linked under the same obligation group.",
+    selectSourceAccount: "Select funding account",
+    fillTaxPaymentFields: "Fill the required tax payment fields.",
     entrepreneurLabel: "Entrepreneur",
     companyLabel: "Company",
     depositSettingsTitle: "Deposit settings",
@@ -941,7 +1132,7 @@ function getUiCopy(locale: Locale): UiCopy {
     openDetails: "Open details",
     chartBarsView: "Bars",
     chartLineView: "Growth",
-    chartTradingView: "TradingView",
+    chartTradingView: "Area",
     chartCandlesView: "Candles",
     chartStructureView: "Donut",
     receivedLabel: "Received",
@@ -974,6 +1165,8 @@ export function FinanceWorkspace({
   const [editingBudget, setEditingBudget] = useState<BudgetRecord | null>(null);
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<CategoryRecord | null>(null);
+  const [accountFormErrors, setAccountFormErrors] = useState<FormFieldErrors>({});
+  const [transactionFormErrors, setTransactionFormErrors] = useState<FormFieldErrors>({});
   const [accountToDelete, setAccountToDelete] = useState<AccountRecord | null>(null);
   const [budgetToDelete, setBudgetToDelete] = useState<BudgetRecord | null>(null);
   const [transactionToDelete, setTransactionToDelete] = useState<TransactionRecord | null>(null);
@@ -986,10 +1179,16 @@ export function FinanceWorkspace({
   } | null>(null);
   const [ratesSearchQuery, setRatesSearchQuery] = useState("");
   const [cashFlowRange, setCashFlowRange] = useState<CashFlowRange>("month");
+  const [cashFlowAnchorDate, setCashFlowAnchorDate] = useState(() => getToday());
   const [cashFlowCustomRange, setCashFlowCustomRange] = useState(() =>
     normalizeCashFlowDateRange(getToday().slice(0, 8) + "01", getToday()),
   );
-  const [cashFlowChartMode, setCashFlowChartMode] = useState<CashFlowChartMode | null>(null);
+  const [storedWorkspacePreferences, setStoredWorkspacePreferences] = useState<Required<StoredWorkspacePreferences>>(() =>
+    resolveWorkspacePreferences(readStoredWorkspacePreferences()),
+  );
+  const [cashFlowChartMode, setCashFlowChartMode] = useState<CashFlowChartMode | null>(
+    () => resolveWorkspacePreferences(readStoredWorkspacePreferences()).cash_flow_chart_default,
+  );
   const [profileFormDirty, setProfileFormDirty] = useState(false);
   const [profileForm, setProfileForm] = useState(() => createProfileForm(null));
   const [categorySearchQuery, setCategorySearchQuery] = useState("");
@@ -1087,7 +1286,9 @@ export function FinanceWorkspace({
   const exchangeRates = useMemo(() => exchangeRatesQuery.data ?? [], [exchangeRatesQuery.data]);
   const notifications = useMemo(() => notificationsQuery.data ?? [], [notificationsQuery.data]);
   const overview = overviewQuery.data;
-  const activeProfileForm = profileFormDirty ? profileForm : createProfileForm(user);
+  const activeProfileForm = profileFormDirty
+    ? profileForm
+    : buildProfileFormWithPreferences(user, storedWorkspacePreferences);
   const systemCategoriesCount = useMemo(
     () => categories.filter((item) => item.is_system).length,
     [categories],
@@ -1125,7 +1326,61 @@ export function FinanceWorkspace({
     ) => ReturnType<typeof createProfileForm>,
   ) => {
     setProfileFormDirty(true);
-    setProfileForm((current) => updater(profileFormDirty ? current : createProfileForm(user)));
+    setProfileForm((current) =>
+      updater(
+        profileFormDirty
+          ? current
+          : buildProfileFormWithPreferences(user, storedWorkspacePreferences),
+      ),
+    );
+  };
+
+  const updateStoredWorkspacePreferences = (
+    nextPreferences: StoredWorkspacePreferences,
+  ) => {
+    persistWorkspacePreferences(nextPreferences);
+    setStoredWorkspacePreferences((current) =>
+      resolveWorkspacePreferences({
+        ...current,
+        ...nextPreferences,
+      }),
+    );
+  };
+
+  const clearAccountFormError = (fieldName: string) => {
+    setAccountFormErrors((current) => {
+      if (!current[fieldName]) {
+        return current;
+      }
+      const next = { ...current };
+      delete next[fieldName];
+      return next;
+    });
+  };
+
+  const clearTransactionFormError = (fieldName: string) => {
+    setTransactionFormErrors((current) => {
+      if (!current[fieldName]) {
+        return current;
+      }
+      const next = { ...current };
+      delete next[fieldName];
+      return next;
+    });
+  };
+
+  const handleDefaultCurrencyChange = (value: string) => {
+    updateStoredWorkspacePreferences({ default_currency: value });
+    updateProfileFormState((current) => ({ ...current, default_currency: value }));
+  };
+
+  const handleCashFlowChartModeChange = (value: CashFlowChartMode) => {
+    setCashFlowChartMode(value);
+    updateStoredWorkspacePreferences({ cash_flow_chart_default: value });
+    updateProfileFormState((current) => ({
+      ...current,
+      cash_flow_chart_default: value,
+    }));
   };
 
   const invalidateFinance = async () => {
@@ -1141,21 +1396,26 @@ export function FinanceWorkspace({
   const createAccountMutation = useMutation({
     mutationFn: createAccount,
     onSuccess: async () => {
+      setAccountFormErrors({});
       toast.success(ui.accountCreated);
       setAccountDialogOpen(false);
       setAccountForm(
         createDefaultAccountForm(
-          resolveDefaultCurrency(currencies, user?.default_currency ?? activeProfileForm.default_currency),
+          resolveDefaultCurrency(currencies, activeProfileForm.default_currency),
         ),
       );
       await invalidateFinance();
     },
-    onError: (error) => toast.error(extractApiErrorMessage(error)),
+    onError: (error) => {
+      setAccountFormErrors(extractFieldErrors(error));
+      toast.error(extractApiErrorMessage(error));
+    },
   });
 
   const createTransactionMutation = useMutation({
     mutationFn: createTransaction,
     onSuccess: async () => {
+      setTransactionFormErrors({});
       toast.success(ui.transactionCreated);
       setTransactionDialogOpen(false);
       setEditingTransaction(null);
@@ -1176,19 +1436,38 @@ export function FinanceWorkspace({
       });
       await invalidateFinance();
     },
-    onError: (error) => toast.error(extractApiErrorMessage(error)),
+    onError: (error) => {
+      setTransactionFormErrors(extractFieldErrors(error));
+      toast.error(extractApiErrorMessage(error));
+    },
+  });
+
+  const createTaxTransactionsMutation = useMutation({
+    mutationFn: ({ accountId, payload }: { accountId: number; payload: CreateTaxObligationTransactionsPayload }) =>
+      createTaxObligationTransactions(accountId, payload),
+    onSuccess: async () => {
+      toast.success(ui.createTaxPaymentSuccess);
+      await invalidateFinance();
+    },
+    onError: (error) => {
+      toast.error(extractApiErrorMessage(error));
+    },
   });
 
   const updateTransactionMutation = useMutation({
     mutationFn: ({ id, payload }: { id: number; payload: Partial<CreateTransactionPayload> }) =>
       updateTransaction(id, payload),
     onSuccess: async () => {
+      setTransactionFormErrors({});
       toast.success(ui.transactionUpdated);
       setTransactionDialogOpen(false);
       setEditingTransaction(null);
       await invalidateFinance();
     },
-    onError: (error) => toast.error(extractApiErrorMessage(error)),
+    onError: (error) => {
+      setTransactionFormErrors(extractFieldErrors(error));
+      toast.error(extractApiErrorMessage(error));
+    },
   });
 
   const createBudgetMutation = useMutation({
@@ -1287,10 +1566,14 @@ export function FinanceWorkspace({
     mutationFn: ({ id, payload }: { id: number; payload: Partial<CreateAccountPayload> }) =>
       updateAccount(id, payload),
     onSuccess: async () => {
+      setAccountFormErrors({});
       toast.success(ui.accountUpdated);
       await invalidateFinance();
     },
-    onError: (error) => toast.error(extractApiErrorMessage(error)),
+    onError: (error) => {
+      setAccountFormErrors(extractFieldErrors(error));
+      toast.error(extractApiErrorMessage(error));
+    },
   });
 
   const updateBudgetMutation = useMutation({
@@ -1326,9 +1609,11 @@ export function FinanceWorkspace({
   const updateProfileMutation = useMutation({
     mutationFn: updateUser,
     onSuccess: async (nextUser) => {
+      const persistedPreferences = resolveWorkspacePreferences(readStoredWorkspacePreferences());
+      setStoredWorkspacePreferences(persistedPreferences);
+      setCashFlowChartMode(persistedPreferences.cash_flow_chart_default);
       setProfileFormDirty(false);
       setProfileForm(createProfileForm(nextUser));
-      setCashFlowChartMode(null);
       toast.success(ui.profileUpdated);
       await queryClient.invalidateQueries({ queryKey: ["workspace-overview"] });
     },
@@ -1465,8 +1750,8 @@ export function FinanceWorkspace({
   }, [summaryBreakdownModal, summaryDetailTransactions, ui.transferLabel]);
   const currentMonthLabel = useMemo(() => formatMonthLabel(new Date(), locale), [locale]);
   const cashFlowSeries = useMemo(
-    () => buildCashFlowSeries(transactions, cashFlowRange, locale, cashFlowCustomRange),
-    [cashFlowCustomRange, cashFlowRange, locale, transactions],
+    () => buildCashFlowSeries(transactions, cashFlowRange, locale, cashFlowCustomRange, cashFlowAnchorDate),
+    [cashFlowAnchorDate, cashFlowCustomRange, cashFlowRange, locale, transactions],
   );
   const cashFlowVisibleTotals = useMemo(
     () =>
@@ -1485,10 +1770,13 @@ export function FinanceWorkspace({
     [cashFlowSeries.items],
   );
   const cashFlowRangeLabel = useMemo(
-    () => cashFlowRangeDescription(cashFlowRange, locale, ui),
-    [cashFlowRange, locale, ui],
+    () => cashFlowRangeDescription(cashFlowRange, locale, ui, cashFlowAnchorDate, cashFlowCustomRange),
+    [cashFlowAnchorDate, cashFlowCustomRange, cashFlowRange, locale, ui],
   );
-  const effectiveCashFlowChartMode = cashFlowChartMode ?? user?.cash_flow_chart_default ?? "bars";
+  const effectiveCashFlowChartMode =
+    cashFlowChartMode ??
+    storedWorkspacePreferences.cash_flow_chart_default ??
+    "bars";
   const recentExpensesBoundary = useMemo(() => {
     const boundary = new Date(getToday());
     boundary.setDate(boundary.getDate() - 6);
@@ -1519,9 +1807,10 @@ export function FinanceWorkspace({
 
   const openAccountDialog = () => {
     setEditingAccount(null);
+    setAccountFormErrors({});
     const defaultCurrency = resolveDefaultCurrency(
       currencies,
-      user?.default_currency ?? activeProfileForm.default_currency,
+      activeProfileForm.default_currency,
     );
     setAccountForm((current) => ({
       ...current,
@@ -1537,12 +1826,14 @@ export function FinanceWorkspace({
 
   const openAccountEditDialog = (account: AccountRecord) => {
     setEditingAccount(account);
+    setAccountFormErrors({});
     setAccountForm(createAccountFormFromRecord(account));
     setAccountDialogOpen(true);
   };
 
   const openTransactionDialog = () => {
     setEditingTransaction(null);
+    setTransactionFormErrors({});
     setTransactionForm({
       account: accounts[0]?.id ?? 0,
       category: null,
@@ -1586,6 +1877,7 @@ export function FinanceWorkspace({
 
   const openTransactionEditDialog = (transaction: TransactionRecord) => {
     setEditingTransaction(transaction);
+    setTransactionFormErrors({});
     setTransactionForm({
       account: transaction.account,
       category: transaction.category,
@@ -1609,7 +1901,7 @@ export function FinanceWorkspace({
     const expenseCategory = categories.find((item) => item.kind === "expense");
     const defaultCurrency = resolveDefaultCurrency(
       currencies,
-      user?.default_currency ?? activeProfileForm.default_currency,
+      activeProfileForm.default_currency,
     );
 
     setBudgetForm({
@@ -1938,10 +2230,12 @@ export function FinanceWorkspace({
                 cashFlowRangeLabel={cashFlowRangeLabel}
                 cashFlowRange={cashFlowRange}
                 setCashFlowRange={setCashFlowRange}
+                cashFlowAnchorDate={cashFlowAnchorDate}
+                setCashFlowAnchorDate={setCashFlowAnchorDate}
                 cashFlowCustomRange={cashFlowCustomRange}
                 setCashFlowCustomRange={setCashFlowCustomRange}
                 effectiveCashFlowChartMode={effectiveCashFlowChartMode}
-                setCashFlowChartMode={setCashFlowChartMode}
+                setCashFlowChartMode={handleCashFlowChartModeChange}
                 cashFlowVisibleTotals={cashFlowVisibleTotals}
                 workspaceSummaryCurrency={workspaceSummaryCurrency}
                 cashFlowTrajectory={cashFlowTrajectory}
@@ -1953,9 +2247,14 @@ export function FinanceWorkspace({
               <WorkspaceAccountsSection
                 ui={ui}
                 accounts={accounts}
+                categories={categories}
                 overview={overview}
                 onOpenAccountDialog={openAccountDialog}
                 onOpenAccountEditDialog={openAccountEditDialog}
+                onCreateTaxTransactions={(accountId, payload) =>
+                  createTaxTransactionsMutation.mutateAsync({ accountId, payload })
+                }
+                createTaxTransactionsPending={createTaxTransactionsMutation.isPending}
               />
             ) : null}
 
@@ -2013,7 +2312,8 @@ export function FinanceWorkspace({
                 customCategoriesCount={customCategoriesCount}
                 activeProfileForm={activeProfileForm}
                 updateProfilePending={updateProfileMutation.isPending}
-                setCashFlowChartMode={setCashFlowChartMode}
+                onDefaultCurrencyChange={handleDefaultCurrencyChange}
+                onCashFlowChartModeChange={handleCashFlowChartModeChange}
                 onOpenCategoryDialog={openCategoryDialog}
                 onCategorySearchChange={setCategorySearchQuery}
                 onCategorySourceFilterChange={setCategorySourceFilter}
@@ -2022,7 +2322,15 @@ export function FinanceWorkspace({
                 onDeleteCategoryRequest={setCategoryToDelete}
                 onLocaleChange={handleLocaleChange}
                 onUpdateProfileFormState={updateProfileFormState}
-                onSaveProfile={() => updateProfileMutation.mutate(activeProfileForm)}
+                onSaveProfile={() =>
+                  updateProfileMutation.mutate({
+                    first_name: activeProfileForm.first_name,
+                    last_name: activeProfileForm.last_name,
+                    email: activeProfileForm.email,
+                    phone: activeProfileForm.phone,
+                    two_factor_enabled: activeProfileForm.two_factor_enabled,
+                  })
+                }
               />
             ) : null}
 
@@ -2036,6 +2344,7 @@ export function FinanceWorkspace({
           setAccountDialogOpen(open);
           if (!open) {
             setEditingAccount(null);
+            setAccountFormErrors({});
           }
         }}
       >
@@ -2058,6 +2367,12 @@ export function FinanceWorkspace({
                       }
                     : undefined,
               };
+              const validationErrors = validateAccountForm(payload);
+              if (Object.keys(validationErrors).length > 0) {
+                setAccountFormErrors(validationErrors);
+                toast.error("Заполните обязательные поля счета.");
+                return;
+              }
               if (editingAccount) {
                 updateAccountMutation.mutate({
                   id: editingAccount.id,
@@ -2074,40 +2389,59 @@ export function FinanceWorkspace({
             <div className="min-h-0 flex-1 overflow-y-auto px-8 pb-6 pt-6">
               <div className="space-y-4">
                 <div className="grid gap-4 md:grid-cols-2">
-                  <Field>
+                  <Field data-invalid={Boolean(accountFormErrors.name)}>
                     <FieldLabel>{ui.accountName}</FieldLabel>
-                    <Input value={accountForm.name} onChange={(event) => setAccountForm((current) => ({ ...current, name: event.target.value }))} />
+                    <Input
+                      aria-invalid={Boolean(accountFormErrors.name)}
+                      value={accountForm.name}
+                      onChange={(event) => {
+                        clearAccountFormError("name");
+                        setAccountForm((current) => ({ ...current, name: event.target.value }));
+                      }}
+                    />
+                    <FieldError>{accountFormErrors.name}</FieldError>
                   </Field>
-                  <Field>
+                  <Field data-invalid={Boolean(accountFormErrors.currency)}>
                     <FieldLabel>{ui.currency}</FieldLabel>
                     <WorkspaceSelect
                       value={accountForm.currency}
-                      onValueChange={(value) => setAccountForm((current) => ({ ...current, currency: value }))}
+                      invalid={Boolean(accountFormErrors.currency)}
+                      onValueChange={(value) => {
+                        clearAccountFormError("currency");
+                        setAccountForm((current) => ({ ...current, currency: value }));
+                      }}
                       options={currencies.map((currency: CurrencyRecord) => ({
                         value: currency.code,
                         label: `${currency.code} · ${currency.name}`,
                       }))}
                     />
+                    <FieldError>{accountFormErrors.currency}</FieldError>
                   </Field>
                 </div>
                 <div className="grid gap-4 md:grid-cols-2">
-                  <Field>
+                  <Field data-invalid={Boolean(accountFormErrors.kind)}>
                     <FieldLabel>{ui.accountKind}</FieldLabel>
                     <WorkspaceSelect
                       value={accountForm.kind}
+                      invalid={Boolean(accountFormErrors.kind)}
                       onValueChange={(value) =>
-                        setAccountForm((current) => ({
-                          ...current,
-                          kind: value,
-                          tax_profile:
-                            value === "entrepreneur" || value === "company"
-                              ? current.tax_profile ?? createDefaultTaxProfile(value)
-                              : undefined,
-                          deposit_profile:
-                            value === "deposit"
-                              ? current.deposit_profile ?? createDefaultDepositProfile()
-                              : current.deposit_profile,
-                        }))
+                        {
+                          clearAccountFormError("kind");
+                          clearAccountFormError("tax_profile");
+                          clearAccountFormError("deposit_profile");
+                          setAccountForm((current) => ({
+                            ...current,
+                            kind: value,
+                            tax_profile:
+                              value === "entrepreneur" || value === "company"
+                                ? current.tax_profile ?? createDefaultTaxProfile(value)
+                                : undefined,
+                            deposit_profile:
+                              value === "deposit"
+                                ? current.deposit_profile ?? createDefaultDepositProfile()
+                                : current.deposit_profile,
+                          }));
+                        }
                       }
                       options={[
                         { value: "cash", label: ui.accountKindCash },
@@ -2121,12 +2455,17 @@ export function FinanceWorkspace({
                         { value: "e_wallet", label: ui.accountKindWallet },
                       ]}
                     />
+                    <FieldError>{accountFormErrors.kind}</FieldError>
                   </Field>
-                  <Field>
+                  <Field data-invalid={Boolean(accountFormErrors.status)}>
                     <FieldLabel>{ui.status}</FieldLabel>
                     <WorkspaceSelect
                       value={accountForm.status}
-                      onValueChange={(value) => setAccountForm((current) => ({ ...current, status: value }))}
+                      invalid={Boolean(accountFormErrors.status)}
+                      onValueChange={(value) => {
+                        clearAccountFormError("status");
+                        setAccountForm((current) => ({ ...current, status: value }));
+                      }}
                       options={[
                         { value: "active", label: ui.activeLabel },
                         { value: "frozen", label: ui.freeze },
@@ -2134,6 +2473,7 @@ export function FinanceWorkspace({
                         { value: "closed", label: ui.inactiveLabel },
                       ]}
                     />
+                    <FieldError>{accountFormErrors.status}</FieldError>
                   </Field>
                 </div>
                 <div className="grid gap-4 md:grid-cols-2">
@@ -2167,6 +2507,7 @@ export function FinanceWorkspace({
                       <p className="text-sm font-medium text-white">{ui.taxSettingsTitle}</p>
                       <p className="mt-1 text-sm text-zinc-400">{ui.taxSettingsBody}</p>
                     </div>
+                    <FieldError>{accountFormErrors.tax_profile}</FieldError>
                     {(() => {
                       const socialFundMode =
                         accountForm.tax_profile?.manual_social_fund_amount !== null
@@ -2282,6 +2623,7 @@ export function FinanceWorkspace({
                       <p className="text-sm font-medium text-white">{ui.depositSettingsTitle}</p>
                       <p className="mt-1 text-sm text-zinc-400">{ui.depositSettingsBody}</p>
                     </div>
+                    <FieldError>{accountFormErrors.deposit_profile}</FieldError>
                     <div className="grid gap-4 md:grid-cols-2">
                       <Field>
                         <FieldLabel>{ui.annualInterestRate}</FieldLabel>
@@ -2568,6 +2910,7 @@ export function FinanceWorkspace({
           setTransactionDialogOpen(open);
           if (!open) {
             setEditingTransaction(null);
+            setTransactionFormErrors({});
           }
         }}
       >
@@ -2590,6 +2933,12 @@ export function FinanceWorkspace({
                     ? transactionForm.exchange_rate ?? suggestedTransferRate?.toFixed(6) ?? null
                     : null,
               };
+              const validationErrors = validateTransactionForm(payload);
+              if (Object.keys(validationErrors).length > 0) {
+                setTransactionFormErrors(validationErrors);
+                toast.error("Заполните обязательные поля транзакции.");
+                return;
+              }
 
               if (editingTransaction) {
                 updateTransactionMutation.mutate({
@@ -2626,6 +2975,8 @@ export function FinanceWorkspace({
                 categories={categories}
                 values={transactionForm}
                 setValues={setTransactionForm}
+                fieldErrors={transactionFormErrors}
+                clearFieldError={clearTransactionFormError}
                 ui={ui}
               />
             </div>

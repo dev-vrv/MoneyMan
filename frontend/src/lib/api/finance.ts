@@ -52,6 +52,7 @@ export type WorkspaceOverview = {
     currency: string;
     entity_type: "entrepreneur" | "company";
     template_code: string;
+    calculation_source: "transactions" | "manual";
     reporting_period: "monthly" | "quarterly" | "yearly";
     period_start: string;
     period_end: string;
@@ -70,6 +71,8 @@ export type WorkspaceOverview = {
     description: string;
   }>;
 };
+
+export type TaxObligationRecord = WorkspaceOverview["tax_obligations"][number];
 
 export type CurrencyRecord = {
   code: string;
@@ -180,6 +183,13 @@ export type AccountRecord = {
     manual_tax_base: string | null;
     manual_tax_amount: string | null;
     manual_social_fund_amount: string | null;
+    period_start: string;
+    period_end: string;
+    due_date: string;
+    tax_base: string;
+    tax_amount: string;
+    social_fund_amount: string;
+    total_amount: string;
     note: string;
     is_active: boolean;
   } | null;
@@ -389,6 +399,23 @@ export type CreateTransactionPayload = {
   occurred_on: string;
   external_reference?: string;
   idempotency_key?: string;
+};
+
+export type CreateTaxObligationTransactionsPayload = {
+  source_account: number;
+  mode: "tax" | "social_fund" | "both";
+  status: "draft" | "pending" | "cleared";
+  occurred_on: string;
+  tax_category?: number | null;
+  social_fund_category?: number | null;
+  tax_title?: string;
+  social_fund_title?: string;
+  description?: string;
+};
+
+export type CreateTaxObligationTransactionsResponse = {
+  obligation: TaxObligationRecord;
+  transactions: TransactionRecord[];
 };
 
 export type CreateBudgetPayload = {
@@ -614,6 +641,17 @@ export async function deleteAccount(id: number) {
 
 export async function createTransaction(payload: CreateTransactionPayload) {
   const { data } = await apiClient.post<TransactionRecord>("/finance/transactions/", payload);
+  return data;
+}
+
+export async function createTaxObligationTransactions(
+  accountId: number,
+  payload: CreateTaxObligationTransactionsPayload,
+) {
+  const { data } = await apiClient.post<CreateTaxObligationTransactionsResponse>(
+    `/finance/accounts/${accountId}/create-tax-transactions/`,
+    payload,
+  );
   return data;
 }
 

@@ -2,8 +2,11 @@ from __future__ import annotations
 
 from datetime import date
 from decimal import Decimal
+from uuid import uuid4
 
+from django.db import models
 from django.db.models import Q
+from django.utils import timezone
 from django.utils.dateparse import parse_date
 from rest_framework import serializers
 
@@ -24,6 +27,7 @@ from .models import (
     Transaction,
 )
 from .services import (
+    build_tax_obligation_snapshot,
     calculate_deposit_snapshot,
     category_queryset_for_user,
     create_transaction,
@@ -330,6 +334,12 @@ class AccountSerializer(serializers.ModelSerializer):
         if not tax_profile:
             return None
 
+        obligation_snapshot = build_tax_obligation_snapshot(
+            user=self.context["request"].user,
+            account=obj,
+            profile=tax_profile,
+        )
+
         return {
             "id": tax_profile.id,
             "entity_type": tax_profile.entity_type,
@@ -346,6 +356,13 @@ class AccountSerializer(serializers.ModelSerializer):
                 if tax_profile.manual_social_fund_amount is not None
                 else None
             ),
+            "period_start": obligation_snapshot["period_start"],
+            "period_end": obligation_snapshot["period_end"],
+            "due_date": obligation_snapshot["due_date"],
+            "tax_base": obligation_snapshot["tax_base"],
+            "tax_amount": obligation_snapshot["tax_amount"],
+            "social_fund_amount": obligation_snapshot["social_fund_amount"],
+            "total_amount": obligation_snapshot["total_amount"],
             "note": tax_profile.note,
             "is_active": tax_profile.is_active,
         }
@@ -558,6 +575,129 @@ class AccountTaxProfileSerializer(serializers.ModelSerializer):
                 {"manual_tax_base": "Manual mode requires tax base or tax amount."}
             )
         return attrs
+
+
+class TaxObligationTransactionCreateSerializer(serializers.Serializer):
+    class ComponentMode(models.TextChoices):
+        TAX = "tax"
+        SOCIAL_FUND = "social_fund"
+        BOTH = "both"
+
+    source_account = serializers.PrimaryKeyRelatedField(queryset=Account.objects.none())
+    mode = serializers.ChoiceField(choices=ComponentMode.values, default=ComponentMode.BOTH)
+    status = serializers.ChoiceField(
+        choices=[
+            Transaction.TransactionStatus.DRAFT,
+            Transaction.TransactionStatus.PENDING,
+            Transaction.TransactionStatus.CLEARED,
+        ],
+        default=Transaction.TransactionStatus.PENDING,
+    )
+    occurred_on = serializers.DateField(default=timezone.localdate)
+    tax_category = serializers.PrimaryKeyRelatedField(
+        queryset=Category.objects.none(),
+        allow_null=True,
+        required=False,
+    )
+    social_fund_category = serializers.PrimaryKeyRelatedField(
+        queryset=Category.objects.none(),
+        allow_null=True,
+        required=False,
+    )
+    tax_title = serializers.CharField(required=False, allow_blank=True, max_length=160)
+    social_fund_title = serializers.CharField(required=False, allow_blank=True, max_length=160)
+    description = serializers.CharField(required=False, allow_blank=True)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get("request")
+        if request:
+            self.fields["source_account"].queryset = Account.objects.filter(owner=request.user)
+            expense_categories = category_queryset_for_user(request.user).filter(kind=Category.CategoryKind.EXPENSE)
+            self.fields["tax_category"].queryset = expense_categories
+            self.fields["social_fund_category"].queryset = expense_categories
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        mode = attrs["mode"]
+        if mode in {self.ComponentMode.TAX, self.ComponentMode.BOTH} and not attrs.get("tax_category"):
+            raise serializers.ValidationError({"tax_category": "Tax category is required."})
+        if mode in {self.ComponentMode.SOCIAL_FUND, self.ComponentMode.BOTH} and not attrs.get("social_fund_category"):
+            raise serializers.ValidationError({"social_fund_category": "Social fund category is required."})
+        return attrs
+
+    def save(self, **kwargs):
+        user = self.context["request"].user
+        account: Account = self.context["account"]
+        profile = getattr(account, "tax_profile", None)
+        if profile is None or not profile.is_active:
+            raise serializers.ValidationError({"account": "Active tax profile is required for this account."})
+
+        obligation_snapshot = build_tax_obligation_snapshot(user=user, account=account, profile=profile)
+        component_payloads: list[tuple[str, Decimal, Category | None, str]] = []
+        mode = self.validated_data["mode"]
+
+        if mode in {self.ComponentMode.TAX, self.ComponentMode.BOTH}:
+            component_payloads.append(
+                (
+                    self.ComponentMode.TAX,
+                    Decimal(obligation_snapshot["tax_amount"]),
+                    self.validated_data.get("tax_category"),
+                    self.validated_data.get("tax_title") or "Tax payment",
+                )
+            )
+        if mode in {self.ComponentMode.SOCIAL_FUND, self.ComponentMode.BOTH}:
+            component_payloads.append(
+                (
+                    self.ComponentMode.SOCIAL_FUND,
+                    Decimal(obligation_snapshot["social_fund_amount"]),
+                    self.validated_data.get("social_fund_category"),
+                    self.validated_data.get("social_fund_title") or "Social fund payment",
+                )
+            )
+
+        external_reference_group = (
+            f"tax-obligation:{account.id}:{obligation_snapshot['period_start']}:{obligation_snapshot['period_end']}:{uuid4().hex[:10]}"
+        )
+        base_description = self.validated_data.get("description", "").strip()
+        created_transactions: list[Transaction] = []
+
+        for component, amount, category, title in component_payloads:
+            if amount <= Decimal("0.00") or category is None:
+                continue
+
+            auto_description = (
+                f"Auto-created from tax obligation for {account.name}. "
+                f"Period: {obligation_snapshot['period_start']} - {obligation_snapshot['period_end']}."
+            )
+            description = base_description or auto_description
+            merchant = "Social Fund" if component == self.ComponentMode.SOCIAL_FUND else "Tax Authority"
+
+            created_transactions.append(
+                create_transaction(
+                    user=user,
+                    validated_data={
+                        "account": self.validated_data["source_account"],
+                        "category": category,
+                        "type": Transaction.TransactionType.EXPENSE,
+                        "status": self.validated_data["status"],
+                        "amount": amount,
+                        "title": title,
+                        "merchant": merchant,
+                        "description": description,
+                        "occurred_on": self.validated_data["occurred_on"],
+                        "external_reference": f"{external_reference_group}:{component}",
+                    },
+                )
+            )
+
+        if not created_transactions:
+            raise serializers.ValidationError({"mode": "No transactions were created for the selected obligation."})
+
+        return {
+            "obligation": obligation_snapshot,
+            "transactions": created_transactions,
+        }
 
 
 class CryptoNetworkSerializer(serializers.ModelSerializer):

@@ -35,6 +35,7 @@ from .serializers import (
     CurrencySerializer,
     ExchangeRateSerializer,
     NotificationSerializer,
+    TaxObligationTransactionCreateSerializer,
     TransactionSerializer,
 )
 from .services import build_dashboard_overview, category_queryset_for_user, delete_transaction
@@ -183,6 +184,30 @@ class AccountViewSet(viewsets.ModelViewSet):
         if kind:
             queryset = queryset.filter(kind=kind)
         return queryset.order_by("name")
+
+    @action(detail=True, methods=["post"], url_path="create-tax-transactions")
+    def create_tax_transactions(self, request, pk=None):
+        account = self.get_object()
+        serializer = TaxObligationTransactionCreateSerializer(
+            data=request.data,
+            context={
+                "request": request,
+                "account": account,
+            },
+        )
+        serializer.is_valid(raise_exception=True)
+        result = serializer.save()
+        return Response(
+            {
+                "obligation": result["obligation"],
+                "transactions": TransactionSerializer(
+                    result["transactions"],
+                    many=True,
+                    context={"request": request},
+                ).data,
+            },
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class AccountTaxProfileViewSet(viewsets.ModelViewSet):

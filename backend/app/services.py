@@ -293,6 +293,28 @@ DEFAULT_SYSTEM_CATEGORIES = (
         "sort_order": 180,
     },
     {
+        "kind": Category.CategoryKind.EXPENSE,
+        "name": "Taxes",
+        "name_ru": "Налоги",
+        "name_en": "Taxes",
+        "name_kg": "Салыктар",
+        "slug": "taxes",
+        "icon": "tax",
+        "color": "amber",
+        "sort_order": 190,
+    },
+    {
+        "kind": Category.CategoryKind.EXPENSE,
+        "name": "Social contributions",
+        "name_ru": "Социальные взносы",
+        "name_en": "Social contributions",
+        "name_kg": "Социалдык төлөмдөр",
+        "slug": "social-contributions",
+        "icon": "shield",
+        "color": "cyan",
+        "sort_order": 191,
+    },
+    {
         "kind": Category.CategoryKind.TRANSFER,
         "name": "Internal transfer",
         "name_ru": "Внутренний перевод",
@@ -592,6 +614,73 @@ def clamp_due_day(target_date: date, due_day: int) -> date:
     return target_date.replace(day=min(due_day, last_day))
 
 
+def build_tax_obligation_snapshot(
+    *,
+    user,
+    account: Account,
+    profile: AccountTaxProfile,
+    today: date | None = None,
+) -> dict:
+    current_date = today or timezone.localdate()
+    reporting_period = profile.reporting_period
+    due_day = profile.due_day
+    if account.kind in {Account.AccountKind.ENTREPRENEUR, Account.AccountKind.COMPANY}:
+        reporting_period = AccountTaxProfile.ReportingPeriod.QUARTERLY
+        due_day = 20
+
+    period_start = get_period_start(current_date, reporting_period)
+    next_period_start = get_next_period_start(period_start, reporting_period)
+    period_end = next_period_start - timedelta(days=1)
+    due_date = clamp_due_day(next_period_start, due_day)
+
+    if profile.calculation_source == AccountTaxProfile.CalculationSource.MANUAL:
+        tax_base = profile.manual_tax_base or ZERO
+    else:
+        tax_base = (
+            Transaction.objects.filter(
+                owner=user,
+                account=account,
+                type=Transaction.TransactionType.INCOME,
+                status=Transaction.TransactionStatus.CLEARED,
+                occurred_on__gte=period_start,
+                occurred_on__lte=min(current_date, period_end),
+            ).aggregate(total=Coalesce(Sum("amount"), ZERO))["total"]
+            or ZERO
+        )
+
+    tax_amount = (
+        profile.manual_tax_amount
+        if profile.manual_tax_amount is not None
+        else (tax_base * profile.tax_rate / Decimal("100"))
+    )
+    social_amount = (
+        profile.manual_social_fund_amount
+        if profile.manual_social_fund_amount is not None
+        else (tax_base * profile.social_fund_rate / Decimal("100"))
+    )
+    total_amount = (tax_amount or ZERO) + (social_amount or ZERO)
+
+    return {
+        "account_id": account.id,
+        "account_name": account.name,
+        "currency": account.currency_id,
+        "entity_type": profile.entity_type,
+        "template_code": profile.template_code,
+        "calculation_source": profile.calculation_source,
+        "reporting_period": reporting_period,
+        "period_start": period_start.isoformat(),
+        "period_end": period_end.isoformat(),
+        "due_date": due_date.isoformat(),
+        "tax_base": f"{(tax_base or ZERO):.2f}",
+        "tax_rate": f"{profile.tax_rate:.4f}",
+        "tax_amount": f"{(tax_amount or ZERO):.2f}",
+        "social_fund_rate": f"{profile.social_fund_rate:.4f}",
+        "social_fund_amount": f"{(social_amount or ZERO):.2f}",
+        "total_amount": f"{total_amount:.2f}",
+        "days_left": (due_date - current_date).days,
+    }
+
+
 def build_tax_obligations(*, user, today: date | None = None) -> list[dict]:
     current_date = today or timezone.localdate()
     profiles = list(
@@ -602,63 +691,13 @@ def build_tax_obligations(*, user, today: date | None = None) -> list[dict]:
     obligations: list[dict] = []
 
     for profile in profiles:
-        reporting_period = profile.reporting_period
-        due_day = profile.due_day
-        if profile.account.kind in {Account.AccountKind.ENTREPRENEUR, Account.AccountKind.COMPANY}:
-            reporting_period = AccountTaxProfile.ReportingPeriod.QUARTERLY
-            due_day = 20
-
-        period_start = get_period_start(current_date, reporting_period)
-        next_period_start = get_next_period_start(period_start, reporting_period)
-        period_end = next_period_start - timedelta(days=1)
-        due_date = clamp_due_day(next_period_start, due_day)
-
-        if profile.calculation_source == AccountTaxProfile.CalculationSource.MANUAL:
-            tax_base = profile.manual_tax_base or ZERO
-        else:
-            tax_base = (
-                Transaction.objects.filter(
-                    owner=user,
-                    account=profile.account,
-                    type=Transaction.TransactionType.INCOME,
-                    status=Transaction.TransactionStatus.CLEARED,
-                    occurred_on__gte=period_start,
-                    occurred_on__lte=min(current_date, period_end),
-                ).aggregate(total=Coalesce(Sum("amount"), ZERO))["total"]
-                or ZERO
-            )
-
-        tax_amount = (
-            profile.manual_tax_amount
-            if profile.manual_tax_amount is not None
-            else (tax_base * profile.tax_rate / Decimal("100"))
-        )
-        social_amount = (
-            profile.manual_social_fund_amount
-            if profile.manual_social_fund_amount is not None
-            else (tax_base * profile.social_fund_rate / Decimal("100"))
-        )
-        total_amount = (tax_amount or ZERO) + (social_amount or ZERO)
-
         obligations.append(
-            {
-                "account_id": profile.account_id,
-                "account_name": profile.account.name,
-                "currency": profile.account.currency_id,
-                "entity_type": profile.entity_type,
-                "template_code": profile.template_code,
-                "reporting_period": reporting_period,
-                "period_start": period_start.isoformat(),
-                "period_end": period_end.isoformat(),
-                "due_date": due_date.isoformat(),
-                "tax_base": f"{(tax_base or ZERO):.2f}",
-                "tax_rate": f"{profile.tax_rate:.4f}",
-                "tax_amount": f"{(tax_amount or ZERO):.2f}",
-                "social_fund_rate": f"{profile.social_fund_rate:.4f}",
-                "social_fund_amount": f"{(social_amount or ZERO):.2f}",
-                "total_amount": f"{total_amount:.2f}",
-                "days_left": (due_date - current_date).days,
-            }
+            build_tax_obligation_snapshot(
+                user=user,
+                account=profile.account,
+                profile=profile,
+                today=current_date,
+            )
         )
 
     return sorted(obligations, key=lambda item: (item["days_left"], item["due_date"], item["account_name"]))
