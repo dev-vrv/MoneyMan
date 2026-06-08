@@ -115,7 +115,6 @@ export function AnimatedText({
       )}
       style={{ overflow: "visible" }}
     >
-      <span className="sr-only">{text}</span>
       <span aria-hidden="true">
         {segments.map((segment, wordIndex) => {
           if (/^\s+$/.test(segment)) {
