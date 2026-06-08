@@ -2,6 +2,7 @@
 
 import type { IconType } from "react-icons";
 import {
+  RiApps2AddLine,
   RiBarChart2Line,
   RiBookletLine,
   RiBriefcase4Line,
@@ -13,12 +14,16 @@ import {
   RiGift2Line,
   RiGovernmentLine,
   RiHandCoinLine,
+  RiHeadphoneLine,
   RiHeartPulseLine,
   RiHome4Line,
   RiHotelLine,
   RiLineChartLine,
+  RiMapPin2Line,
   RiMoneyDollarCircleLine,
+  RiPaintBrushLine,
   RiPriceTag3Line,
+  RiReceiptLine,
   RiRestaurant2Line,
   RiScales3Line,
   RiSecurePaymentLine,
@@ -27,18 +32,21 @@ import {
   RiSmartphoneLine,
   RiSparkling2Line,
   RiStore2Line,
+  RiSuitcase3Line,
   RiTaxiLine,
   RiTimeLine,
   RiTrainLine,
+  RiTv2Line,
   RiWallet3Line,
+  RiWifiLine,
 } from "react-icons/ri";
 
 import {
   ACCOUNT_COLOR_PRESETS,
-  buildAppearanceSwatchStyle,
   resolveAccountAppearance,
 } from "@/components/workspace/account-appearance-picker";
 import { cn } from "@/lib/utils";
+import { RiCheckLine } from "react-icons/ri";
 
 const CATEGORY_ICON_OPTIONS: Array<{ value: string; icon: IconType; label: string }> = [
   { value: "wallet", icon: RiWallet3Line, label: "Wallet" },
@@ -58,8 +66,10 @@ const CATEGORY_ICON_OPTIONS: Array<{ value: string; icon: IconType; label: strin
   { value: "salary", icon: RiBriefcase4Line, label: "Salary" },
   { value: "business", icon: RiGovernmentLine, label: "Business" },
   { value: "travel", icon: RiHotelLine, label: "Travel" },
+  { value: "trip", icon: RiSuitcase3Line, label: "Trip" },
   { value: "tax", icon: RiScales3Line, label: "Tax" },
   { value: "payments", icon: RiSecurePaymentLine, label: "Payments" },
+  { value: "receipt", icon: RiReceiptLine, label: "Receipt" },
   { value: "utility", icon: RiFlashlightLine, label: "Utility" },
   { value: "fund", icon: RiFundsBoxLine, label: "Fund" },
   { value: "growth", icon: RiLineChartLine, label: "Growth" },
@@ -67,7 +77,13 @@ const CATEGORY_ICON_OPTIONS: Array<{ value: string; icon: IconType; label: strin
   { value: "gift", icon: RiGift2Line, label: "Gift" },
   { value: "shield", icon: RiShieldCheckLine, label: "Protection" },
   { value: "phone", icon: RiSmartphoneLine, label: "Phone" },
+  { value: "wifi", icon: RiWifiLine, label: "Internet" },
+  { value: "tv", icon: RiTv2Line, label: "Streaming" },
+  { value: "media", icon: RiHeadphoneLine, label: "Media" },
   { value: "time", icon: RiTimeLine, label: "Time" },
+  { value: "location", icon: RiMapPin2Line, label: "Location" },
+  { value: "creative", icon: RiPaintBrushLine, label: "Creative" },
+  { value: "apps", icon: RiApps2AddLine, label: "Apps" },
   { value: "sparkles", icon: RiSparkling2Line, label: "Entertainment" },
   { value: "bars", icon: RiBarChart2Line, label: "Analytics" },
 ];
@@ -198,8 +214,8 @@ export function CategoryAppearancePicker({
       </div>
 
       <div>
-        <p className="mb-3 text-xs uppercase tracking-[0.18em] text-zinc-500">{colorLabel}</p>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        <p className="mb-2 text-xs uppercase tracking-[0.18em] text-zinc-500">{colorLabel}</p>
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
           {ACCOUNT_COLOR_PRESETS.map((preset) => {
             const isSelected = preset.token === color;
             return (
@@ -208,7 +224,7 @@ export function CategoryAppearancePicker({
                 type="button"
                 onClick={() => onColorChange(preset.token)}
                 className={cn(
-                  "flex items-center gap-3 rounded-2xl border px-3 py-2 text-left transition duration-200 hover:-translate-y-0.5",
+                  "relative flex items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition duration-200 hover:-translate-y-0.5",
                   isSelected ? "bg-white/[0.06]" : "bg-white/[0.03]",
                 )}
                 style={{
@@ -216,14 +232,33 @@ export function CategoryAppearancePicker({
                   boxShadow: isSelected ? `0 0 0 1px ${preset.glow}, 0 12px 26px -20px ${preset.glow}` : undefined,
                 }}
                 aria-label={preset.label}
+                title={preset.label}
               >
                 <span
-                  className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border"
-                  style={buildAppearanceSwatchStyle(preset, isSelected)}
+                  className="relative h-8 min-w-0 flex-1 overflow-hidden rounded-lg"
+                  style={{
+                    background: [
+                      `radial-gradient(circle at 18% 20%, rgba(255,255,255,0.24) 0%, rgba(255,255,255,0.1) 16%, transparent 38%)`,
+                      `radial-gradient(circle at 82% 80%, ${preset.orb} 0%, transparent 42%)`,
+                      `linear-gradient(135deg, ${preset.border} 0%, ${preset.soft} 52%, rgba(3,7,10,0.96) 100%)`,
+                    ].join(", "),
+                    boxShadow: isSelected ? `inset 0 0 0 1px rgba(255,255,255,0.18), 0 12px 24px -18px ${preset.glow}` : "inset 0 0 0 1px rgba(255,255,255,0.08)",
+                  }}
+                />
+                <span className="min-w-0 flex-1 truncate text-xs font-medium text-zinc-100">{preset.label}</span>
+                <span
+                  className={cn(
+                    "flex size-5 shrink-0 items-center justify-center rounded-full border transition",
+                    isSelected ? "text-white" : "text-transparent",
+                  )}
+                  style={{
+                    borderColor: isSelected ? preset.border : "rgba(255,255,255,0.08)",
+                    backgroundColor: isSelected ? "rgba(255,255,255,0.08)" : "transparent",
+                    boxShadow: isSelected ? `0 0 0 1px ${preset.glow}` : undefined,
+                  }}
                 >
-                  {isSelected ? <span className="size-2 rounded-full bg-white/90 shadow-[0_0_10px_rgba(255,255,255,0.35)]" /> : null}
+                  <RiCheckLine className="size-3" />
                 </span>
-                <span className="min-w-0 text-sm font-medium text-zinc-100">{preset.label}</span>
               </button>
             );
           })}

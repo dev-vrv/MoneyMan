@@ -212,6 +212,12 @@ class AccountDepositProfile(TimeStampedModel):
         ACTUAL_ACTUAL = "actual_actual", _("Actual/Actual")
         THIRTY_360 = "thirty_360", _("30/360")
 
+    class RecurringContributionFrequency(models.TextChoices):
+        NONE = "none", _("Нет")
+        MONTHLY = "monthly", _("Ежемесячно")
+        QUARTERLY = "quarterly", _("Ежеквартально")
+        YEARLY = "yearly", _("Ежегодно")
+
     account = models.OneToOneField(
         Account,
         on_delete=models.CASCADE,
@@ -238,6 +244,21 @@ class AccountDepositProfile(TimeStampedModel):
     auto_renewal = models.BooleanField(default=False)
     allow_top_up = models.BooleanField(default=True)
     allow_partial_withdrawal = models.BooleanField(default=False)
+    recurring_contribution_amount = models.DecimalField(
+        max_digits=14,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        validators=[MinValueValidator(Decimal("0.00"))],
+    )
+    recurring_contribution_frequency = models.CharField(
+        max_length=16,
+        choices=RecurringContributionFrequency.choices,
+        default=RecurringContributionFrequency.NONE,
+    )
+    recurring_contribution_day = models.PositiveSmallIntegerField(
+        default=1,
+        validators=[MinValueValidator(1), MaxValueValidator(31)],
+    )
     minimum_balance = models.DecimalField(
         max_digits=14,
         decimal_places=2,
@@ -730,7 +751,97 @@ class Transaction(TimeStampedModel):
         return f"{self.title or 'Transaction'} [{self.type}] {self.amount}"
 
 
+class TransactionTemplate(TimeStampedModel):
+    class TemplateType(models.TextChoices):
+        INCOME = "income", _("Доход")
+        EXPENSE = "expense", _("Расход")
+        TRANSFER = "transfer", _("Перевод")
+
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="finance_transaction_templates",
+    )
+    name = models.CharField(max_length=160, verbose_name=_("Название"))
+    account = models.ForeignKey(
+        Account,
+        on_delete=models.PROTECT,
+        related_name="transaction_templates",
+    )
+    destination_account = models.ForeignKey(
+        Account,
+        on_delete=models.PROTECT,
+        related_name="destination_transaction_templates",
+        null=True,
+        blank=True,
+    )
+    category = models.ForeignKey(
+        Category,
+        on_delete=models.SET_NULL,
+        related_name="transaction_templates",
+        null=True,
+        blank=True,
+    )
+    type = models.CharField(max_length=16, choices=TemplateType.choices)
+    status = models.CharField(
+        max_length=16,
+        choices=Transaction.TransactionStatus.choices,
+        default=Transaction.TransactionStatus.CLEARED,
+    )
+    amount = models.DecimalField(
+        max_digits=14,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal("0.01"))],
+    )
+    destination_amount = models.DecimalField(
+        max_digits=14,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(Decimal("0.01"))],
+    )
+    exchange_rate = models.DecimalField(
+        max_digits=18,
+        decimal_places=8,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(Decimal("0.00000001"))],
+    )
+    title = models.CharField(max_length=160, blank=True, default="")
+    merchant = models.CharField(max_length=128, blank=True)
+    counterparty = models.CharField(max_length=128, blank=True)
+    description = models.TextField(blank=True)
+    icon = models.CharField(max_length=32, blank=True)
+    color = models.CharField(max_length=16, default="slate")
+    sort_order = models.PositiveSmallIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    last_used_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ("sort_order", "name")
+        verbose_name = _("Шаблон транзакции")
+        verbose_name_plural = _("Шаблоны транзакций")
+        constraints = [
+            models.CheckConstraint(
+                condition=~Q(account=F("destination_account")),
+                name="finance_transaction_template_distinct_accounts_check",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=("owner", "is_active")),
+            models.Index(fields=("owner", "type", "sort_order")),
+        ]
+
+    def __str__(self) -> str:
+        return self.name
+
+
 class Budget(TimeStampedModel):
+    class BudgetKind(models.TextChoices):
+        EXPENSE = "expense", _("Расходный")
+        SAVING = "saving", _("Накопительный")
+        GOAL = "goal", _("Финансовая цель")
+
     class BudgetPeriod(models.TextChoices):
         WEEKLY = "weekly", _("Еженедельно")
         MONTHLY = "monthly", _("Ежемесячно")
@@ -743,10 +854,18 @@ class Budget(TimeStampedModel):
         on_delete=models.CASCADE,
         related_name="finance_budgets",
     )
+    kind = models.CharField(
+        max_length=16,
+        choices=BudgetKind.choices,
+        default=BudgetKind.EXPENSE,
+    )
+    name = models.CharField(max_length=128, blank=True)
     category = models.ForeignKey(
         Category,
         on_delete=models.PROTECT,
         related_name="budgets",
+        null=True,
+        blank=True,
     )
     currency = models.ForeignKey(
         Currency,
@@ -759,16 +878,30 @@ class Budget(TimeStampedModel):
         decimal_places=2,
         validators=[MinValueValidator(Decimal("0.01"))],
     )
+    target_amount = models.DecimalField(
+        max_digits=14,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(Decimal("0.01"))],
+    )
     spent_amount = models.DecimalField(
         max_digits=14,
         decimal_places=2,
         default=Decimal("0.00"),
     )
+    target_account = models.ForeignKey(
+        Account,
+        on_delete=models.SET_NULL,
+        related_name="budget_targets",
+        null=True,
+        blank=True,
+    )
     start_date = models.DateField()
     end_date = models.DateField()
     alert_threshold = models.PositiveSmallIntegerField(
-        default=80,
-        validators=[MinValueValidator(1), MaxValueValidator(100)],
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
     )
     rollover_enabled = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
@@ -780,8 +913,8 @@ class Budget(TimeStampedModel):
         verbose_name_plural = _("Бюджеты")
         constraints = [
             models.UniqueConstraint(
-                fields=("owner", "category", "period", "start_date"),
-                name="finance_budget_owner_category_period_start_unique",
+                fields=("owner", "kind", "category", "target_account", "period", "start_date"),
+                name="finance_budget_owner_scope_period_start_unique",
             ),
             models.CheckConstraint(
                 condition=Q(end_date__gte=F("start_date")),
@@ -794,7 +927,11 @@ class Budget(TimeStampedModel):
         ]
 
     def __str__(self) -> str:
-        return f"{self.category.name} budget"
+        if self.name:
+            return self.name
+        if self.category:
+            return f"{self.category.name} budget"
+        return f"{self.get_kind_display()} budget"
 
 
 class ExchangeRate(TimeStampedModel):

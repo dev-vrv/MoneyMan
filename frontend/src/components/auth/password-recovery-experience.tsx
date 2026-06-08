@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { motion } from "framer-motion";
@@ -80,8 +81,15 @@ export function PasswordRecoveryExperience({
                 href={getLocalizedPath(locale, "/")}
                 className="inline-flex w-full items-center gap-3 px-1 py-2"
               >
-                <span className="inline-flex size-11 items-center justify-center rounded-full bg-linear-to-br from-emerald-200 via-emerald-300 to-lime-200 text-sm font-semibold text-slate-950">
-                  FM
+                <span className="inline-flex size-11 items-center justify-center overflow-hidden rounded-full border border-emerald-300/20 bg-white/95 shadow-[0_10px_24px_rgba(0,0,0,0.18)]">
+                  <Image
+                    src="/images/logo/fin.png"
+                    alt={content.title}
+                    width={44}
+                    height={44}
+                    className="size-9 object-contain"
+                    priority
+                  />
                 </span>
                 <span>
                   <span className="block text-sm font-semibold text-white">

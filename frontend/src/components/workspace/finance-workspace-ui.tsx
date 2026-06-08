@@ -325,11 +325,13 @@ export function AccountCard({
   account,
   ui,
   onEdit,
+  onOpen,
   className,
 }: {
   account: AccountRecord;
   ui: UiCopy;
   onEdit?: (account: AccountRecord) => void;
+  onOpen?: (account: AccountRecord) => void;
   className?: string;
 }) {
   const appearance = resolveAccountAppearance(account.color);
@@ -370,13 +372,26 @@ export function AccountCard({
   return (
     <div
       className={cn(
-        "group relative overflow-hidden rounded-[1.45rem] border bg-[linear-gradient(180deg,rgba(11,17,15,0.98)_0%,rgba(8,13,12,0.96)_100%)] p-4 transition duration-200 hover:-translate-y-0.5",
+        "group relative flex flex-col overflow-hidden rounded-[1.45rem] border bg-[linear-gradient(180deg,rgba(11,17,15,0.98)_0%,rgba(8,13,12,0.96)_100%)] p-4 transition duration-200 hover:-translate-y-0.5",
+        onOpen ? "cursor-pointer" : "",
         className,
       )}
       style={{
         borderColor: appearance.glow,
         boxShadow: `inset 0 1px 0 rgba(255,255,255,0.04), 0 22px 44px -34px ${appearance.glow}`,
       }}
+      onClick={() => onOpen?.(account)}
+      onKeyDown={(event) => {
+        if (!onOpen) {
+          return;
+        }
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onOpen(account);
+        }
+      }}
+      role={onOpen ? "button" : undefined}
+      tabIndex={onOpen ? 0 : undefined}
     >
       <div
         className="pointer-events-none absolute inset-x-6 top-0 h-px"
@@ -440,11 +455,14 @@ export function AccountCard({
       ) : null}
 
       {onEdit ? (
-        <div className="relative mt-4 flex justify-end">
+        <div className="relative mt-auto flex justify-end pt-4">
           <Button
             variant="outline"
             className="h-10 rounded-2xl border-white/10 bg-white/5 px-4 text-zinc-100 transition hover:border-white/16 hover:bg-white/[0.08]"
-            onClick={() => onEdit(account)}
+            onClick={(event) => {
+              event.stopPropagation();
+              onEdit(account);
+            }}
           >
             <RiPencilLine className="size-4" />
             {ui.editLabel}
@@ -467,6 +485,7 @@ export function MetricCard({
   moreLabel,
   collapseLabel,
   onOpenBreakdown,
+  tone = "emerald",
 }: {
   icon: ComponentType<{ className?: string }>;
   label: string;
@@ -479,16 +498,65 @@ export function MetricCard({
   moreLabel?: string;
   collapseLabel?: string;
   onOpenBreakdown?: () => void;
+  tone?: "emerald" | "rose" | "sky" | "violet" | "amber";
 }) {
   const [breakdownExpanded, setBreakdownExpanded] = useState(false);
   const visibleEntries = breakdownExpanded ? breakdown : breakdown.slice(0, 2);
   const remainingCount = Math.max(breakdown.length - visibleEntries.length, 0);
+  const toneStyles = {
+    emerald: {
+      cardSurface: "bg-[linear-gradient(180deg,rgba(10,26,19,0.92)_0%,rgba(6,18,12,0.98)_100%)]",
+      cardHover: "hover:border-emerald-300/18 hover:shadow-[0_24px_60px_rgba(16,185,129,0.16)]",
+      iconWrap: "border-emerald-300/16 bg-emerald-300/10 text-emerald-100",
+      actionWrap: "border-emerald-300/18 bg-emerald-300/10 text-emerald-100 group-hover:bg-emerald-300/14",
+      actionDot: "border-emerald-300/18",
+      progressTrack: "rgba(167,243,208,0.9)",
+      valueText: "text-emerald-50",
+    },
+    rose: {
+      cardSurface: "bg-[linear-gradient(180deg,rgba(30,12,18,0.92)_0%,rgba(20,8,13,0.98)_100%)]",
+      cardHover: "hover:border-rose-300/18 hover:shadow-[0_24px_60px_rgba(244,63,94,0.16)]",
+      iconWrap: "border-rose-300/16 bg-rose-300/10 text-rose-100",
+      actionWrap: "border-rose-300/18 bg-rose-300/10 text-rose-100 group-hover:bg-rose-300/14",
+      actionDot: "border-rose-300/18",
+      progressTrack: "rgba(253,164,175,0.9)",
+      valueText: "text-rose-50",
+    },
+    sky: {
+      cardSurface: "bg-[linear-gradient(180deg,rgba(8,18,24,0.92)_0%,rgba(7,12,19,0.98)_100%)]",
+      cardHover: "hover:border-sky-300/18 hover:shadow-[0_24px_60px_rgba(56,189,248,0.16)]",
+      iconWrap: "border-sky-300/16 bg-sky-300/10 text-sky-100",
+      actionWrap: "border-sky-300/18 bg-sky-300/10 text-sky-100 group-hover:bg-sky-300/14",
+      actionDot: "border-sky-300/18",
+      progressTrack: "rgba(125,211,252,0.9)",
+      valueText: "text-sky-50",
+    },
+    violet: {
+      cardSurface: "bg-[linear-gradient(180deg,rgba(18,13,30,0.92)_0%,rgba(11,8,20,0.98)_100%)]",
+      cardHover: "hover:border-violet-300/18 hover:shadow-[0_24px_60px_rgba(139,92,246,0.16)]",
+      iconWrap: "border-violet-300/16 bg-violet-300/10 text-violet-100",
+      actionWrap: "border-violet-300/18 bg-violet-300/10 text-violet-100 group-hover:bg-violet-300/14",
+      actionDot: "border-violet-300/18",
+      progressTrack: "rgba(196,181,253,0.9)",
+      valueText: "text-violet-50",
+    },
+    amber: {
+      cardSurface: "bg-[linear-gradient(180deg,rgba(30,22,8,0.92)_0%,rgba(20,15,7,0.98)_100%)]",
+      cardHover: "hover:border-amber-300/18 hover:shadow-[0_24px_60px_rgba(251,191,36,0.16)]",
+      iconWrap: "border-amber-300/16 bg-amber-300/10 text-amber-100",
+      actionWrap: "border-amber-300/18 bg-amber-300/10 text-amber-100 group-hover:bg-amber-300/14",
+      actionDot: "border-amber-300/18",
+      progressTrack: "rgba(252,211,77,0.9)",
+      valueText: "text-amber-50",
+    },
+  }[tone];
 
   return (
     <Card
       className={cn(
-        "surface-panel-muted h-full rounded-[1.8rem] border-white/8 bg-[linear-gradient(180deg,rgba(8,18,14,0.86)_0%,rgba(7,14,11,0.96)_100%)] py-0",
-        onOpenBreakdown ? "group cursor-pointer transition duration-200 hover:-translate-y-0.5 hover:border-emerald-300/18 hover:shadow-[0_24px_60px_rgba(16,185,129,0.16)]" : "",
+        "surface-panel-muted h-full rounded-[1.8rem] border-white/8 py-0",
+        toneStyles.cardSurface,
+        onOpenBreakdown ? `group cursor-pointer transition duration-200 hover:-translate-y-0.5 ${toneStyles.cardHover}` : "",
         className,
       )}
       onClick={onOpenBreakdown}
@@ -504,14 +572,14 @@ export function MetricCard({
       role={onOpenBreakdown ? "button" : undefined}
       tabIndex={onOpenBreakdown ? 0 : undefined}
     >
-      <CardHeader className="flex-1 p-5">
+      <CardHeader className="flex h-full flex-1 flex-col p-5">
         <div className="flex h-full flex-col gap-4 sm:flex-row sm:items-stretch sm:justify-between">
           <div className="flex min-w-0 flex-1 flex-col">
-            <div className="mb-3 inline-flex size-11 items-center justify-center rounded-2xl border border-emerald-300/16 bg-emerald-300/10 text-emerald-100">
+            <div className={cn("mb-3 inline-flex size-11 items-center justify-center rounded-2xl border", toneStyles.iconWrap)}>
               <Icon className="size-5" />
             </div>
             <CardDescription className="text-zinc-400">{label}</CardDescription>
-            <CardTitle className="mt-2 break-words text-[1.05rem] text-white sm:text-[1.25rem]">{value}</CardTitle>
+            <CardTitle className={cn("mt-2 break-words text-[1.05rem] sm:text-[1.25rem]", toneStyles.valueText)}>{value}</CardTitle>
             {visibleEntries.length > 0 ? (
               <div className="mt-3 grid gap-1.5">
                 {breakdownLabel ? <p className="text-xs uppercase tracking-[0.18em] text-zinc-500">{breakdownLabel}</p> : null}
@@ -545,9 +613,9 @@ export function MetricCard({
             ) : null}
             {onOpenBreakdown ? (
               <div className="mt-auto pt-4">
-                <div className="inline-flex max-w-full items-center overflow-hidden rounded-full border border-emerald-300/18 bg-emerald-300/10 px-3 py-1.5 text-xs font-medium text-emerald-100 transition group-hover:bg-emerald-300/14">
+                <div className={cn("inline-flex max-w-full items-center overflow-hidden rounded-full border px-3 py-1.5 text-xs font-medium transition", toneStyles.actionWrap)}>
                   <span className="min-w-0 truncate">{actionLabel}</span>
-                  <span className="ml-2 inline-flex size-6 shrink-0 items-center justify-center rounded-full border border-emerald-300/18 bg-black/20 transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
+                  <span className={cn("ml-2 inline-flex size-6 shrink-0 items-center justify-center rounded-full border bg-black/20 transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5", toneStyles.actionDot)}>
                     <RiArrowRightUpLine className="size-3.5" />
                   </span>
                 </div>
@@ -557,8 +625,8 @@ export function MetricCard({
           <div className="flex min-w-0 flex-col items-start gap-3 sm:items-end">
             {typeof progressValue === "number" ? (
               <div
-                className="grid size-16 place-items-center rounded-full border border-emerald-200/18 text-sm font-semibold text-white"
-                style={{ background: `conic-gradient(rgba(167,243,208,0.9) 0 ${progressValue}%, rgba(255,255,255,0.06) ${progressValue}% 100%)` }}
+                className={cn("grid size-16 place-items-center rounded-full border text-sm font-semibold text-white", toneStyles.actionDot)}
+                style={{ background: `conic-gradient(${toneStyles.progressTrack} 0 ${progressValue}%, rgba(255,255,255,0.06) ${progressValue}% 100%)` }}
               >
                 <div className="grid size-12 place-items-center rounded-full bg-[#07110c] text-xs">{Math.round(progressValue)}%</div>
               </div>
@@ -574,14 +642,14 @@ export function PriorityPill({ label, value }: { label: string; value: string })
   return (
     <div className="min-w-0 rounded-[1.4rem] border border-white/8 bg-black/18 px-4 py-4">
       <p className="break-words text-xs uppercase leading-5 tracking-[0.14em] text-zinc-500">{label}</p>
-      <p className="mt-2 break-words text-sm font-medium text-zinc-100 sm:text-base">{value}</p>
+      <p className="mt-2 break-words text-sm leading-5 font-medium text-zinc-100 sm:text-base">{value}</p>
     </div>
   );
 }
 
-export function EmptyState({ text }: { text: string }) {
+export function EmptyState({ text, className }: { text: string; className?: string }) {
   return (
-    <div className="rounded-[1.6rem] border border-dashed border-white/10 bg-black/12 px-5 py-10 text-center text-sm text-zinc-500">
+    <div className={cn("w-full rounded-[1.6rem] border border-dashed border-white/10 bg-black/12 px-5 py-10 text-center text-sm text-zinc-500", className)}>
       {text}
     </div>
   );

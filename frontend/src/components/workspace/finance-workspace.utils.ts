@@ -1,5 +1,6 @@
 import type {
   AccountRecord,
+  CryptoMarketAssetRecord,
   CreateAccountPayload,
   CurrencyRecord,
   ExchangeRateRecord,
@@ -31,6 +32,19 @@ export function formatDate(value: string) {
   return new Date(value).toLocaleDateString("ru-RU", { day: "2-digit", month: "short", year: "numeric" });
 }
 
+export function formatDateTime(value: string) {
+  if (!value) {
+    return "—";
+  }
+  return new Date(value).toLocaleString("ru-RU", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 export function matchesExchangeRateSearch(rate: ExchangeRateRecord, query: string) {
   if (!query.trim()) {
     return true;
@@ -43,6 +57,17 @@ export function matchesExchangeRateSearch(rate: ExchangeRateRecord, query: strin
     rate.quote_currency.code,
     rate.quote_currency.name,
   ].some((value) => value.toLowerCase().includes(normalizedQuery));
+}
+
+export function matchesCryptoAssetSearch(asset: CryptoMarketAssetRecord, query: string) {
+  if (!query.trim()) {
+    return true;
+  }
+
+  const normalizedQuery = query.trim().toLowerCase();
+  return [asset.symbol, asset.name, asset.quote_currency, asset.provider].some((value) =>
+    value.toLowerCase().includes(normalizedQuery),
+  );
 }
 
 export function formatMonthLabel(value: Date, locale: Locale) {
@@ -67,7 +92,7 @@ export function formatLocalizedDate(value: Date, locale: Locale) {
 }
 
 export function formatRate(value: string) {
-  return Number(value || 0).toFixed(4);
+  return Number(value || 0).toFixed(2);
 }
 
 export function notificationScopeLabel(scope: NotificationRecord["scope"], ui: UiCopy) {
@@ -158,12 +183,57 @@ export function normalizeCashFlowDateRange(startDate: string, endDate: string) {
     : { startDate: endDate, endDate: startDate };
 }
 
+export function resolveCashFlowDateRange(
+  range: CashFlowRange,
+  anchorDate?: string,
+  customRange?: { startDate: string; endDate: string },
+) {
+  if (range === "custom") {
+    return normalizeCashFlowDateRange(customRange?.startDate ?? "", customRange?.endDate ?? "");
+  }
+
+  const anchor = anchorDate ? new Date(anchorDate) : new Date(getToday());
+  const normalizedAnchor = Number.isNaN(anchor.getTime()) ? new Date(getToday()) : anchor;
+
+  if (range === "day") {
+    const end = endOfDay(normalizedAnchor);
+    const start = startOfDay(new Date(end.getFullYear(), end.getMonth(), end.getDate() - 7));
+    return normalizeCashFlowDateRange(start.toISOString().slice(0, 10), end.toISOString().slice(0, 10));
+  }
+
+  if (range === "week") {
+    const currentWeekStart = startOfWeek(normalizedAnchor);
+    const start = startOfWeek(new Date(currentWeekStart.getFullYear(), currentWeekStart.getMonth(), currentWeekStart.getDate() - 7 * 7));
+    const end = endOfDay(new Date(currentWeekStart.getFullYear(), currentWeekStart.getMonth(), currentWeekStart.getDate() + 6));
+    return normalizeCashFlowDateRange(start.toISOString().slice(0, 10), end.toISOString().slice(0, 10));
+  }
+
+  if (range === "month") {
+    const start = startOfMonth(new Date(normalizedAnchor.getFullYear(), normalizedAnchor.getMonth() - 7, 1));
+    const end = endOfMonth(normalizedAnchor);
+    return normalizeCashFlowDateRange(start.toISOString().slice(0, 10), end.toISOString().slice(0, 10));
+  }
+
+  if (range === "quarter") {
+    const currentQuarterStart = startOfQuarter(normalizedAnchor);
+    const start = startOfQuarter(new Date(currentQuarterStart.getFullYear(), currentQuarterStart.getMonth() - 21, 1));
+    const end = endOfQuarter(normalizedAnchor);
+    return normalizeCashFlowDateRange(start.toISOString().slice(0, 10), end.toISOString().slice(0, 10));
+  }
+
+  const start = startOfYear(new Date(normalizedAnchor.getFullYear() - 7, 0, 1));
+  const end = endOfYear(normalizedAnchor);
+  return normalizeCashFlowDateRange(start.toISOString().slice(0, 10), end.toISOString().slice(0, 10));
+}
+
 export function buildCashFlowSeries(
   transactions: TransactionRecord[],
   range: CashFlowRange,
   locale: Locale,
   customRange?: { startDate: string; endDate: string },
   anchorDate?: string,
+  exchangeRates: ExchangeRateRecord[] = [],
+  targetCurrency?: string,
 ) {
   const grouped = new Map<
     string,
@@ -275,12 +345,18 @@ export function buildCashFlowSeries(
 
     const current = grouped.get(bucketKey) ?? { income: 0, expense: 0, label, tooltipLabel, sortValue };
 
+    const amount = Number(item.amount);
+    const convertedAmount = targetCurrency
+      ? convertAmountBetweenCurrencies(amount, item.currency, targetCurrency, exchangeRates)
+      : amount;
+    const normalizedAmount = convertedAmount ?? 0;
+
     if (item.type === "income" && item.status === "cleared") {
-      current.income += Number(item.amount);
+      current.income += normalizedAmount;
     }
 
     if (item.type === "expense" && item.status !== "canceled") {
-      current.expense += Number(item.amount);
+      current.expense += normalizedAmount;
     }
 
     grouped.set(bucketKey, current);
@@ -487,12 +563,23 @@ export function getCrossRate(
   destinationCurrency: string | undefined,
   exchangeRates: ExchangeRateRecord[],
 ) {
-  if (!sourceCurrency || !destinationCurrency || sourceCurrency === destinationCurrency) {
+  if (!sourceCurrency || !destinationCurrency) {
     return null;
   }
 
-  const normalizedSource = sourceCurrency.toUpperCase();
-  const normalizedDestination = destinationCurrency.toUpperCase();
+  const normalizeCurrency = (value: string) => {
+    const normalized = value.toUpperCase();
+    if (["USDT", "USDC", "BUSD", "FDUSD", "TUSD"].includes(normalized)) {
+      return "USD";
+    }
+    return normalized;
+  };
+
+  const normalizedSource = normalizeCurrency(sourceCurrency);
+  const normalizedDestination = normalizeCurrency(destinationCurrency);
+  if (normalizedSource === normalizedDestination) {
+    return 1;
+  }
   const byBaseCurrency = new Map(exchangeRates.map((item) => [item.base_currency.code.toUpperCase(), Number(item.rate)]));
 
   if (normalizedDestination === "KGS") {
@@ -511,6 +598,28 @@ export function getCrossRate(
   }
 
   return sourceRate / destinationRate;
+}
+
+export function convertAmountBetweenCurrencies(
+  amount: number,
+  sourceCurrency: string | undefined,
+  destinationCurrency: string | undefined,
+  exchangeRates: ExchangeRateRecord[],
+) {
+  if (!Number.isFinite(amount)) {
+    return 0;
+  }
+
+  if (!sourceCurrency || !destinationCurrency || sourceCurrency === destinationCurrency) {
+    return amount;
+  }
+
+  const rate = getCrossRate(sourceCurrency, destinationCurrency, exchangeRates);
+  if (rate === null) {
+    return null;
+  }
+
+  return amount * rate;
 }
 
 export function getToday() {
@@ -622,6 +731,9 @@ export function createDefaultDepositProfile() {
     auto_renewal: false,
     allow_top_up: true,
     allow_partial_withdrawal: false,
+    recurring_contribution_amount: "0.00",
+    recurring_contribution_frequency: "none" as const,
+    recurring_contribution_day: 1,
     minimum_balance: "0.00",
     note: "",
     is_active: true,
@@ -713,6 +825,9 @@ export function createAccountFormFromRecord(account: AccountRecord): CreateAccou
           auto_renewal: account.deposit_profile.auto_renewal,
           allow_top_up: account.deposit_profile.allow_top_up,
           allow_partial_withdrawal: account.deposit_profile.allow_partial_withdrawal,
+          recurring_contribution_amount: account.deposit_profile.recurring_contribution_amount,
+          recurring_contribution_frequency: account.deposit_profile.recurring_contribution_frequency,
+          recurring_contribution_day: account.deposit_profile.recurring_contribution_day,
           minimum_balance: account.deposit_profile.minimum_balance,
           note: account.deposit_profile.note,
           is_active: account.deposit_profile.is_active,
@@ -729,6 +844,7 @@ export function createProfileForm(user: {
   two_factor_enabled?: boolean;
   cash_flow_chart_default?: "bars" | "line" | "tradingview" | "candles" | "structure";
   default_currency?: string;
+  crypto_market_provider?: "binance" | "okx" | "bybit" | "kraken";
 } | null) {
   return {
     first_name: user?.first_name ?? "",
@@ -738,6 +854,7 @@ export function createProfileForm(user: {
     two_factor_enabled: user?.two_factor_enabled ?? false,
     cash_flow_chart_default: user?.cash_flow_chart_default ?? "bars",
     default_currency: user?.default_currency ?? "USD",
+    crypto_market_provider: user?.crypto_market_provider ?? "binance",
   };
 }
 

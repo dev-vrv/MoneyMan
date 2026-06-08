@@ -42,14 +42,30 @@ class DepositEvent:
 
 
 ZERO = Decimal("0.00")
+
+
+def get_localized_category_label(category, locale: str | None) -> str | None:
+    if category is None:
+        return None
+    return category.get_localized_name(locale)
 HUNDRED = Decimal("100")
 
 DEFAULT_CURRENCIES = (
     {"code": "USD", "name": "US Dollar", "symbol": "$", "numeric_code": "840", "is_default": True},
     {"code": "EUR", "name": "Euro", "symbol": "EUR", "numeric_code": "978", "is_default": False},
-    {"code": "KGS", "name": "Kyrgyzstani som", "symbol": "KGS", "numeric_code": "417", "is_default": False},
+    {"code": "KGS", "name": "Kyrgyzstani som", "symbol": "сом", "numeric_code": "417", "is_default": False},
     {"code": "RUB", "name": "Russian Ruble", "symbol": "₽", "numeric_code": "643", "is_default": False},
     {"code": "KZT", "name": "Kazakhstani tenge", "symbol": "₸", "numeric_code": "398", "is_default": False},
+    {"code": "UZS", "name": "Uzbekistani som", "symbol": "UZS", "numeric_code": "860", "is_default": False},
+    {"code": "CNY", "name": "Chinese Yuan", "symbol": "¥", "numeric_code": "156", "is_default": False},
+    {"code": "GBP", "name": "Pound Sterling", "symbol": "£", "numeric_code": "826", "is_default": False},
+    {"code": "CHF", "name": "Swiss Franc", "symbol": "CHF", "numeric_code": "756", "is_default": False},
+    {"code": "JPY", "name": "Japanese Yen", "symbol": "¥", "numeric_code": "392", "is_default": False},
+    {"code": "TRY", "name": "Turkish Lira", "symbol": "₺", "numeric_code": "949", "is_default": False},
+    {"code": "AED", "name": "UAE Dirham", "symbol": "AED", "numeric_code": "784", "is_default": False},
+    {"code": "INR", "name": "Indian Rupee", "symbol": "₹", "numeric_code": "356", "is_default": False},
+    {"code": "CAD", "name": "Canadian Dollar", "symbol": "C$", "numeric_code": "124", "is_default": False},
+    {"code": "AUD", "name": "Australian Dollar", "symbol": "A$", "numeric_code": "036", "is_default": False},
 )
 
 DEFAULT_SYSTEM_CATEGORIES = (
@@ -614,12 +630,17 @@ def clamp_due_day(target_date: date, due_day: int) -> date:
     return target_date.replace(day=min(due_day, last_day))
 
 
+def is_period_start_aligned(period_start: date, reporting_period: str) -> bool:
+    return get_period_start(period_start, reporting_period) == period_start
+
+
 def build_tax_obligation_snapshot(
     *,
     user,
     account: Account,
     profile: AccountTaxProfile,
     today: date | None = None,
+    period_start_override: date | None = None,
 ) -> dict:
     current_date = today or timezone.localdate()
     reporting_period = profile.reporting_period
@@ -628,10 +649,13 @@ def build_tax_obligation_snapshot(
         reporting_period = AccountTaxProfile.ReportingPeriod.QUARTERLY
         due_day = 20
 
-    period_start = get_period_start(current_date, reporting_period)
+    period_start = period_start_override or get_period_start(current_date, reporting_period)
+    if not is_period_start_aligned(period_start, reporting_period):
+        raise ValueError(f"Invalid period start {period_start.isoformat()} for reporting period {reporting_period}.")
     next_period_start = get_next_period_start(period_start, reporting_period)
     period_end = next_period_start - timedelta(days=1)
     due_date = clamp_due_day(next_period_start, due_day)
+    calculation_end = period_end if period_start_override else min(current_date, period_end)
 
     if profile.calculation_source == AccountTaxProfile.CalculationSource.MANUAL:
         tax_base = profile.manual_tax_base or ZERO
@@ -643,7 +667,7 @@ def build_tax_obligation_snapshot(
                 type=Transaction.TransactionType.INCOME,
                 status=Transaction.TransactionStatus.CLEARED,
                 occurred_on__gte=period_start,
-                occurred_on__lte=min(current_date, period_end),
+                occurred_on__lte=calculation_end,
             ).aggregate(total=Coalesce(Sum("amount"), ZERO))["total"]
             or ZERO
         )
@@ -681,6 +705,49 @@ def build_tax_obligation_snapshot(
     }
 
 
+def enrich_tax_obligation_payment_status(*, user, obligation: dict) -> dict:
+    external_reference_prefix = (
+        f"tax-obligation:{obligation['account_id']}:{obligation['period_start']}:{obligation['period_end']}:"
+    )
+    linked_transactions = list(
+        Transaction.objects.filter(
+            owner=user,
+            external_reference__startswith=external_reference_prefix,
+        )
+        .exclude(status=Transaction.TransactionStatus.CANCELED)
+        .only("external_reference")
+    )
+    created_components = {
+        item.external_reference.rsplit(":", 1)[-1]
+        for item in linked_transactions
+        if item.external_reference
+    }
+    required_components = [
+        component
+        for component, amount in (
+            ("tax", Decimal(obligation["tax_amount"])),
+            ("social_fund", Decimal(obligation["social_fund_amount"])),
+        )
+        if amount > ZERO
+    ]
+    settled_components = [component for component in required_components if component in created_components]
+
+    if required_components and len(settled_components) == len(required_components):
+        payment_status = "cleared"
+    elif settled_components:
+        payment_status = "partial"
+    else:
+        payment_status = "open"
+
+    return {
+        **obligation,
+        "required_components": required_components,
+        "settled_components": settled_components,
+        "payment_status": payment_status,
+        "can_create_payment": len(settled_components) < len(required_components),
+    }
+
+
 def build_tax_obligations(*, user, today: date | None = None) -> list[dict]:
     current_date = today or timezone.localdate()
     profiles = list(
@@ -691,14 +758,13 @@ def build_tax_obligations(*, user, today: date | None = None) -> list[dict]:
     obligations: list[dict] = []
 
     for profile in profiles:
-        obligations.append(
-            build_tax_obligation_snapshot(
+        obligation = build_tax_obligation_snapshot(
                 user=user,
                 account=profile.account,
                 profile=profile,
                 today=current_date,
             )
-        )
+        obligations.append(enrich_tax_obligation_payment_status(user=user, obligation=obligation))
 
     return sorted(obligations, key=lambda item: (item["days_left"], item["due_date"], item["account_name"]))
 
@@ -818,8 +884,8 @@ def ensure_default_crypto_reference_data() -> CryptoReferenceSeedResult:
 def ensure_user_finance_setup(*, user) -> None:
     ensure_default_currencies()
     ensure_system_categories()
-    ensure_default_crypto_reference_data()
     ensure_default_account(user=user)
+    sync_account_balances(user=user)
     refresh_all_budget_spent_amounts(user=user)
 
 
@@ -848,6 +914,38 @@ def ensure_default_account(*, user) -> None:
         color="emerald",
         icon="RiBankLine",
     )
+
+
+@transaction.atomic
+def sync_account_balances(*, user) -> None:
+    accounts = {
+        account.id: account
+        for account in Account.objects.select_for_update().filter(owner=user)
+    }
+    if not accounts:
+        return
+
+    recalculated_balances = {
+        account_id: account.opening_balance
+        for account_id, account in accounts.items()
+    }
+
+    cleared_transactions = (
+        Transaction.objects.filter(owner=user, status=Transaction.TransactionStatus.CLEARED)
+        .only("account_id", "destination_account_id", "type", "amount", "destination_amount")
+        .order_by("id")
+    )
+
+    for transaction_obj in cleared_transactions:
+        for delta in _build_account_deltas(transaction_obj):
+            if delta.account_id in recalculated_balances:
+                recalculated_balances[delta.account_id] += delta.amount
+
+    for account_id, account in accounts.items():
+        recalculated_balance = recalculated_balances[account_id]
+        if account.current_balance != recalculated_balance:
+            account.current_balance = recalculated_balance
+            account.save(update_fields=["current_balance", "updated_at"])
 
 
 @transaction.atomic
@@ -900,18 +998,46 @@ def delete_transaction(*, transaction_obj: Transaction) -> None:
 
 @transaction.atomic
 def refresh_budget_spent_amount(*, budget: Budget) -> Budget:
-    total = (
-        Transaction.objects.filter(
-            owner=budget.owner,
-            category=budget.category,
-            type=Transaction.TransactionType.EXPENSE,
-            status=Transaction.TransactionStatus.CLEARED,
-            occurred_on__gte=budget.start_date,
-            occurred_on__lte=budget.end_date,
-            account__currency=budget.currency,
-        ).aggregate(total=Coalesce(Sum("amount"), ZERO))["total"]
-        or ZERO
-    )
+    if budget.kind == Budget.BudgetKind.EXPENSE:
+        total = (
+            Transaction.objects.filter(
+                owner=budget.owner,
+                category=budget.category,
+                type=Transaction.TransactionType.EXPENSE,
+                status=Transaction.TransactionStatus.CLEARED,
+                occurred_on__gte=budget.start_date,
+                occurred_on__lte=budget.end_date,
+                account__currency=budget.currency,
+            ).aggregate(total=Coalesce(Sum("amount"), ZERO))["total"]
+            or ZERO
+        )
+    else:
+        total = ZERO
+        if budget.target_account_id:
+            incoming_total = (
+                Transaction.objects.filter(
+                    owner=budget.owner,
+                    destination_account_id=budget.target_account_id,
+                    type=Transaction.TransactionType.TRANSFER,
+                    status=Transaction.TransactionStatus.CLEARED,
+                    occurred_on__gte=budget.start_date,
+                    occurred_on__lte=budget.end_date,
+                ).aggregate(total=Coalesce(Sum("destination_amount"), ZERO))["total"]
+                or ZERO
+            )
+            direct_income_total = (
+                Transaction.objects.filter(
+                    owner=budget.owner,
+                    account_id=budget.target_account_id,
+                    type=Transaction.TransactionType.INCOME,
+                    status=Transaction.TransactionStatus.CLEARED,
+                    occurred_on__gte=budget.start_date,
+                    occurred_on__lte=budget.end_date,
+                ).aggregate(total=Coalesce(Sum("amount"), ZERO))["total"]
+                or ZERO
+            )
+            total = incoming_total + direct_income_total
+
     budget.spent_amount = total
     budget.save(update_fields=["spent_amount", "updated_at"])
     return budget
@@ -1017,6 +1143,35 @@ def build_deposit_events(account: Account, profile: AccountDepositProfile, *, as
     return events
 
 
+def iter_deposit_recurring_contribution_dates(
+    profile: AccountDepositProfile,
+    effective_end: date,
+) -> list[date]:
+    if (
+        profile.recurring_contribution_amount <= ZERO
+        or profile.recurring_contribution_frequency == AccountDepositProfile.RecurringContributionFrequency.NONE
+        or not profile.allow_top_up
+    ):
+        return []
+
+    if profile.recurring_contribution_frequency == AccountDepositProfile.RecurringContributionFrequency.MONTHLY:
+        step_months = 1
+    elif profile.recurring_contribution_frequency == AccountDepositProfile.RecurringContributionFrequency.QUARTERLY:
+        step_months = 3
+    else:
+        step_months = 12
+
+    result: list[date] = []
+    anchor = profile.term_start_date.replace(day=1)
+    current = anchor
+    while current <= effective_end:
+        contribution_date = clamp_due_day(current, profile.recurring_contribution_day)
+        if profile.term_start_date <= contribution_date <= effective_end:
+            result.append(contribution_date)
+        current = add_months_to_date(current, step_months)
+    return result
+
+
 def calculate_deposit_snapshot(
     *,
     account: Account,
@@ -1035,6 +1190,8 @@ def calculate_deposit_snapshot(
     events_by_date: dict[date, Decimal] = defaultdict(lambda: ZERO)
     for event in build_deposit_events(account, profile, as_of=effective_end):
         events_by_date[event.event_date] += event.amount
+    for event_date in iter_deposit_recurring_contribution_dates(profile, effective_end):
+        events_by_date[event_date] += profile.recurring_contribution_amount
 
     timeline = sorted(set([*payout_dates, *events_by_date.keys(), effective_end]))
 
@@ -1080,7 +1237,7 @@ def calculate_deposit_snapshot(
     }
 
 
-def build_workspace_overview(*, user) -> dict:
+def build_workspace_overview(*, user, locale: str | None = None) -> dict:
     ensure_user_finance_setup(user=user)
     refresh_all_budget_spent_amounts(user=user)
     tax_obligations = build_tax_obligations(user=user)
@@ -1143,7 +1300,13 @@ def build_workspace_overview(*, user) -> dict:
     if cleared_income > ZERO:
         savings_rate = round(float(((cleared_income - operational_expense) / cleared_income) * Decimal("100")), 2)
 
-    budget_alerts = sum(1 for budget in budgets if budget.amount and (budget.spent_amount / budget.amount * 100) >= budget.alert_threshold)
+    budget_alerts = sum(
+        1
+        for budget in budgets
+        if budget.alert_threshold > 0
+        and budget.amount
+        and (budget.spent_amount / budget.amount * 100) >= budget.alert_threshold
+    )
     upcoming_items = [
         item
         for item in transactions
@@ -1198,7 +1361,8 @@ def build_workspace_overview(*, user) -> dict:
         "budgets": [
             {
                 "id": budget.id,
-                "category": budget.category.name,
+                "category": get_localized_category_label(budget.category, locale)
+                or (budget.name or budget.get_kind_display()),
                 "spent": f"{budget.spent_amount:.2f}",
                 "limit": f"{budget.amount:.2f}",
                 "utilization_percent": round((budget.spent_amount / budget.amount) * 100, 2) if budget.amount else 0,
@@ -1214,7 +1378,7 @@ def build_workspace_overview(*, user) -> dict:
                 "merchant": item.merchant,
                 "amount": f"{(-item.amount if item.type == Transaction.TransactionType.EXPENSE else item.amount):.2f}",
                 "status": item.status,
-                "category": item.category.name if item.category else "",
+                "category": get_localized_category_label(item.category, locale) or "",
                 "account": item.account.name,
                 "transaction_date": item.occurred_on.isoformat(),
                 "note": item.description,
@@ -1242,7 +1406,7 @@ def build_workspace_overview(*, user) -> dict:
     }
 
 
-def build_dashboard_overview(*, user) -> dict:
+def build_dashboard_overview(*, user, locale: str | None = None) -> dict:
     ensure_user_finance_setup(user=user)
     refresh_all_budget_spent_amounts(user=user)
 
@@ -1319,7 +1483,8 @@ def build_dashboard_overview(*, user) -> dict:
         "budgets": [
             {
                 "id": budget.id,
-                "category": budget.category.name,
+                "category": get_localized_category_label(budget.category, locale)
+                or (budget.name or budget.get_kind_display()),
                 "currency": budget.currency_id,
                 "amount": f"{budget.amount:.2f}",
                 "spent_amount": f"{budget.spent_amount:.2f}",
@@ -1343,7 +1508,7 @@ def build_dashboard_overview(*, user) -> dict:
                 "account": item.account.name,
                 "destination_account": item.destination_account.name if item.destination_account else None,
                 "currency": item.account.currency_id,
-                "category": item.category.name if item.category else None,
+                "category": get_localized_category_label(item.category, locale),
                 "occurred_on": item.occurred_on.isoformat(),
                 "merchant": item.merchant,
             }

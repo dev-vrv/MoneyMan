@@ -1,8 +1,9 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useState, startTransition } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useCallback, useEffect, useState, startTransition } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   RiArrowRightUpLine,
@@ -24,7 +25,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
-import { getLocalizedPath, type Locale } from "@/lib/i18n/config";
+import { defaultLocale, getLocalizedPath, type Locale } from "@/lib/i18n/config";
 import type { Dictionary } from "@/lib/i18n/dictionaries";
 
 type AuthExperienceProps = {
@@ -53,6 +54,7 @@ const panelVariants = {
 };
 
 export function AuthExperience({ locale, content }: AuthExperienceProps) {
+  const pathname = usePathname();
   const [mode, setMode] = useState<AuthMode>("sign-in");
   const [rememberDevice, setRememberDevice] = useState(true);
   const [consentChecked, setConsentChecked] = useState(false);
@@ -66,6 +68,17 @@ export function AuthExperience({ locale, content }: AuthExperienceProps) {
   });
   const { signIn, signUp, status } = useAuth();
   const router = useRouter();
+  const hasExplicitDefaultLocalePrefix =
+    locale === defaultLocale
+    && (pathname === `/${defaultLocale}` || pathname.startsWith(`/${defaultLocale}/`));
+  const buildHref = useCallback((path: string) => {
+    if (hasExplicitDefaultLocalePrefix) {
+      const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+      return `/${defaultLocale}${normalizedPath === "/" ? "" : normalizedPath}`;
+    }
+
+    return getLocalizedPath(locale, path);
+  }, [hasExplicitDefaultLocalePrefix, locale]);
 
   const isSignIn = mode === "sign-in";
   const activeTheme = isSignIn ? content.showcase.signIn : content.showcase.signUp;
@@ -73,9 +86,9 @@ export function AuthExperience({ locale, content }: AuthExperienceProps) {
 
   useEffect(() => {
     if (status === "authenticated") {
-      router.replace(getLocalizedPath(locale, "/workspace"));
+      router.replace(buildHref("/workspace"));
     }
-  }, [locale, router, status]);
+  }, [buildHref, router, status]);
 
   async function handleSignInSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -86,7 +99,7 @@ export function AuthExperience({ locale, content }: AuthExperienceProps) {
         password: signInForm.password,
       });
       toast.success(content.messages.signInSuccess);
-      router.push(getLocalizedPath(locale, "/workspace"));
+      router.push(buildHref("/workspace"));
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : content.messages.genericError,
@@ -113,7 +126,7 @@ export function AuthExperience({ locale, content }: AuthExperienceProps) {
         password_confirmation: signUpForm.passwordConfirmation,
       });
       toast.success(content.messages.signUpSuccess);
-      router.push(getLocalizedPath(locale, "/workspace"));
+      router.push(buildHref("/workspace"));
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : content.messages.genericError,
@@ -184,13 +197,20 @@ export function AuthExperience({ locale, content }: AuthExperienceProps) {
             <div className="mb-6 flex items-center justify-between gap-4">
               <div className="flex w-full flex-col gap-4">
                 <Link
-                  href={getLocalizedPath(locale, "/")}
+                  href={buildHref("/")}
                   className="inline-flex w-full items-center gap-3 px-1 py-2"
                 >
-                  <span className="inline-flex size-11 items-center justify-center rounded-full bg-linear-to-br from-emerald-200 via-emerald-300 to-lime-200 text-sm font-semibold text-slate-950">
-                    FM
+                  <span className="inline-flex size-11 items-center justify-center overflow-hidden rounded-full border border-emerald-300/20 bg-white/95 shadow-[0_10px_24px_rgba(0,0,0,0.18)]">
+                    <Image
+                      src="/images/logo/fin.png"
+                      alt={content.badge}
+                      width={44}
+                      height={44}
+                      className="size-9 object-contain"
+                      priority
+                    />
                   </span>
-                    <span>
+                  <span>
                     <span className="block text-sm font-semibold text-white">
                       {activeBadge}
                     </span>
@@ -320,7 +340,7 @@ export function AuthExperience({ locale, content }: AuthExperienceProps) {
                       <span>{content.signIn.remember}</span>
                     </label>
                     <Link
-                      href={getLocalizedPath(locale, "/forgot-password")}
+                      href={buildHref("/forgot-password")}
                       className="text-emerald-200 transition hover:text-white"
                     >
                       {content.signIn.forgotPassword}
@@ -516,7 +536,7 @@ export function AuthExperience({ locale, content }: AuthExperienceProps) {
 
             <div className="mt-6">
               <Link
-                href={getLocalizedPath(locale, "/")}
+                href={buildHref("/")}
                 className="inline-flex items-center gap-2 text-sm font-medium text-zinc-300 transition hover:text-white"
               >
                 {content.footer.backHome}

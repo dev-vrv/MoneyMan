@@ -14,8 +14,10 @@ from .views import (
     CurrencyViewSet,
     DashboardOverviewView,
     ExchangeRateViewSet,
+    MarketSnapshotView,
     NotificationViewSet,
     TransactionViewSet,
+    TransactionTemplateViewSet,
 )
 
 router = DefaultRouter()
@@ -31,9 +33,11 @@ router.register("crypto-asset-networks", CryptoAssetNetworkViewSet, basename="fi
 router.register("crypto-wallets", CryptoWalletViewSet, basename="finance-crypto-wallet")
 router.register("crypto-holdings", CryptoHoldingViewSet, basename="finance-crypto-holding")
 router.register("transactions", TransactionViewSet, basename="finance-transaction")
+router.register("transaction-templates", TransactionTemplateViewSet, basename="finance-transaction-template")
 router.register("budgets", BudgetViewSet, basename="finance-budget")
 
 urlpatterns = [
     path("dashboard/", DashboardOverviewView.as_view(), name="finance-dashboard"),
+    path("market-snapshot/", MarketSnapshotView.as_view(), name="finance-market-snapshot"),
     path("", include(router.urls)),
 ]

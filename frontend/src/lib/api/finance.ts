@@ -64,6 +64,10 @@ export type WorkspaceOverview = {
     social_fund_amount: string;
     total_amount: string;
     days_left: number;
+    required_components: Array<"tax" | "social_fund">;
+    settled_components: Array<"tax" | "social_fund">;
+    payment_status: "open" | "partial" | "cleared";
+    can_create_payment: boolean;
   }>;
   widgets: Array<{
     title: string;
@@ -115,6 +119,28 @@ export type ExchangeRateRecord = {
   updated_at: string;
 };
 
+export type CryptoMarketAssetRecord = {
+  symbol: string;
+  name: string;
+  icon: string;
+  color: string;
+  asset_type: "coin" | "token" | "stablecoin" | "wrapped" | "other";
+  rank: number;
+  price: string;
+  price_change_24h: string;
+  quote_currency: string;
+  provider: "binance" | "okx" | "bybit" | "kraken";
+  last_updated: string;
+};
+
+export type MarketSnapshotRecord = {
+  provider: "binance" | "okx" | "bybit" | "kraken";
+  provider_error: string | null;
+  fiat_rates: ExchangeRateRecord[];
+  crypto_assets: CryptoMarketAssetRecord[];
+  crypto_updated_at: string | null;
+};
+
 export type NotificationRecord = {
   id: number;
   scope: "personal" | "broadcast";
@@ -129,6 +155,20 @@ export type NotificationRecord = {
   is_read: boolean;
   created_at: string;
   updated_at: string;
+};
+
+export type SubscriptionPlanRecord = {
+  id: number;
+  code: string;
+  name: string;
+  description: string;
+  duration_value: number;
+  duration_unit: "day" | "month" | "year";
+  duration_label: string;
+  price_usd: string;
+  currency: "USD";
+  is_highlighted: boolean;
+  features: string[];
 };
 
 export type AccountRecord = {
@@ -160,6 +200,9 @@ export type AccountRecord = {
     auto_renewal: boolean;
     allow_top_up: boolean;
     allow_partial_withdrawal: boolean;
+    recurring_contribution_amount: string;
+    recurring_contribution_frequency: "none" | "monthly" | "quarterly" | "yearly";
+    recurring_contribution_day: number;
     minimum_balance: string;
     note: string;
     is_active: boolean;
@@ -308,7 +351,6 @@ export type TransactionRecord = {
   exchange_rate: string | null;
   title: string;
   merchant: string;
-  counterparty: string;
   description: string;
   occurred_on: string;
   posted_at: string | null;
@@ -323,16 +365,48 @@ export type TransactionRecord = {
   updated_at: string;
 };
 
+export type TransactionTemplateRecord = {
+  id: number;
+  name: string;
+  account: number;
+  account_name: string;
+  destination_account: number | null;
+  destination_account_name: string | null;
+  category: number | null;
+  category_name: string | null;
+  currency: string;
+  type: "income" | "expense" | "transfer";
+  status: "draft" | "pending" | "cleared" | "canceled";
+  amount: string;
+  destination_amount: string | null;
+  exchange_rate: string | null;
+  title: string;
+  merchant: string;
+  description: string;
+  icon: string;
+  color: string;
+  sort_order: number;
+  is_active: boolean;
+  last_used_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export type BudgetRecord = {
   id: number;
-  category: number;
-  category_name: string;
+  kind: "expense" | "saving" | "goal";
+  name: string;
+  category: number | null;
+  category_name: string | null;
   currency: string;
   currency_name: string;
   period: "weekly" | "monthly" | "quarterly" | "yearly" | "custom";
   amount: string;
+  target_amount: string | null;
   spent_amount: string;
   utilization_percent: number;
+  target_account: number | null;
+  target_account_name: string | null;
   start_date: string;
   end_date: string;
   alert_threshold: number;
@@ -378,6 +452,9 @@ export type CreateAccountPayload = {
     auto_renewal: boolean;
     allow_top_up: boolean;
     allow_partial_withdrawal: boolean;
+    recurring_contribution_amount: string;
+    recurring_contribution_frequency: "none" | "monthly" | "quarterly" | "yearly";
+    recurring_contribution_day: number;
     minimum_balance: string;
     note: string;
     is_active: boolean;
@@ -385,6 +462,25 @@ export type CreateAccountPayload = {
 };
 
 export type CreateTransactionPayload = {
+  account: number;
+  template_id?: number | null;
+  destination_account?: number | null;
+  category?: number | null;
+  type: string;
+  status: string;
+  amount: string;
+  destination_amount?: string | null;
+  exchange_rate?: string | null;
+  title: string;
+  merchant: string;
+  description: string;
+  occurred_on: string;
+  external_reference?: string;
+  idempotency_key?: string;
+};
+
+export type CreateTransactionTemplatePayload = {
+  name: string;
   account: number;
   destination_account?: number | null;
   category?: number | null;
@@ -395,11 +491,11 @@ export type CreateTransactionPayload = {
   exchange_rate?: string | null;
   title: string;
   merchant: string;
-  counterparty: string;
   description: string;
-  occurred_on: string;
-  external_reference?: string;
-  idempotency_key?: string;
+  icon: string;
+  color: string;
+  sort_order: number;
+  is_active: boolean;
 };
 
 export type CreateTaxObligationTransactionsPayload = {
@@ -407,10 +503,14 @@ export type CreateTaxObligationTransactionsPayload = {
   mode: "tax" | "social_fund" | "both";
   status: "draft" | "pending" | "cleared";
   occurred_on: string;
+  obligation_period_start: string;
+  obligation_period_end: string;
   tax_category?: number | null;
   social_fund_category?: number | null;
   tax_title?: string;
   social_fund_title?: string;
+  tax_merchant?: string;
+  social_fund_merchant?: string;
   description?: string;
 };
 
@@ -420,10 +520,14 @@ export type CreateTaxObligationTransactionsResponse = {
 };
 
 export type CreateBudgetPayload = {
-  category: number;
+  kind: "expense" | "saving" | "goal";
+  name: string;
+  category?: number | null;
   currency: string;
   period: string;
   amount: string;
+  target_amount?: string | null;
+  target_account?: number | null;
   start_date: string;
   end_date: string;
   alert_threshold: number;
@@ -542,8 +646,23 @@ export async function fetchExchangeRates(params?: {
   return data;
 }
 
+export async function fetchMarketSnapshot(params?: {
+  provider?: "binance" | "okx" | "bybit" | "kraken";
+  quote_currency?: string;
+}) {
+  const { data } = await apiClient.get<MarketSnapshotRecord>("/finance/market-snapshot/", {
+    params,
+  });
+  return data;
+}
+
 export async function fetchNotifications() {
   const { data } = await apiClient.get<NotificationRecord[]>("/finance/notifications/");
+  return data;
+}
+
+export async function fetchSubscriptionPlans() {
+  const { data } = await apiClient.get<SubscriptionPlanRecord[]>("/subscriptions/plans/");
   return data;
 }
 
@@ -598,6 +717,11 @@ export async function fetchCryptoHoldings() {
 
 export async function fetchTransactions() {
   const { data } = await apiClient.get<TransactionRecord[]>("/finance/transactions/");
+  return data;
+}
+
+export async function fetchTransactionTemplates() {
+  const { data } = await apiClient.get<TransactionTemplateRecord[]>("/finance/transaction-templates/");
   return data;
 }
 
@@ -663,6 +787,20 @@ export async function updateTransaction(id: number, payload: Partial<CreateTrans
 
 export async function deleteTransaction(id: number) {
   await apiClient.delete(`/finance/transactions/${id}/`);
+}
+
+export async function createTransactionTemplate(payload: CreateTransactionTemplatePayload) {
+  const { data } = await apiClient.post<TransactionTemplateRecord>("/finance/transaction-templates/", payload);
+  return data;
+}
+
+export async function updateTransactionTemplate(id: number, payload: Partial<CreateTransactionTemplatePayload>) {
+  const { data } = await apiClient.patch<TransactionTemplateRecord>(`/finance/transaction-templates/${id}/`, payload);
+  return data;
+}
+
+export async function deleteTransactionTemplate(id: number) {
+  await apiClient.delete(`/finance/transaction-templates/${id}/`);
 }
 
 export async function createBudget(payload: CreateBudgetPayload) {

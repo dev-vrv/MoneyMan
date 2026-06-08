@@ -1,14 +1,29 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
+import { RiFlashlightLine } from "react-icons/ri";
 
 import type { CashFlowChartMode, CashFlowRange, UiCopy } from "@/components/workspace/finance-workspace.types";
+import { CryptoAssetIcon } from "@/components/workspace/crypto-asset-icon";
+import { CurrencyOptionLabel } from "@/components/workspace/currency-flag";
 import { EmptyState, PriorityPill } from "@/components/workspace/finance-workspace-ui";
-import { buildSmoothSvgLinePath, formatMoney, normalizeCashFlowDateRange } from "@/components/workspace/finance-workspace.utils";
+import {
+  buildSmoothSvgLinePath,
+  convertAmountBetweenCurrencies,
+  formatMoney,
+  normalizeCashFlowDateRange,
+  resolveCashFlowDateRange,
+} from "@/components/workspace/finance-workspace.utils";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DateInput } from "@/components/ui/date-input";
-import { Field, FieldLabel } from "@/components/ui/field";
 import { Badge } from "@/components/ui/badge";
+import { WorkspaceSelect } from "@/components/workspace/finance-workspace-ui";
+import type { CryptoHoldingRecord, CurrencyRecord, ExchangeRateRecord, CryptoMarketAssetRecord } from "@/lib/api/finance";
 import type { Dictionary } from "@/lib/i18n/dictionaries";
 
 type CashFlowSeriesItem = {
@@ -28,9 +43,22 @@ type CashFlowTrajectoryItem = {
   close: number;
 };
 
+const premiumCtaClassName =
+  "relative overflow-hidden rounded-2xl border border-cyan-300/28 bg-[linear-gradient(135deg,rgba(34,211,238,0.2)_0%,rgba(56,189,248,0.14)_35%,rgba(129,140,248,0.18)_100%)] text-cyan-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_0_1px_rgba(56,189,248,0.08),0_10px_30px_rgba(14,165,233,0.18),0_0_36px_rgba(59,130,246,0.12)] transition-all duration-300 before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_left_center,rgba(255,255,255,0.2),transparent_42%)] before:opacity-70 before:content-[''] hover:border-cyan-200/44 hover:text-cyan-50 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_0_0_1px_rgba(103,232,249,0.14),0_16px_42px_rgba(14,165,233,0.24),0_0_52px_rgba(99,102,241,0.18)]";
+const capitalCalculatorModeStorageKey = "fin-man-capital-calculator-mode";
+
 type WorkspaceAnalyticsSectionProps = {
   ui: UiCopy;
   content: Dictionary["workspace"];
+  isPremium: boolean;
+  onOpenPremiumDialog: () => void;
+  currencies: CurrencyRecord[];
+  exchangeRates: ExchangeRateRecord[];
+  accounts: Array<{ id: number; name: string; currency: string; amount: number }>;
+  cryptoHoldings: CryptoHoldingRecord[];
+  cryptoAssets: CryptoMarketAssetRecord[];
+  projectedSubscriptionsTotal: number;
+  projectedSubscriptionsCount: number;
   cashFlowRangeLabel: string;
   cashFlowRange: CashFlowRange;
   setCashFlowRange: Dispatch<SetStateAction<CashFlowRange>>;
@@ -57,6 +85,15 @@ type WorkspaceAnalyticsSectionProps = {
 export function WorkspaceAnalyticsSection({
   ui,
   content,
+  isPremium,
+  onOpenPremiumDialog,
+  currencies,
+  exchangeRates,
+  accounts,
+  cryptoHoldings,
+  cryptoAssets,
+  projectedSubscriptionsTotal,
+  projectedSubscriptionsCount,
   cashFlowRangeLabel,
   cashFlowRange,
   setCashFlowRange,
@@ -73,6 +110,128 @@ export function WorkspaceAnalyticsSection({
 }: WorkspaceAnalyticsSectionProps) {
   const chartWidth = 1000;
   const chartHeight = 250;
+  const displayedDateRange = resolveCashFlowDateRange(cashFlowRange, cashFlowAnchorDate, cashFlowCustomRange);
+  const [capitalCalculatorMode, setCapitalCalculatorMode] = useState<"portfolio" | "manual" | "hybrid">(() => {
+    if (typeof window === "undefined") {
+      return "portfolio";
+    }
+
+    const storedMode = window.localStorage.getItem(capitalCalculatorModeStorageKey);
+    if (storedMode === "portfolio" || storedMode === "manual" || storedMode === "hybrid") {
+      return storedMode;
+    }
+
+    return "portfolio";
+  });
+  const [capitalTargetCurrency, setCapitalTargetCurrency] = useState(() => workspaceSummaryCurrency);
+  const [manualAmount, setManualAmount] = useState("");
+  const [manualCurrency, setManualCurrency] = useState(() => workspaceSummaryCurrency);
+  const [fixedAdjustment, setFixedAdjustment] = useState("");
+  const [percentAdjustment, setPercentAdjustment] = useState("0");
+  const [includeProjectedSubscriptions, setIncludeProjectedSubscriptions] = useState(true);
+  const [includePeriodResult, setIncludePeriodResult] = useState(false);
+  const [selectedAccountIds, setSelectedAccountIds] = useState<number[]>(() => accounts.map((account) => account.id));
+  const [selectedHoldingIds, setSelectedHoldingIds] = useState<number[]>(() => cryptoHoldings.map((holding) => holding.id));
+  const effectiveCapitalTargetCurrency = currencies.some((currency) => currency.code === capitalTargetCurrency)
+    ? capitalTargetCurrency
+    : workspaceSummaryCurrency;
+  const effectiveManualCurrency = currencies.some((currency) => currency.code === manualCurrency)
+    ? manualCurrency
+    : workspaceSummaryCurrency;
+  const effectiveSelectedAccountIds = useMemo(() => {
+    const validIds = selectedAccountIds.filter((id) => accounts.some((account) => account.id === id));
+    if (validIds.length > 0 || accounts.length === 0) {
+      return validIds;
+    }
+    return accounts.map((account) => account.id);
+  }, [accounts, selectedAccountIds]);
+  const effectiveSelectedHoldingIds = useMemo(() => {
+    const validIds = selectedHoldingIds.filter((id) => cryptoHoldings.some((holding) => holding.id === id));
+    if (validIds.length > 0 || cryptoHoldings.length === 0) {
+      return validIds;
+    }
+    return cryptoHoldings.map((holding) => holding.id);
+  }, [cryptoHoldings, selectedHoldingIds]);
+
+  const cryptoAssetsBySymbol = useMemo(
+    () => new Map(cryptoAssets.map((asset) => [asset.symbol.toUpperCase(), asset])),
+    [cryptoAssets],
+  );
+  const selectedAccountsTotal = useMemo(
+    () =>
+      accounts.reduce((sum, account) => {
+        if (!effectiveSelectedAccountIds.includes(account.id)) {
+          return sum;
+        }
+        return sum + (convertAmountBetweenCurrencies(account.amount, account.currency, effectiveCapitalTargetCurrency, exchangeRates) ?? 0);
+      }, 0),
+    [accounts, effectiveCapitalTargetCurrency, effectiveSelectedAccountIds, exchangeRates],
+  );
+  const selectedCryptoTotal = useMemo(
+    () =>
+      cryptoHoldings.reduce((sum, holding) => {
+        if (!effectiveSelectedHoldingIds.includes(holding.id)) {
+          return sum;
+        }
+        const asset = cryptoAssetsBySymbol.get(holding.asset_symbol.toUpperCase());
+        if (!asset) {
+          return sum;
+        }
+        const holdingValue =
+          (convertAmountBetweenCurrencies(Number(asset.price || 0), asset.quote_currency, effectiveCapitalTargetCurrency, exchangeRates) ?? 0)
+          * Number(holding.balance || 0);
+        return sum + holdingValue;
+      }, 0),
+    [cryptoAssetsBySymbol, cryptoHoldings, effectiveCapitalTargetCurrency, effectiveSelectedHoldingIds, exchangeRates],
+  );
+  const manualAmountConverted = useMemo(
+    () => convertAmountBetweenCurrencies(Number(manualAmount || 0), effectiveManualCurrency, effectiveCapitalTargetCurrency, exchangeRates) ?? 0,
+    [effectiveCapitalTargetCurrency, effectiveManualCurrency, exchangeRates, manualAmount],
+  );
+  const portfolioAssetsTotal = selectedAccountsTotal + selectedCryptoTotal;
+  const grossAssetsTotal = useMemo(() => {
+    if (capitalCalculatorMode === "manual") {
+      return manualAmountConverted;
+    }
+    if (capitalCalculatorMode === "hybrid") {
+      return portfolioAssetsTotal + manualAmountConverted;
+    }
+    return portfolioAssetsTotal;
+  }, [capitalCalculatorMode, manualAmountConverted, portfolioAssetsTotal]);
+  const projectedSubscriptionsConverted = useMemo(
+    () =>
+      convertAmountBetweenCurrencies(
+        projectedSubscriptionsTotal,
+        workspaceSummaryCurrency,
+        effectiveCapitalTargetCurrency,
+        exchangeRates,
+      ) ?? 0,
+    [effectiveCapitalTargetCurrency, exchangeRates, projectedSubscriptionsTotal, workspaceSummaryCurrency],
+  );
+  const periodResultConverted = useMemo(
+    () =>
+      convertAmountBetweenCurrencies(
+        cashFlowVisibleTotals.net,
+        workspaceSummaryCurrency,
+        effectiveCapitalTargetCurrency,
+        exchangeRates,
+      ) ?? 0,
+    [cashFlowVisibleTotals.net, effectiveCapitalTargetCurrency, exchangeRates, workspaceSummaryCurrency],
+  );
+  const fixedAdjustmentConverted = useMemo(
+    () => convertAmountBetweenCurrencies(Number(fixedAdjustment || 0), effectiveManualCurrency, effectiveCapitalTargetCurrency, exchangeRates) ?? 0,
+    [effectiveCapitalTargetCurrency, effectiveManualCurrency, exchangeRates, fixedAdjustment],
+  );
+  const percentAdjustmentAmount = useMemo(
+    () => grossAssetsTotal * (Number(percentAdjustment || 0) / 100),
+    [grossAssetsTotal, percentAdjustment],
+  );
+  const scenarioAdjustmentsTotal = useMemo(
+    () => fixedAdjustmentConverted + percentAdjustmentAmount + (includePeriodResult ? periodResultConverted : 0),
+    [fixedAdjustmentConverted, includePeriodResult, percentAdjustmentAmount, periodResultConverted],
+  );
+  const scenarioLiabilitiesTotal = includeProjectedSubscriptions ? projectedSubscriptionsConverted : 0;
+  const capitalCalculatorResult = grossAssetsTotal + scenarioAdjustmentsTotal - scenarioLiabilitiesTotal;
   const chartLinePoints = cashFlowTrajectory.items.map((point, pointIndex) => ({
     x:
       cashFlowTrajectory.items.length === 1
@@ -86,15 +245,39 @@ export function WorkspaceAnalyticsSection({
       ? `${smoothLinePath} L ${chartLinePoints[chartLinePoints.length - 1]?.x ?? chartWidth} 238 L ${chartLinePoints[0]?.x ?? 0} 238 Z`
       : "";
 
+  useEffect(() => {
+    window.localStorage.setItem(capitalCalculatorModeStorageKey, capitalCalculatorMode);
+  }, [capitalCalculatorMode]);
+
   return (
     <Card className="surface-panel rounded-[2rem] border-white/8 bg-white/[0.04] py-0">
-      <CardHeader className="flex flex-col gap-4 p-6">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-          <div>
-            <CardTitle className="text-white">{ui.cashFlowLabel}</CardTitle>
-            <CardDescription className="text-zinc-400">{cashFlowRangeLabel}</CardDescription>
+      <CardHeader className="flex flex-col gap-5 p-6">
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <div className="max-w-2xl">
+              <CardTitle className="text-white">{ui.cashFlowLabel}</CardTitle>
+              <CardDescription className="mt-2 text-sm leading-6 text-zinc-400">{cashFlowRangeLabel}</CardDescription>
+            </div>
+            <div className="rounded-[1.3rem] border border-white/8 bg-black/18 px-4 py-3">
+              <p className="text-xs uppercase tracking-[0.18em] text-zinc-500">{ui.periodResultLabel}</p>
+              <p className={`mt-2 text-xl font-semibold ${cashFlowVisibleTotals.net >= 0 ? "text-emerald-100" : "text-rose-100"}`}>
+                {formatMoney(String(cashFlowVisibleTotals.net), workspaceSummaryCurrency)}
+              </p>
+            </div>
           </div>
-          <div className="flex flex-col gap-3 xl:items-end">
+          {!isPremium ? (
+            <div className="flex flex-col gap-3 rounded-[1.4rem] border border-amber-300/14 bg-amber-300/[0.06] p-4 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <p className="text-sm font-medium text-amber-100">{ui.premiumAnalyticsUpsell}</p>
+                <p className="mt-1 text-sm text-amber-100/70">{ui.premiumHistoryFree}</p>
+              </div>
+              <Button type="button" size="sm" onClick={onOpenPremiumDialog} className={premiumCtaClassName}>
+                <RiFlashlightLine className="relative z-10 size-3.5" />
+                <span className="relative z-10">{ui.premiumUpgrade}</span>
+              </Button>
+            </div>
+          ) : null}
+          <div className="flex flex-wrap items-end gap-3">
             <div className="flex flex-wrap gap-2">
               {[
                 { value: "day" as const, label: ui.daily },
@@ -118,76 +301,314 @@ export function WorkspaceAnalyticsSection({
                 </button>
               ))}
             </div>
-            {cashFlowRange === "custom" ? (
-              <div className="grid gap-3 sm:grid-cols-2 xl:w-[26rem]">
-                <Field>
-                  <FieldLabel>{ui.startDate}</FieldLabel>
-                  <DateInput
-                    value={cashFlowCustomRange.startDate}
-                    onChange={(nextValue) => setCashFlowCustomRange((current) => normalizeCashFlowDateRange(nextValue, current.endDate))}
-                    placeholder={ui.startDate}
-                  />
-                </Field>
-                <Field>
-                  <FieldLabel>{ui.endDate}</FieldLabel>
-                  <DateInput
-                    value={cashFlowCustomRange.endDate}
-                    onChange={(nextValue) => setCashFlowCustomRange((current) => normalizeCashFlowDateRange(current.startDate, nextValue))}
-                    placeholder={ui.endDate}
-                  />
-                </Field>
-              </div>
-            ) : (
-              <div className="grid sm:min-w-[18rem]">
-                <Field>
-                  <FieldLabel>{ui.date}</FieldLabel>
-                  <DateInput
-                    value={cashFlowAnchorDate}
-                    onChange={setCashFlowAnchorDate}
-                    placeholder={ui.date}
-                  />
-                </Field>
-              </div>
-            )}
+            <div className="grid gap-3 sm:grid-cols-2 sm:min-w-[26rem]">
+              <DateInput
+                value={displayedDateRange.startDate}
+                onChange={(nextValue) => {
+                  setCashFlowRange("custom");
+                  setCashFlowCustomRange((current) =>
+                    normalizeCashFlowDateRange(nextValue, cashFlowRange === "custom" ? current.endDate : displayedDateRange.endDate),
+                  );
+                }}
+                placeholder={ui.startDate}
+                className="h-9 min-h-9 rounded-2xl px-3 text-xs"
+              />
+              <DateInput
+                value={displayedDateRange.endDate}
+                onChange={(nextValue) => {
+                  setCashFlowRange("custom");
+                  setCashFlowAnchorDate(nextValue);
+                  setCashFlowCustomRange((current) =>
+                    normalizeCashFlowDateRange(cashFlowRange === "custom" ? current.startDate : displayedDateRange.startDate, nextValue),
+                  );
+                }}
+                placeholder={ui.endDate}
+                className="h-9 min-h-9 rounded-2xl px-3 text-xs"
+              />
+            </div>
           </div>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {[
-            { value: "bars" as const, label: ui.chartBarsView },
-            { value: "line" as const, label: ui.chartLineView },
-            { value: "tradingview" as const, label: ui.chartTradingView },
-            { value: "candles" as const, label: ui.chartCandlesView },
-            { value: "structure" as const, label: ui.chartStructureView },
-          ].map((item) => (
-            <button
-              key={item.value}
-              type="button"
-              onClick={() => setCashFlowChartMode(item.value)}
-              className={`inline-flex h-10 items-center rounded-2xl border px-3.5 text-xs transition ${
-                effectiveCashFlowChartMode === item.value
-                  ? "border-emerald-300/20 bg-[linear-gradient(135deg,rgba(16,185,129,0.18)_0%,rgba(52,211,153,0.08)_100%)] text-emerald-100 shadow-[0_0_24px_rgba(16,185,129,0.14)]"
-                  : "border-white/8 bg-white/[0.03] text-zinc-400 hover:bg-white/[0.06] hover:text-zinc-200"
-              }`}
-            >
-              {item.label}
-            </button>
-          ))}
         </div>
       </CardHeader>
-      <CardContent className="grid gap-5 p-6 pt-0 xl:grid-cols-[260px_minmax(0,1fr)]">
-        <div className="space-y-3">
-          <p className="text-4xl font-semibold text-white">{formatMoney(String(cashFlowVisibleTotals.net), workspaceSummaryCurrency)}</p>
-          <p className="text-sm leading-6 text-zinc-400">{content.sections.widgetsDescription}</p>
-          <div className="grid gap-3">
-            <PriorityPill label={ui.receivedLabel} value={formatMoney(String(cashFlowVisibleTotals.income), workspaceSummaryCurrency)} />
-            <PriorityPill label={ui.spentLabel} value={formatMoney(String(cashFlowVisibleTotals.expense), workspaceSummaryCurrency)} />
-            <PriorityPill label={ui.periodResultLabel} value={formatMoney(String(cashFlowVisibleTotals.net), workspaceSummaryCurrency)} />
-            {effectiveCashFlowChartMode === "line" || effectiveCashFlowChartMode === "tradingview" ? (
-              <PriorityPill label={ui.totalByRates} value={formatMoney(String(cashFlowTrajectory.finalBalance), workspaceSummaryCurrency)} />
-            ) : null}
+      <CardContent className="grid gap-5 p-6 pt-0">
+        <div className="order-2 rounded-[1.7rem] border border-white/8 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.1),transparent_26%),linear-gradient(180deg,rgba(255,255,255,0.035)_0%,rgba(255,255,255,0.018)_100%)] p-5 sm:p-6">
+          <div className="grid gap-5 xl:grid-cols-[300px_minmax(0,1fr)]">
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm font-medium text-white">{ui.capitalCalculatorTitle}</p>
+                <p className="mt-2 text-sm leading-6 text-zinc-400">{ui.capitalCalculatorDescription}</p>
+              </div>
+              <div className="rounded-[1.3rem] border border-emerald-300/12 bg-emerald-300/[0.06] px-4 py-4">
+                <p className="text-xs uppercase tracking-[0.18em] text-emerald-100/70">{ui.capitalCalculatorResult}</p>
+                <p className="mt-2 text-2xl font-semibold text-emerald-50">
+                  {formatMoney(String(capitalCalculatorResult), effectiveCapitalTargetCurrency)}
+                </p>
+              </div>
+              <div className="grid gap-3">
+                <PriorityPill label={ui.capitalCalculatorGrossAssets} value={formatMoney(String(grossAssetsTotal), effectiveCapitalTargetCurrency)} />
+                <PriorityPill label={ui.capitalCalculatorAdjustments} value={formatMoney(String(scenarioAdjustmentsTotal), effectiveCapitalTargetCurrency)} />
+                <PriorityPill label={ui.capitalCalculatorLiabilities} value={formatMoney(String(scenarioLiabilitiesTotal), effectiveCapitalTargetCurrency)} />
+                <PriorityPill label={ui.capitalCalculatorNetResult} value={formatMoney(String(capitalCalculatorResult), effectiveCapitalTargetCurrency)} />
+              </div>
+            </div>
+            <div className="space-y-4">
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { value: "portfolio" as const, label: ui.capitalCalculatorPortfolio },
+                  { value: "hybrid" as const, label: ui.capitalCalculatorHybrid },
+                  { value: "manual" as const, label: ui.capitalCalculatorManual },
+                ].map((item) => (
+                  <button
+                    key={item.value}
+                    type="button"
+                    onClick={() => setCapitalCalculatorMode(item.value)}
+                    className={`inline-flex h-9 items-center rounded-2xl border px-3 text-xs transition ${
+                      capitalCalculatorMode === item.value
+                        ? "border-emerald-300/20 bg-emerald-300/12 text-emerald-100"
+                        : "border-white/8 bg-white/[0.03] text-zinc-400 hover:bg-white/[0.06] hover:text-zinc-200"
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+              <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
+                <div className="grid gap-4">
+                  {capitalCalculatorMode !== "manual" ? (
+                    <div className="grid gap-4 lg:grid-cols-2">
+                      <div>
+                        <div className="mb-2 flex items-center justify-between gap-2">
+                          <p className="text-xs uppercase tracking-[0.18em] text-zinc-500">{ui.capitalCalculatorAccounts}</p>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedAccountIds(accounts.map((account) => account.id))}
+                            className="text-xs text-zinc-400 transition hover:text-zinc-200"
+                          >
+                            {ui.capitalCalculatorSelectAll}
+                          </button>
+                        </div>
+                        <div className="grid gap-2">
+                          {accounts.length > 0 ? accounts.map((account) => (
+                            <label key={account.id} className="flex items-center gap-3 rounded-[1rem] border border-white/8 bg-white/[0.03] px-3 py-2.5">
+                              <Checkbox
+                                checked={effectiveSelectedAccountIds.includes(account.id)}
+                                onCheckedChange={(checked) =>
+                                  setSelectedAccountIds((current) =>
+                                    checked ? [...current, account.id] : current.filter((id) => id !== account.id),
+                                  )
+                                }
+                                className="size-4.5 rounded-md border-white/16 bg-white/5 data-checked:border-emerald-300 data-checked:bg-emerald-300 data-checked:text-slate-950"
+                              />
+                              <span className="min-w-0 flex-1">
+                                <span className="block truncate text-sm text-zinc-100">{account.name}</span>
+                                <span className="block text-xs text-zinc-500">{formatMoney(String(account.amount), account.currency)}</span>
+                              </span>
+                            </label>
+                          )) : <EmptyState text={ui.capitalCalculatorNoSources} />}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="mb-2 flex items-center justify-between gap-2">
+                          <p className="text-xs uppercase tracking-[0.18em] text-zinc-500">{ui.capitalCalculatorCrypto}</p>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedHoldingIds(cryptoHoldings.map((holding) => holding.id))}
+                            className="text-xs text-zinc-400 transition hover:text-zinc-200"
+                          >
+                            {ui.capitalCalculatorSelectAll}
+                          </button>
+                        </div>
+                        <div className="grid gap-2">
+                          {cryptoHoldings.length > 0 ? cryptoHoldings.map((holding) => {
+                            const asset = cryptoAssetsBySymbol.get(holding.asset_symbol.toUpperCase());
+
+                            return (
+                              <label key={holding.id} className="flex items-center gap-3 rounded-[1rem] border border-white/8 bg-white/[0.03] px-3 py-2.5">
+                                <Checkbox
+                                  checked={effectiveSelectedHoldingIds.includes(holding.id)}
+                                  onCheckedChange={(checked) =>
+                                    setSelectedHoldingIds((current) =>
+                                      checked ? [...current, holding.id] : current.filter((id) => id !== holding.id),
+                                    )
+                                  }
+                                  className="size-4.5 rounded-md border-white/16 bg-white/5 data-checked:border-emerald-300 data-checked:bg-emerald-300 data-checked:text-slate-950"
+                                />
+                                {asset ? <CryptoAssetIcon icon={asset.icon} symbol={asset.symbol} color={asset.color} /> : null}
+                                <span className="min-w-0 flex-1">
+                                  <span className="block truncate text-sm text-zinc-100">{holding.asset_symbol} · {holding.wallet_name}</span>
+                                  <span className="block text-xs text-zinc-500">{Number(holding.balance || 0)} {holding.asset_symbol}</span>
+                                </span>
+                              </label>
+                            );
+                          }) : <EmptyState text={ui.capitalCalculatorNoSources} />}
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
+                  {capitalCalculatorMode === "manual" || capitalCalculatorMode === "hybrid" ? (
+                    <div className="rounded-[1.2rem] border border-white/8 bg-white/[0.03] p-4">
+                      <p className="mb-2 text-xs uppercase tracking-[0.18em] text-zinc-500">{ui.capitalCalculatorManual}</p>
+                      <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_16rem]">
+                        <Input
+                          value={manualAmount}
+                          onChange={(event) => setManualAmount(event.target.value)}
+                          placeholder="0.00"
+                          className="rounded-2xl border-white/10 bg-white/5 text-zinc-100"
+                        />
+                        <div>
+                          <p className="mb-2 text-xs uppercase tracking-[0.18em] text-zinc-500">{ui.capitalCalculatorManualCurrency}</p>
+                          <WorkspaceSelect
+                            value={effectiveManualCurrency}
+                            onValueChange={setManualCurrency}
+                            options={currencies.map((currency) => ({
+                              value: currency.code,
+                              label: <CurrencyOptionLabel currencyCode={currency.code} text={`${currency.code} · ${currency.name}`} />,
+                            }))}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+                <div className="grid gap-4">
+                  <div>
+                    <p className="mb-2 text-xs uppercase tracking-[0.18em] text-zinc-500">{ui.capitalCalculatorTargetCurrency}</p>
+                    <WorkspaceSelect
+                      value={effectiveCapitalTargetCurrency}
+                      onValueChange={setCapitalTargetCurrency}
+                      options={currencies.map((currency) => ({
+                        value: currency.code,
+                        label: <CurrencyOptionLabel currencyCode={currency.code} text={`${currency.code} · ${currency.name}`} />,
+                      }))}
+                    />
+                  </div>
+                  <div className="rounded-[1.2rem] border border-white/8 bg-white/[0.03] p-4">
+                    <p className="mb-3 text-xs uppercase tracking-[0.18em] text-zinc-500">{ui.capitalCalculatorScenarioSettings}</p>
+                    <div className="grid gap-3">
+                      <div>
+                        <p className="mb-2 text-xs uppercase tracking-[0.18em] text-zinc-500">{ui.capitalCalculatorFixedAdjustment}</p>
+                        <Input
+                          value={fixedAdjustment}
+                          onChange={(event) => setFixedAdjustment(event.target.value)}
+                          placeholder="0.00"
+                          className="rounded-2xl border-white/10 bg-white/5 text-zinc-100"
+                        />
+                      </div>
+                      <div>
+                        <p className="mb-2 text-xs uppercase tracking-[0.18em] text-zinc-500">{ui.capitalCalculatorPercentAdjustment}</p>
+                        <Input
+                          value={percentAdjustment}
+                          onChange={(event) => setPercentAdjustment(event.target.value)}
+                          placeholder="0"
+                          className="rounded-2xl border-white/10 bg-white/5 text-zinc-100"
+                        />
+                      </div>
+                      <div className="grid gap-3">
+                        <label className="flex items-start gap-3 rounded-[1rem] border border-white/8 bg-black/18 px-3 py-3">
+                          <Checkbox
+                            checked={includeProjectedSubscriptions}
+                            onCheckedChange={(checked) => setIncludeProjectedSubscriptions(Boolean(checked))}
+                            className="mt-0.5 size-4.5 rounded-md border-white/16 bg-white/5 data-checked:border-emerald-300 data-checked:bg-emerald-300 data-checked:text-slate-950"
+                          />
+                          <span className="min-w-0 flex-1">
+                            <span className="block text-sm text-zinc-100">{ui.capitalCalculatorIncludeProjectedSubscriptions}</span>
+                            <span className="mt-1 block text-xs text-zinc-500">{formatMoney(String(projectedSubscriptionsConverted), effectiveCapitalTargetCurrency)}</span>
+                          </span>
+                        </label>
+                        <label className="flex items-start gap-3 rounded-[1rem] border border-white/8 bg-black/18 px-3 py-3">
+                          <Checkbox
+                            checked={includePeriodResult}
+                            onCheckedChange={(checked) => setIncludePeriodResult(Boolean(checked))}
+                            className="mt-0.5 size-4.5 rounded-md border-white/16 bg-white/5 data-checked:border-emerald-300 data-checked:bg-emerald-300 data-checked:text-slate-950"
+                          />
+                          <span className="min-w-0 flex-1">
+                            <span className="block text-sm text-zinc-100">{ui.capitalCalculatorIncludePeriodResult}</span>
+                            <span className="mt-1 block text-xs text-zinc-500">{formatMoney(String(periodResultConverted), effectiveCapitalTargetCurrency)}</span>
+                          </span>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-        <div className="rounded-[1.6rem] border border-white/8 bg-[linear-gradient(180deg,rgba(9,19,15,0.88)_0%,rgba(6,13,10,0.94)_100%)] p-4">
+
+        <div className="order-1 grid gap-5 xl:grid-cols-[minmax(0,1.35fr)_320px]">
+          <div className="order-2 space-y-3 xl:order-2">
+            <p className="text-sm leading-6 text-zinc-400">{content.sections.widgetsDescription}</p>
+            <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-1">
+              <PriorityPill label={ui.receivedLabel} value={formatMoney(String(cashFlowVisibleTotals.income), workspaceSummaryCurrency)} />
+              <PriorityPill label={ui.spentLabel} value={formatMoney(String(cashFlowVisibleTotals.expense), workspaceSummaryCurrency)} />
+              <PriorityPill label={ui.periodResultLabel} value={formatMoney(String(cashFlowVisibleTotals.net), workspaceSummaryCurrency)} />
+            </div>
+            <Accordion type="multiple" className="rounded-[1.5rem] border border-white/8 bg-black/18 px-4">
+              <AccordionItem value="summary-details" className="border-b border-white/8">
+                <AccordionTrigger className="rounded-2xl px-3 py-4 text-left text-sm font-medium text-white no-underline hover:bg-white/[0.04] hover:text-zinc-100 hover:no-underline">
+                  {ui.analyticsSummaryDetails}
+                </AccordionTrigger>
+                <AccordionContent className="pb-4">
+                  <div className="grid gap-3">
+                    <PriorityPill label={ui.totalByRates} value={formatMoney(String(cashFlowTrajectory.finalBalance), workspaceSummaryCurrency)} />
+                    <PriorityPill
+                      label={ui.projectedSubscriptions}
+                      value={formatMoney(String(projectedSubscriptionsTotal), workspaceSummaryCurrency)}
+                    />
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="subscription-forecast" className="border-none">
+                <AccordionTrigger className="rounded-2xl px-3 py-4 text-left text-sm font-medium text-white no-underline hover:bg-white/[0.04] hover:text-zinc-100 hover:no-underline">
+                  {ui.analyticsSubscriptionsDetails}
+                </AccordionTrigger>
+                <AccordionContent className="pb-4">
+                  <div className="rounded-[1.3rem] border border-white/8 bg-white/[0.03] p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-medium text-white">{ui.projectedSubscriptions}</p>
+                        <p className="mt-1 text-xs leading-5 text-zinc-500">{ui.projectedSubscriptionsDescription}</p>
+                      </div>
+                      <Badge variant="outline" className="rounded-full border-white/10 bg-white/5 text-zinc-200">
+                        {ui.projectedSubscriptionsTemplates.replace("{count}", String(projectedSubscriptionsCount))}
+                      </Badge>
+                    </div>
+                    <p className="mt-4 text-xl font-semibold text-white">
+                      {formatMoney(String(projectedSubscriptionsTotal), workspaceSummaryCurrency)}
+                    </p>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </div>
+          <div className="order-1 rounded-[1.6rem] border border-white/8 bg-[linear-gradient(180deg,rgba(9,19,15,0.88)_0%,rgba(6,13,10,0.94)_100%)] p-4 xl:order-1">
+          <div className="mb-4 flex flex-col gap-3 border-b border-white/8 pb-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-medium text-white">{ui.cashFlowLabel}</p>
+              <p className="mt-1 text-xs text-zinc-500">{content.sections.widgetsDescription}</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { value: "bars" as const, label: ui.chartBarsView },
+                { value: "line" as const, label: ui.chartLineView },
+                { value: "tradingview" as const, label: ui.chartTradingView },
+                { value: "candles" as const, label: ui.chartCandlesView },
+                { value: "structure" as const, label: ui.chartStructureView },
+              ].map((item) => (
+                <button
+                  key={item.value}
+                  type="button"
+                  onClick={() => setCashFlowChartMode(item.value)}
+                  className={`inline-flex h-10 items-center rounded-2xl border px-3.5 text-xs transition ${
+                    effectiveCashFlowChartMode === item.value
+                      ? "border-emerald-300/20 bg-[linear-gradient(135deg,rgba(16,185,129,0.18)_0%,rgba(52,211,153,0.08)_100%)] text-emerald-100 shadow-[0_0_24px_rgba(16,185,129,0.14)]"
+                      : "border-white/8 bg-white/[0.03] text-zinc-400 hover:bg-white/[0.06] hover:text-zinc-200"
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </div>
           {cashFlowSeries.items.length > 0 ? (
             <>
               {effectiveCashFlowChartMode === "structure" ? (
@@ -470,14 +891,12 @@ export function WorkspaceAnalyticsSection({
                                   <span className="text-zinc-500">{ui.spentLabel}</span>
                                   <span className="text-rose-200">{formatMoney(String(item.expense), workspaceSummaryCurrency)}</span>
                                 </div>
-                                {effectiveCashFlowChartMode !== "bars" && effectiveCashFlowChartMode !== "structure" ? (
-                                  <div className="flex items-center justify-between gap-3">
-                                    <span className="text-zinc-500">{ui.totalByRates}</span>
-                                    <span className={trajectoryPoint.close >= 0 ? "text-emerald-200" : "text-rose-200"}>
-                                      {formatMoney(String(trajectoryPoint.close), workspaceSummaryCurrency)}
-                                    </span>
-                                  </div>
-                                ) : null}
+                                <div className="flex items-center justify-between gap-3">
+                                  <span className="text-zinc-500">{ui.totalByRates}</span>
+                                  <span className={trajectoryPoint.close >= 0 ? "text-emerald-200" : "text-rose-200"}>
+                                    {formatMoney(String(trajectoryPoint.close), workspaceSummaryCurrency)}
+                                  </span>
+                                </div>
                                 <div className="flex items-center justify-between gap-3 border-t border-white/8 pt-2">
                                   <span className="text-zinc-500">{ui.periodResultLabel}</span>
                                   <span className={item.net >= 0 ? "text-emerald-200" : "text-rose-200"}>
@@ -534,7 +953,7 @@ export function WorkspaceAnalyticsSection({
                   <div className="mt-4 flex flex-wrap gap-5 text-xs text-zinc-500">
                     <span className="flex items-center gap-2"><span className="size-2 rounded-full bg-emerald-300" />{ui.txTypeIncome}</span>
                     <span className="flex items-center gap-2"><span className="size-2 rounded-full bg-rose-400" />{ui.txTypeExpense}</span>
-                    <span className="flex items-center gap-2"><span className="size-2 rounded-full bg-white" />{effectiveCashFlowChartMode === "line" || effectiveCashFlowChartMode === "tradingview" ? ui.totalByRates : ui.netLabel}</span>
+                    <span className="flex items-center gap-2"><span className="size-2 rounded-full bg-white" />{ui.totalByRates}</span>
                   </div>
                 </>
               )}
@@ -542,6 +961,7 @@ export function WorkspaceAnalyticsSection({
           ) : (
             <EmptyState text={ui.emptyTransactions} />
           )}
+          </div>
         </div>
       </CardContent>
     </Card>

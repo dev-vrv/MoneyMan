@@ -1,5 +1,7 @@
 import type { AccountRecord, ExchangeRateRecord } from "@/lib/api/finance";
 
+import { getCrossRate } from "@/components/workspace/finance-workspace.utils";
+
 type CurrencyBalance = {
   currency: string;
   amount: number;
@@ -16,7 +18,7 @@ type AccountBalanceSnapshot = {
   } | null;
 };
 
-const DEFAULT_TARGET_CURRENCY = "KGS";
+const DEFAULT_TARGET_CURRENCY = "USD";
 
 function toNumber(value: string) {
   const parsed = Number(value);
@@ -28,32 +30,7 @@ function getRateToTargetCurrency(
   exchangeRates: ExchangeRateRecord[],
   targetCurrency: string,
 ) {
-  if (currency === targetCurrency) {
-    return 1;
-  }
-
-  const directRate = exchangeRates.find(
-    (item) =>
-      item.base_currency.code === currency &&
-      item.quote_currency.code === targetCurrency,
-  );
-
-  if (directRate) {
-    return toNumber(directRate.rate);
-  }
-
-  const reverseRate = exchangeRates.find(
-    (item) =>
-      item.base_currency.code === targetCurrency &&
-      item.quote_currency.code === currency,
-  );
-
-  if (reverseRate) {
-    const rate = toNumber(reverseRate.rate);
-    return rate > 0 ? 1 / rate : null;
-  }
-
-  return null;
+  return getCrossRate(currency, targetCurrency, exchangeRates);
 }
 
 function getAccountBalanceAmount(account: AccountRecord) {

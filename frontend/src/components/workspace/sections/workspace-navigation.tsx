@@ -48,17 +48,17 @@ export function WorkspaceNavigation({
                   : "border-white/8 bg-black/15 text-zinc-300 hover:bg-white/[0.04]"
               }`}
             >
-              <span className="flex items-center gap-3">
+              <span className="flex min-w-0 items-center gap-3">
                 <span
-                  className={`inline-flex size-10 items-center justify-center rounded-2xl border ${
+                  className={`inline-flex size-10 shrink-0 items-center justify-center rounded-2xl border ${
                     isActive ? "border-emerald-300/18 bg-emerald-300/10 text-emerald-100" : "border-white/8 bg-white/[0.04]"
                   }`}
                 >
                   <Icon className="size-4" />
                 </span>
-                <span className="text-sm font-medium">{item.label}</span>
+                <span className="truncate text-sm font-medium">{item.label}</span>
               </span>
-              <RiArrowRightUpLine className="size-4" />
+              <RiArrowRightUpLine className="size-4 shrink-0" />
             </Link>
           );
         })}

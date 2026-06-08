@@ -9,6 +9,12 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from .currency_sync import FX_KG_SOURCE, sync_fx_kg_reference_data
+from .market_data import (
+    CRYPTO_MARKET_PROVIDER_BINANCE,
+    CRYPTO_MARKET_PROVIDER_OKX,
+    CryptoMarketDataError,
+    CryptoMarketSnapshot,
+)
 from .models import (
     Account,
     AccountDepositProfile,
@@ -27,10 +33,13 @@ from .models import (
 )
 from .services import (
     build_tax_obligations,
+    build_workspace_overview,
     calculate_deposit_snapshot,
     ensure_default_crypto_reference_data,
     ensure_system_categories,
     ensure_user_finance_setup,
+    get_next_period_start,
+    get_period_start,
 )
 
 User = get_user_model()
@@ -381,6 +390,66 @@ class FinanceAPITestCase(TestCase):
         self.assertIn("totals", response.data)
         self.assertIn("balances_by_currency", response.data["totals"])
 
+    def test_dashboard_localizes_system_category_names(self):
+        Transaction.objects.create(
+            owner=self.user,
+            account=self.cash_account,
+            category=self.food_category,
+            type=Transaction.TransactionType.EXPENSE,
+            status=Transaction.TransactionStatus.CLEARED,
+            amount=Decimal("25.50"),
+            title="Groceries",
+            occurred_on="2026-06-05",
+        )
+        Budget.objects.create(
+            owner=self.user,
+            category=self.food_category,
+            currency=self.usd,
+            period=Budget.BudgetPeriod.MONTHLY,
+            amount=Decimal("300.00"),
+            start_date="2026-06-01",
+            end_date="2026-06-30",
+        )
+
+        response = self.client.get(
+            reverse("api:finance-dashboard"),
+            HTTP_X_LOCALE="kg",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["budgets"][0]["category"], "Тамак-аш")
+        self.assertEqual(response.data["recent_transactions"][0]["category"], "Тамак-аш")
+
+    def test_workspace_overview_localizes_system_category_names(self):
+        Transaction.objects.create(
+            owner=self.user,
+            account=self.cash_account,
+            category=self.food_category,
+            type=Transaction.TransactionType.EXPENSE,
+            status=Transaction.TransactionStatus.CLEARED,
+            amount=Decimal("25.50"),
+            title="Groceries",
+            occurred_on="2026-06-05",
+        )
+        Budget.objects.create(
+            owner=self.user,
+            category=self.food_category,
+            currency=self.usd,
+            period=Budget.BudgetPeriod.MONTHLY,
+            amount=Decimal("300.00"),
+            start_date="2026-06-01",
+            end_date="2026-06-30",
+        )
+
+        response = self.client.get(
+            reverse("api:workspace-overview"),
+            HTTP_X_LOCALE="kg",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["budgets"][0]["category"], "Тамак-аш")
+        self.assertEqual(response.data["transactions"][0]["category"], "Тамак-аш")
+
     def test_user_cannot_use_other_users_custom_category(self):
         other_category = Category.objects.create(
             owner=self.other_user,
@@ -437,10 +506,24 @@ class CategorySeedTestCase(TestCase):
         self.assertGreater(Category.objects.filter(owner__isnull=True, is_system=True).count(), 0)
         self.assertGreater(Currency.objects.filter(is_active=True).count(), 0)
 
+    def test_workspace_overview_repairs_stale_current_balance_from_opening_balance(self):
+        self.cash_account.opening_balance = Decimal("50000.00")
+        self.cash_account.current_balance = Decimal("0.00")
+        self.cash_account.save(update_fields=["opening_balance", "current_balance", "updated_at"])
+
+        overview = build_workspace_overview(user=self.user, locale="ru")
+
+        self.cash_account.refresh_from_db()
+        self.assertEqual(self.cash_account.current_balance, Decimal("50000.00"))
+        self.assertEqual(overview["summary"]["net_worth"], "50000.00")
+        self.assertEqual(overview["accounts"][0]["balance"], "50000.00")
+
 
 class TaxProfileTestCase(TestCase):
     def setUp(self):
+        self.client = APIClient()
         self.user = User.objects.create_user(email="tax@example.com", password="testpass123")
+        self.client.force_authenticate(self.user)
         self.kgs = Currency.objects.create(code="KGS", name="Kyrgyzstani som", symbol="сом", is_default=True)
         self.salary_category = Category.objects.create(
             owner=None,
@@ -450,6 +533,16 @@ class TaxProfileTestCase(TestCase):
             name_en="Salary",
             name_kg="Айлык",
             slug="salary",
+            is_system=True,
+        )
+        self.tax_category = Category.objects.create(
+            owner=None,
+            kind=Category.CategoryKind.EXPENSE,
+            name="Taxes",
+            name_ru="Налоги",
+            name_en="Taxes",
+            name_kg="Салыктар",
+            slug="taxes",
             is_system=True,
         )
         self.ip_account = Account.objects.create(
@@ -490,6 +583,139 @@ class TaxProfileTestCase(TestCase):
         self.assertEqual(obligations[0]["tax_amount"], "1600.00")
         self.assertEqual(obligations[0]["total_amount"], "1600.00")
         self.assertEqual(obligations[0]["due_date"], "2026-07-20")
+
+    def test_quarter_boundaries_start_from_january(self):
+        self.assertEqual(
+            get_period_start(date.fromisoformat("2026-01-10"), AccountTaxProfile.ReportingPeriod.QUARTERLY),
+            date.fromisoformat("2026-01-01"),
+        )
+        self.assertEqual(
+            get_period_start(date.fromisoformat("2026-03-31"), AccountTaxProfile.ReportingPeriod.QUARTERLY),
+            date.fromisoformat("2026-01-01"),
+        )
+        self.assertEqual(
+            get_period_start(date.fromisoformat("2026-04-01"), AccountTaxProfile.ReportingPeriod.QUARTERLY),
+            date.fromisoformat("2026-04-01"),
+        )
+        self.assertEqual(
+            get_period_start(date.fromisoformat("2026-06-30"), AccountTaxProfile.ReportingPeriod.QUARTERLY),
+            date.fromisoformat("2026-04-01"),
+        )
+
+    def test_quarterly_tax_obligation_uses_apr_to_jun_before_july_boundary(self):
+        AccountTaxProfile.objects.create(
+            account=self.ip_account,
+            entity_type=AccountTaxProfile.EntityType.ENTREPRENEUR,
+            template_code=AccountTaxProfile.TemplateCode.KG_IP_SIMPLIFIED_4,
+            calculation_source=AccountTaxProfile.CalculationSource.MANUAL,
+            reporting_period=AccountTaxProfile.ReportingPeriod.QUARTERLY,
+            due_day=20,
+            tax_rate=Decimal("4.0000"),
+            social_fund_rate=Decimal("0.0000"),
+            manual_tax_base=Decimal("0.00"),
+            manual_tax_amount=Decimal("0.00"),
+        )
+
+        obligations = build_tax_obligations(user=self.user, today=date.fromisoformat("2026-06-30"))
+
+        self.assertEqual(obligations[0]["period_start"], "2026-04-01")
+        self.assertEqual(obligations[0]["period_end"], "2026-06-30")
+        self.assertEqual(obligations[0]["due_date"], "2026-07-20")
+
+    def test_quarterly_tax_obligation_switches_to_next_quarter_on_july_first(self):
+        AccountTaxProfile.objects.create(
+            account=self.ip_account,
+            entity_type=AccountTaxProfile.EntityType.ENTREPRENEUR,
+            template_code=AccountTaxProfile.TemplateCode.KG_IP_SIMPLIFIED_4,
+            calculation_source=AccountTaxProfile.CalculationSource.MANUAL,
+            reporting_period=AccountTaxProfile.ReportingPeriod.QUARTERLY,
+            due_day=20,
+            tax_rate=Decimal("4.0000"),
+            social_fund_rate=Decimal("0.0000"),
+            manual_tax_base=Decimal("0.00"),
+            manual_tax_amount=Decimal("0.00"),
+        )
+
+        obligations = build_tax_obligations(user=self.user, today=date.fromisoformat("2026-07-01"))
+
+        self.assertEqual(obligations[0]["period_start"], "2026-07-01")
+        self.assertEqual(obligations[0]["period_end"], "2026-09-30")
+        self.assertEqual(obligations[0]["due_date"], "2026-10-20")
+
+    def test_quarterly_tax_obligation_becomes_settled_after_linked_payment(self):
+        profile = AccountTaxProfile.objects.create(
+            account=self.ip_account,
+            entity_type=AccountTaxProfile.EntityType.ENTREPRENEUR,
+            template_code=AccountTaxProfile.TemplateCode.KG_IP_SIMPLIFIED_4,
+            calculation_source=AccountTaxProfile.CalculationSource.MANUAL,
+            reporting_period=AccountTaxProfile.ReportingPeriod.QUARTERLY,
+            due_day=20,
+            tax_rate=Decimal("4.0000"),
+            social_fund_rate=Decimal("0.0000"),
+            manual_tax_base=Decimal("40000.00"),
+            manual_tax_amount=Decimal("1600.00"),
+        )
+
+        snapshot = build_tax_obligations(user=self.user, today=date.fromisoformat("2026-06-05"))[0]
+        Transaction.objects.create(
+            owner=self.user,
+            account=self.ip_account,
+            category=None,
+            type=Transaction.TransactionType.EXPENSE,
+            status=Transaction.TransactionStatus.CLEARED,
+            amount=Decimal("1600.00"),
+            title="Tax payment",
+            occurred_on="2026-06-20",
+            external_reference=f"tax-obligation:{self.ip_account.id}:{snapshot['period_start']}:{snapshot['period_end']}:manualgroup:tax",
+        )
+
+        obligations = build_tax_obligations(user=self.user, today=date.fromisoformat("2026-06-05"))
+
+        self.assertEqual(profile.account_id, self.ip_account.id)
+        self.assertEqual(obligations[0]["payment_status"], "cleared")
+        self.assertEqual(obligations[0]["settled_components"], ["tax"])
+        self.assertFalse(obligations[0]["can_create_payment"])
+
+    def test_create_tax_transactions_binds_payment_to_selected_quarter(self):
+        AccountTaxProfile.objects.create(
+            account=self.ip_account,
+            entity_type=AccountTaxProfile.EntityType.ENTREPRENEUR,
+            template_code=AccountTaxProfile.TemplateCode.KG_IP_SIMPLIFIED_4,
+            calculation_source=AccountTaxProfile.CalculationSource.MANUAL,
+            reporting_period=AccountTaxProfile.ReportingPeriod.QUARTERLY,
+            due_day=20,
+            tax_rate=Decimal("4.0000"),
+            social_fund_rate=Decimal("0.0000"),
+            manual_tax_base=Decimal("40000.00"),
+            manual_tax_amount=Decimal("1600.00"),
+        )
+
+        response = self.client.post(
+            reverse("api:finance-account-create-tax-transactions", args=[self.ip_account.id]),
+            {
+                "source_account": self.ip_account.id,
+                "mode": "tax",
+                "status": "cleared",
+                "occurred_on": "2026-07-10",
+                "obligation_period_start": "2026-04-01",
+                "obligation_period_end": "2026-06-30",
+                "tax_category": self.tax_category.id,
+                "tax_title": "Tax payment",
+                "tax_merchant": "Tax Authority",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data["obligation"]["period_start"], "2026-04-01")
+        self.assertEqual(response.data["obligation"]["period_end"], "2026-06-30")
+        self.assertEqual(response.data["obligation"]["due_date"], "2026-07-20")
+        self.assertEqual(len(response.data["transactions"]), 1)
+        self.assertIn(
+            "tax-obligation:"
+            f"{self.ip_account.id}:2026-04-01:2026-06-30:",
+            response.data["transactions"][0]["external_reference"],
+        )
 
 
 class DepositAccountTestCase(TestCase):
@@ -560,6 +786,20 @@ class DepositAccountTestCase(TestCase):
         account = Account.objects.get(pk=response.data["id"])
         self.assertEqual(account.current_balance, Decimal("100000.00"))
         self.assertTrue(AccountDepositProfile.objects.filter(account=account, annual_interest_rate="12.0000").exists())
+
+    def test_updating_opening_balance_shifts_current_balance_by_delta(self):
+        response = self.client.patch(
+            reverse("api:finance-account-detail", args=[self.cash_account.id]),
+            {
+                "opening_balance": "50000.00",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.cash_account.refresh_from_db()
+        self.assertEqual(self.cash_account.opening_balance, Decimal("50000.00"))
+        self.assertEqual(self.cash_account.current_balance, Decimal("50000.00"))
 
     def test_deposit_snapshot_recalculates_interest_after_top_up(self):
         deposit_account = Account.objects.create(
@@ -943,3 +1183,120 @@ class CryptoAPITestCase(TestCase):
         )
 
         self.assertEqual(response.status_code, 400)
+
+    @patch("backend.app.views.fetch_crypto_market_snapshot")
+    def test_market_snapshot_falls_back_to_okx_when_binance_errors(self, fetch_snapshot_mock):
+        fetch_snapshot_mock.side_effect = [
+            CryptoMarketDataError("Binance request failed: 451 Client Error"),
+            CryptoMarketSnapshot(
+                provider=CRYPTO_MARKET_PROVIDER_OKX,
+                assets=[
+                    {
+                        "symbol": "BTC",
+                        "name": "Bitcoin",
+                        "price": "65000.00000000",
+                        "price_change_24h": "1.25",
+                        "quote_currency": "USDT",
+                        "provider": CRYPTO_MARKET_PROVIDER_OKX,
+                        "last_updated": timezone.now().isoformat(),
+                    }
+                ],
+                fetched_at=timezone.now().isoformat(),
+            ),
+        ]
+
+        response = self.client.get(reverse("api:finance-market-snapshot"), {"provider": "binance"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["provider"], CRYPTO_MARKET_PROVIDER_OKX)
+        self.assertEqual(len(response.data["crypto_assets"]), 1)
+        self.assertIn("Binance unavailable", response.data["provider_error"])
+        self.assertEqual(fetch_snapshot_mock.call_args_list[0].args[0], CRYPTO_MARKET_PROVIDER_BINANCE)
+        self.assertEqual(fetch_snapshot_mock.call_args_list[1].args[0], CRYPTO_MARKET_PROVIDER_OKX)
+
+    @patch("backend.app.views.fetch_crypto_market_snapshot")
+    def test_market_snapshot_falls_back_to_okx_when_binance_returns_no_assets(self, fetch_snapshot_mock):
+        fetch_snapshot_mock.side_effect = [
+            CryptoMarketSnapshot(
+                provider=CRYPTO_MARKET_PROVIDER_BINANCE,
+                assets=[],
+                fetched_at=timezone.now().isoformat(),
+            ),
+            CryptoMarketSnapshot(
+                provider=CRYPTO_MARKET_PROVIDER_OKX,
+                assets=[
+                    {
+                        "symbol": "ETH",
+                        "name": "Ethereum",
+                        "price": "3200.00000000",
+                        "price_change_24h": "0.75",
+                        "quote_currency": "USDT",
+                        "provider": CRYPTO_MARKET_PROVIDER_OKX,
+                        "last_updated": timezone.now().isoformat(),
+                    }
+                ],
+                fetched_at=timezone.now().isoformat(),
+            ),
+        ]
+
+        response = self.client.get(reverse("api:finance-market-snapshot"), {"provider": "binance"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["provider"], CRYPTO_MARKET_PROVIDER_OKX)
+        self.assertEqual(len(response.data["crypto_assets"]), 1)
+        self.assertIn("switched to OKX", response.data["provider_error"])
+
+    @patch("backend.app.views.sync_fx_kg_reference_data")
+    def test_exchange_rates_list_triggers_sync_when_rates_missing(self, sync_rates_mock):
+        ExchangeRate.objects.all().delete()
+
+        def seed_rates():
+            ExchangeRate.objects.create(
+                base_currency=self.usd,
+                quote_currency=Currency.objects.create(code="KGS", name="Kyrgyzstani som", symbol="сом"),
+                rate=Decimal("87.5000"),
+                rate_date=date.fromisoformat("2026-06-07"),
+                source=FX_KG_SOURCE,
+                is_active=True,
+            )
+            return Mock()
+
+        sync_rates_mock.side_effect = seed_rates
+
+        response = self.client.get(reverse("api:finance-exchange-rate-list"), {"quote_currency": "KGS"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["base_currency"]["code"], "USD")
+        sync_rates_mock.assert_called_once()
+
+    @patch("backend.app.views.fetch_crypto_market_snapshot")
+    @patch("backend.app.views.sync_fx_kg_reference_data")
+    def test_market_snapshot_triggers_fx_sync_when_fiat_rates_missing(self, sync_rates_mock, fetch_snapshot_mock):
+        ExchangeRate.objects.all().delete()
+        kgs = Currency.objects.create(code="KGS", name="Kyrgyzstani som", symbol="сом")
+
+        def seed_rates():
+            ExchangeRate.objects.create(
+                base_currency=self.usd,
+                quote_currency=kgs,
+                rate=Decimal("87.5000"),
+                rate_date=date.fromisoformat("2026-06-07"),
+                source=FX_KG_SOURCE,
+                is_active=True,
+            )
+            return Mock()
+
+        sync_rates_mock.side_effect = seed_rates
+        fetch_snapshot_mock.return_value = CryptoMarketSnapshot(
+            provider=CRYPTO_MARKET_PROVIDER_BINANCE,
+            assets=[],
+            fetched_at=timezone.now().isoformat(),
+        )
+
+        response = self.client.get(reverse("api:finance-market-snapshot"), {"provider": "binance", "quote_currency": "KGS"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data["fiat_rates"]), 1)
+        self.assertEqual(response.data["fiat_rates"][0]["base_currency"]["code"], "USD")
+        sync_rates_mock.assert_called_once()

@@ -27,7 +27,7 @@ SECTION_DEFINITIONS: list[SectionDefinition] = [
         "name": "Счета и операции",
         "app_label": "operations",
         "matches": {
-            "app": {"Account", "Transaction"},
+            "app": {"Account", "Transaction", "TransactionTemplate"},
             "common": {"FinancialAccount", "Transaction"},
         },
     },

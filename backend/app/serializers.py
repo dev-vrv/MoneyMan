@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 from uuid import uuid4
 
@@ -25,12 +25,15 @@ from .models import (
     ExchangeRate,
     Notification,
     Transaction,
+    TransactionTemplate,
 )
 from .services import (
     build_tax_obligation_snapshot,
     calculate_deposit_snapshot,
     category_queryset_for_user,
     create_transaction,
+    get_next_period_start,
+    get_period_start,
     refresh_budget_spent_amount,
     update_transaction,
 )
@@ -349,7 +352,14 @@ class AccountSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         deposit_profile_payload = self.initial_data.get("deposit_profile")
         tax_profile_payload = self.initial_data.get("tax_profile")
+        opening_balance = validated_data.get("opening_balance")
+        opening_balance_delta = None
+        if opening_balance is not None:
+            opening_balance_delta = opening_balance - instance.opening_balance
         instance = super().update(instance, validated_data)
+        if opening_balance_delta is not None and opening_balance_delta != Decimal("0.00"):
+            instance.current_balance += opening_balance_delta
+            instance.save(update_fields=["current_balance", "updated_at"])
         if instance.kind == Account.AccountKind.DEPOSIT:
             if deposit_profile_payload is not None:
                 self._upsert_deposit_profile(account=instance, payload=deposit_profile_payload)
@@ -417,6 +427,9 @@ class AccountSerializer(serializers.ModelSerializer):
             "auto_renewal": deposit_profile.auto_renewal,
             "allow_top_up": deposit_profile.allow_top_up,
             "allow_partial_withdrawal": deposit_profile.allow_partial_withdrawal,
+            "recurring_contribution_amount": f"{deposit_profile.recurring_contribution_amount:.2f}",
+            "recurring_contribution_frequency": deposit_profile.recurring_contribution_frequency,
+            "recurring_contribution_day": deposit_profile.recurring_contribution_day,
             "minimum_balance": f"{deposit_profile.minimum_balance:.2f}",
             "note": deposit_profile.note,
             "is_active": deposit_profile.is_active,
@@ -446,6 +459,7 @@ class AccountSerializer(serializers.ModelSerializer):
 
         annual_interest_rate = Decimal(str(payload.get("annual_interest_rate", "0")))
         minimum_balance = Decimal(str(payload.get("minimum_balance", "0")))
+        recurring_contribution_amount = Decimal(str(payload.get("recurring_contribution_amount", "0")))
         term_start_date = self._parse_profile_date(
             payload.get("term_start_date"),
             field_name="term_start_date",
@@ -479,6 +493,12 @@ class AccountSerializer(serializers.ModelSerializer):
                 "auto_renewal": bool(payload.get("auto_renewal", False)),
                 "allow_top_up": bool(payload.get("allow_top_up", True)),
                 "allow_partial_withdrawal": bool(payload.get("allow_partial_withdrawal", False)),
+                "recurring_contribution_amount": recurring_contribution_amount,
+                "recurring_contribution_frequency": payload.get(
+                    "recurring_contribution_frequency",
+                    AccountDepositProfile.RecurringContributionFrequency.NONE,
+                ),
+                "recurring_contribution_day": int(payload.get("recurring_contribution_day", 1) or 1),
                 "minimum_balance": minimum_balance,
                 "note": payload.get("note", ""),
                 "is_active": bool(payload.get("is_active", True)),
@@ -624,9 +644,11 @@ class TaxObligationTransactionCreateSerializer(serializers.Serializer):
             Transaction.TransactionStatus.PENDING,
             Transaction.TransactionStatus.CLEARED,
         ],
-        default=Transaction.TransactionStatus.PENDING,
+        default=Transaction.TransactionStatus.CLEARED,
     )
     occurred_on = serializers.DateField(default=timezone.localdate)
+    obligation_period_start = serializers.DateField()
+    obligation_period_end = serializers.DateField()
     tax_category = serializers.PrimaryKeyRelatedField(
         queryset=Category.objects.none(),
         allow_null=True,
@@ -639,6 +661,8 @@ class TaxObligationTransactionCreateSerializer(serializers.Serializer):
     )
     tax_title = serializers.CharField(required=False, allow_blank=True, max_length=160)
     social_fund_title = serializers.CharField(required=False, allow_blank=True, max_length=160)
+    tax_merchant = serializers.CharField(required=False, allow_blank=True, max_length=128)
+    social_fund_merchant = serializers.CharField(required=False, allow_blank=True, max_length=128)
     description = serializers.CharField(required=False, allow_blank=True)
 
     def __init__(self, *args, **kwargs):
@@ -653,6 +677,24 @@ class TaxObligationTransactionCreateSerializer(serializers.Serializer):
     def validate(self, attrs):
         attrs = super().validate(attrs)
         mode = attrs["mode"]
+        account: Account = self.context["account"]
+        profile = getattr(account, "tax_profile", None)
+        if profile is None or not profile.is_active:
+            raise serializers.ValidationError({"account": "Active tax profile is required for this account."})
+
+        reporting_period = profile.reporting_period
+        if account.kind in {Account.AccountKind.ENTREPRENEUR, Account.AccountKind.COMPANY}:
+            reporting_period = AccountTaxProfile.ReportingPeriod.QUARTERLY
+
+        period_start = attrs["obligation_period_start"]
+        period_end = attrs["obligation_period_end"]
+        if get_period_start(period_start, reporting_period) != period_start:
+            raise serializers.ValidationError({"obligation_period_start": "Invalid obligation period start."})
+
+        expected_period_end = get_next_period_start(period_start, reporting_period) - timedelta(days=1)
+        if period_end != expected_period_end:
+            raise serializers.ValidationError({"obligation_period_end": "Invalid obligation period end."})
+
         if mode in {self.ComponentMode.TAX, self.ComponentMode.BOTH} and not attrs.get("tax_category"):
             raise serializers.ValidationError({"tax_category": "Tax category is required."})
         if mode in {self.ComponentMode.SOCIAL_FUND, self.ComponentMode.BOTH} and not attrs.get("social_fund_category"):
@@ -666,8 +708,14 @@ class TaxObligationTransactionCreateSerializer(serializers.Serializer):
         if profile is None or not profile.is_active:
             raise serializers.ValidationError({"account": "Active tax profile is required for this account."})
 
-        obligation_snapshot = build_tax_obligation_snapshot(user=user, account=account, profile=profile)
-        component_payloads: list[tuple[str, Decimal, Category | None, str]] = []
+        obligation_snapshot = build_tax_obligation_snapshot(
+            user=user,
+            account=account,
+            profile=profile,
+            today=self.validated_data["occurred_on"],
+            period_start_override=self.validated_data["obligation_period_start"],
+        )
+        component_payloads: list[tuple[str, Decimal, Category | None, str, str]] = []
         mode = self.validated_data["mode"]
 
         if mode in {self.ComponentMode.TAX, self.ComponentMode.BOTH}:
@@ -677,6 +725,7 @@ class TaxObligationTransactionCreateSerializer(serializers.Serializer):
                     Decimal(obligation_snapshot["tax_amount"]),
                     self.validated_data.get("tax_category"),
                     self.validated_data.get("tax_title") or "Tax payment",
+                    self.validated_data.get("tax_merchant") or "Tax Authority",
                 )
             )
         if mode in {self.ComponentMode.SOCIAL_FUND, self.ComponentMode.BOTH}:
@@ -686,6 +735,7 @@ class TaxObligationTransactionCreateSerializer(serializers.Serializer):
                     Decimal(obligation_snapshot["social_fund_amount"]),
                     self.validated_data.get("social_fund_category"),
                     self.validated_data.get("social_fund_title") or "Social fund payment",
+                    self.validated_data.get("social_fund_merchant") or "Social Fund",
                 )
             )
 
@@ -695,7 +745,7 @@ class TaxObligationTransactionCreateSerializer(serializers.Serializer):
         base_description = self.validated_data.get("description", "").strip()
         created_transactions: list[Transaction] = []
 
-        for component, amount, category, title in component_payloads:
+        for component, amount, category, title, merchant in component_payloads:
             if amount <= Decimal("0.00") or category is None:
                 continue
 
@@ -704,7 +754,6 @@ class TaxObligationTransactionCreateSerializer(serializers.Serializer):
                 f"Period: {obligation_snapshot['period_start']} - {obligation_snapshot['period_end']}."
             )
             description = base_description or auto_description
-            merchant = "Social Fund" if component == self.ComponentMode.SOCIAL_FUND else "Tax Authority"
 
             created_transactions.append(
                 create_transaction(
@@ -979,6 +1028,13 @@ class TransactionSerializer(serializers.ModelSerializer):
         required=False,
         allow_null=True,
     )
+    template_id = serializers.PrimaryKeyRelatedField(
+        source="template",
+        queryset=TransactionTemplate.objects.none(),
+        required=False,
+        allow_null=True,
+        write_only=True,
+    )
     currency = serializers.SerializerMethodField()
     account_name = serializers.CharField(source="account.name", read_only=True)
     destination_account_name = serializers.CharField(source="destination_account.name", read_only=True)
@@ -991,6 +1047,7 @@ class TransactionSerializer(serializers.ModelSerializer):
             "account",
             "destination_account",
             "category",
+            "template_id",
             "type",
             "status",
             "amount",
@@ -998,7 +1055,6 @@ class TransactionSerializer(serializers.ModelSerializer):
             "exchange_rate",
             "title",
             "merchant",
-            "counterparty",
             "description",
             "occurred_on",
             "posted_at",
@@ -1021,6 +1077,7 @@ class TransactionSerializer(serializers.ModelSerializer):
             self.fields["account"].queryset = Account.objects.filter(owner=request.user)
             self.fields["destination_account"].queryset = Account.objects.filter(owner=request.user)
             self.fields["category"].queryset = category_queryset_for_user(request.user)
+            self.fields["template_id"].queryset = TransactionTemplate.objects.filter(owner=request.user)
 
     def get_currency(self, obj):
         return obj.account.currency_id
@@ -1089,7 +1146,12 @@ class TransactionSerializer(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data):
-        return create_transaction(user=self.context["request"].user, validated_data=validated_data)
+        template = validated_data.pop("template", None)
+        transaction_obj = create_transaction(user=self.context["request"].user, validated_data=validated_data)
+        if template:
+            template.last_used_at = timezone.now()
+            template.save(update_fields=("last_used_at", "updated_at"))
+        return transaction_obj
 
     def update(self, instance, validated_data):
         return update_transaction(transaction_obj=instance, validated_data=validated_data)
@@ -1133,25 +1195,160 @@ class TransactionSerializer(serializers.ModelSerializer):
             )
 
 
+class TransactionTemplateSerializer(serializers.ModelSerializer):
+    account = serializers.PrimaryKeyRelatedField(queryset=Account.objects.none())
+    destination_account = serializers.PrimaryKeyRelatedField(
+        queryset=Account.objects.none(),
+        required=False,
+        allow_null=True,
+    )
+    category = serializers.PrimaryKeyRelatedField(
+        queryset=Category.objects.none(),
+        required=False,
+        allow_null=True,
+    )
+    account_name = serializers.CharField(source="account.name", read_only=True)
+    destination_account_name = serializers.CharField(source="destination_account.name", read_only=True)
+    category_name = serializers.SerializerMethodField()
+    currency = serializers.CharField(source="account.currency_id", read_only=True)
+
+    class Meta:
+        model = TransactionTemplate
+        fields = (
+            "id",
+            "name",
+            "account",
+            "account_name",
+            "destination_account",
+            "destination_account_name",
+            "category",
+            "category_name",
+            "currency",
+            "type",
+            "status",
+            "amount",
+            "destination_amount",
+            "exchange_rate",
+            "title",
+            "merchant",
+            "description",
+            "icon",
+            "color",
+            "sort_order",
+            "is_active",
+            "last_used_at",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = ("last_used_at",)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get("request")
+        if request:
+            self.fields["account"].queryset = Account.objects.filter(owner=request.user)
+            self.fields["destination_account"].queryset = Account.objects.filter(owner=request.user)
+            self.fields["category"].queryset = category_queryset_for_user(request.user)
+
+    def get_category_name(self, obj):
+        if not obj.category:
+            return None
+        return obj.category.get_localized_name(get_request_locale(self.context.get("request")))
+
+    def validate(self, attrs):
+        request = self.context["request"]
+        template_type = attrs.get("type", getattr(self.instance, "type", None))
+        account = attrs.get("account", getattr(self.instance, "account", None))
+        destination_account = attrs.get("destination_account", getattr(self.instance, "destination_account", None))
+        category = attrs.get("category", getattr(self.instance, "category", None))
+        amount = attrs.get("amount", getattr(self.instance, "amount", None))
+        destination_amount = attrs.get("destination_amount", getattr(self.instance, "destination_amount", None))
+        exchange_rate = attrs.get("exchange_rate", getattr(self.instance, "exchange_rate", None))
+        name = attrs.get("name", getattr(self.instance, "name", "")).strip()
+        title = attrs.get("title", getattr(self.instance, "title", "")).strip()
+        icon = attrs.get("icon", getattr(self.instance, "icon", "")).strip()
+        color = attrs.get("color", getattr(self.instance, "color", "")).strip()
+
+        if not name:
+            raise serializers.ValidationError({"name": "Template name is required."})
+        if not icon:
+            raise serializers.ValidationError({"icon": "Template icon is required."})
+        if not color:
+            raise serializers.ValidationError({"color": "Template color is required."})
+        if not amount:
+            raise serializers.ValidationError({"amount": "Template amount is required."})
+        if not account or account.owner_id != request.user.id:
+            raise serializers.ValidationError({"account": "Account is not available for this user."})
+
+        if category:
+            category_allowed = category.is_system or category.owner_id == request.user.id
+            if not category_allowed:
+                raise serializers.ValidationError({"category": "Category is not available for this user."})
+            if template_type and category.kind != template_type:
+                raise serializers.ValidationError({"category": "Category type must match transaction type."})
+
+        if template_type == Transaction.TransactionType.TRANSFER:
+            if category:
+                raise serializers.ValidationError({"category": "Transfer should not use income or expense category."})
+            if not destination_account:
+                raise serializers.ValidationError({"destination_account": "Transfer requires a destination account."})
+            if destination_account.owner_id != request.user.id:
+                raise serializers.ValidationError({"destination_account": "Destination account is not available for this user."})
+            if destination_account.id == account.id:
+                raise serializers.ValidationError({"destination_account": "Source and destination accounts must differ."})
+            if account.currency_id != destination_account.currency_id and not destination_amount:
+                raise serializers.ValidationError(
+                    {"destination_amount": "Transfer between different currencies requires destination amount."}
+                )
+            if destination_amount and not exchange_rate and amount:
+                attrs["exchange_rate"] = destination_amount / amount
+        else:
+            attrs["destination_account"] = None
+            attrs["destination_amount"] = None
+            attrs["exchange_rate"] = None
+            if not category:
+                raise serializers.ValidationError({"category": "Category is required for income and expense."})
+
+        attrs["name"] = name
+        attrs["title"] = title or name
+        attrs["icon"] = icon
+        attrs["color"] = color
+        return attrs
+
+    def create(self, validated_data):
+        return TransactionTemplate.objects.create(owner=self.context["request"].user, **validated_data)
+
+
 class BudgetSerializer(serializers.ModelSerializer):
-    category = serializers.PrimaryKeyRelatedField(queryset=Category.objects.none())
+    category = serializers.PrimaryKeyRelatedField(queryset=Category.objects.none(), allow_null=True, required=False)
     currency = serializers.SlugRelatedField(slug_field="code", queryset=Currency.objects.filter(is_active=True))
     category_name = serializers.SerializerMethodField()
     currency_name = serializers.CharField(source="currency.name", read_only=True)
     utilization_percent = serializers.SerializerMethodField()
+    target_account = serializers.PrimaryKeyRelatedField(
+        queryset=Account.objects.none(),
+        allow_null=True,
+        required=False,
+    )
+    target_account_name = serializers.CharField(source="target_account.name", read_only=True)
 
     class Meta:
         model = Budget
         fields = (
             "id",
+            "kind",
+            "name",
             "category",
             "category_name",
             "currency",
             "currency_name",
             "period",
             "amount",
+            "target_amount",
             "spent_amount",
             "utilization_percent",
+            "target_account",
+            "target_account_name",
             "start_date",
             "end_date",
             "alert_threshold",
@@ -1169,8 +1366,8 @@ class BudgetSerializer(serializers.ModelSerializer):
         if request:
             self.fields["category"].queryset = Category.objects.filter(
                 Q(owner=request.user) | Q(is_system=True),
-                kind=Category.CategoryKind.EXPENSE,
             )
+            self.fields["target_account"].queryset = Account.objects.filter(owner=request.user).order_by("name")
 
     def get_utilization_percent(self, obj):
         if not obj.amount:
@@ -1178,6 +1375,8 @@ class BudgetSerializer(serializers.ModelSerializer):
         return round((obj.spent_amount / obj.amount) * 100, 2)
 
     def get_category_name(self, obj):
+        if not obj.category:
+            return None
         return obj.category.get_localized_name(get_request_locale(self.context.get("request")))
 
     def validate(self, attrs):
@@ -1185,15 +1384,35 @@ class BudgetSerializer(serializers.ModelSerializer):
         end_date = attrs.get("end_date", getattr(self.instance, "end_date", None))
         category = attrs.get("category", getattr(self.instance, "category", None))
         currency = attrs.get("currency", getattr(self.instance, "currency", None))
+        kind = attrs.get("kind", getattr(self.instance, "kind", Budget.BudgetKind.EXPENSE))
+        target_account = attrs.get("target_account", getattr(self.instance, "target_account", None))
+        name = (attrs.get("name", getattr(self.instance, "name", "")) or "").strip()
+        target_amount = attrs.get("target_amount", getattr(self.instance, "target_amount", None))
 
         if start_date and end_date and end_date < start_date:
             raise serializers.ValidationError({"end_date": "End date must be greater than or equal to start date."})
-        if category and category.kind != Category.CategoryKind.EXPENSE:
-            raise serializers.ValidationError({"category": "Budget category must be an expense category."})
         if category and not (category.is_system or category.owner_id == self.context["request"].user.id):
             raise serializers.ValidationError({"category": "Category is not available for this user."})
         if currency and not currency.is_active:
             raise serializers.ValidationError({"currency": "Currency must be active."})
+        if target_account and target_account.owner_id != self.context["request"].user.id:
+            raise serializers.ValidationError({"target_account": "Target account is not available for this user."})
+
+        if kind == Budget.BudgetKind.EXPENSE:
+            if not category:
+                raise serializers.ValidationError({"category": "Expense budget requires a category."})
+            if category.kind != Category.CategoryKind.EXPENSE:
+                raise serializers.ValidationError({"category": "Expense budget category must be an expense category."})
+        else:
+            if not name:
+                raise serializers.ValidationError({"name": "Saving budget or goal requires a name."})
+            if not target_account:
+                raise serializers.ValidationError({"target_account": "Saving budget or goal requires a target account."})
+            if target_account and currency and target_account.currency_id != currency.code:
+                raise serializers.ValidationError({"target_account": "Target account currency must match budget currency."})
+            if kind == Budget.BudgetKind.GOAL and not target_amount:
+                raise serializers.ValidationError({"target_amount": "Financial goal requires a target amount."})
+
         return attrs
 
     def create(self, validated_data):

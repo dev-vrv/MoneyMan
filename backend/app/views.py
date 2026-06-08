@@ -7,6 +7,14 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from .market_data import (
+    CRYPTO_MARKET_PROVIDER_BINANCE,
+    CRYPTO_MARKET_PROVIDER_OKX,
+    CryptoMarketDataError,
+    fetch_crypto_market_snapshot,
+    normalize_crypto_market_provider,
+)
+from .currency_sync import CurrencySyncError, sync_fx_kg_reference_data
 from .models import (
     Account,
     AccountTaxProfile,
@@ -21,6 +29,7 @@ from .models import (
     Notification,
     NotificationReceipt,
     Transaction,
+    TransactionTemplate,
 )
 from .serializers import (
     AccountSerializer,
@@ -37,15 +46,46 @@ from .serializers import (
     NotificationSerializer,
     TaxObligationTransactionCreateSerializer,
     TransactionSerializer,
+    TransactionTemplateSerializer,
+    get_request_locale,
 )
 from .services import build_dashboard_overview, category_queryset_for_user, delete_transaction
+
+
+def get_active_exchange_rates_queryset(*, quote_currency: str, base_currency: str | None = None):
+    queryset = ExchangeRate.objects.filter(is_active=True, quote_currency_id=quote_currency).select_related(
+        "base_currency", "quote_currency"
+    )
+    if base_currency:
+        queryset = queryset.filter(base_currency_id=base_currency)
+    queryset = queryset.order_by("base_currency__code", "quote_currency__code")
+
+    if queryset.exists():
+        return queryset
+
+    try:
+        sync_fx_kg_reference_data()
+    except CurrencySyncError:
+        return queryset
+
+    refreshed_queryset = ExchangeRate.objects.filter(is_active=True, quote_currency_id=quote_currency).select_related(
+        "base_currency", "quote_currency"
+    )
+    if base_currency:
+        refreshed_queryset = refreshed_queryset.filter(base_currency_id=base_currency)
+    return refreshed_queryset.order_by("base_currency__code", "quote_currency__code")
 
 
 class DashboardOverviewView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
-        return Response(build_dashboard_overview(user=request.user))
+        return Response(
+            build_dashboard_overview(
+                user=request.user,
+                locale=get_request_locale(request),
+            )
+        )
 
 
 class CurrencyViewSet(viewsets.ReadOnlyModelViewSet):
@@ -61,16 +101,54 @@ class ExchangeRateViewSet(viewsets.ReadOnlyModelViewSet):
     pagination_class = None
 
     def get_queryset(self):
-        queryset = ExchangeRate.objects.filter(is_active=True).select_related(
-            "base_currency", "quote_currency"
-        ).order_by("base_currency__code", "quote_currency__code")
         base_currency = self.request.query_params.get("base_currency")
         quote_currency = self.request.query_params.get("quote_currency")
-        if base_currency:
-            queryset = queryset.filter(base_currency_id=base_currency.upper())
-        if quote_currency:
-            queryset = queryset.filter(quote_currency_id=quote_currency.upper())
-        return queryset
+        normalized_quote_currency = quote_currency.upper() if quote_currency else "KGS"
+        normalized_base_currency = base_currency.upper() if base_currency else None
+        return get_active_exchange_rates_queryset(
+            quote_currency=normalized_quote_currency,
+            base_currency=normalized_base_currency,
+        )
+
+
+class MarketSnapshotView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        quote_currency = request.query_params.get("quote_currency", "KGS").upper()
+        fiat_rates = get_active_exchange_rates_queryset(quote_currency=quote_currency)
+        provider = normalize_crypto_market_provider(request.query_params.get("provider"))
+        provider_error = None
+
+        try:
+            crypto_snapshot = fetch_crypto_market_snapshot(provider)
+        except CryptoMarketDataError as exc:
+            crypto_snapshot = None
+            provider_error = str(exc)
+
+        should_fallback_to_okx = provider == CRYPTO_MARKET_PROVIDER_BINANCE and (
+            crypto_snapshot is None or not crypto_snapshot.assets
+        )
+        if should_fallback_to_okx:
+            fallback_reason = provider_error or "Binance returned no market data."
+            try:
+                fallback_snapshot = fetch_crypto_market_snapshot(CRYPTO_MARKET_PROVIDER_OKX)
+            except CryptoMarketDataError:
+                fallback_snapshot = None
+            else:
+                if fallback_snapshot.assets:
+                    crypto_snapshot = fallback_snapshot
+                    provider_error = f"Binance unavailable, switched to {CRYPTO_MARKET_PROVIDER_OKX.upper()}: {fallback_reason}"
+
+        return Response(
+            {
+                "provider": crypto_snapshot.provider if crypto_snapshot else provider,
+                "provider_error": provider_error,
+                "fiat_rates": ExchangeRateSerializer(fiat_rates, many=True).data,
+                "crypto_assets": crypto_snapshot.assets if crypto_snapshot else [],
+                "crypto_updated_at": crypto_snapshot.fetched_at if crypto_snapshot else None,
+            }
+        )
 
 
 class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
@@ -362,6 +440,29 @@ class TransactionViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         delete_transaction(transaction_obj=instance)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class TransactionTemplateViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAuthenticated]
+    serializer_class = TransactionTemplateSerializer
+    pagination_class = None
+
+    def get_queryset(self):
+        queryset = TransactionTemplate.objects.filter(owner=self.request.user).select_related(
+            "account",
+            "destination_account",
+            "category",
+        )
+        active = self.request.query_params.get("active")
+        template_type = self.request.query_params.get("type")
+
+        if active == "true":
+            queryset = queryset.filter(is_active=True)
+        elif active == "false":
+            queryset = queryset.filter(is_active=False)
+        if template_type:
+            queryset = queryset.filter(type=template_type)
+        return queryset.order_by("sort_order", "name")
 
 
 class BudgetViewSet(viewsets.ModelViewSet):

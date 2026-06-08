@@ -5,18 +5,44 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 const FLAG_COUNTRY_BY_CURRENCY: Record<string, string> = {
+  AED: "AE",
+  AMD: "AM",
   AUD: "AU",
+  AZN: "AZ",
+  BGN: "BG",
+  BRL: "BR",
   BYN: "BY",
   CAD: "CA",
   CHF: "CH",
   CNY: "CN",
+  CZK: "CZ",
+  DKK: "DK",
   EUR: "EU",
   GBP: "GB",
+  GEL: "GE",
+  HUF: "HU",
+  INR: "IN",
+  IRR: "IR",
   JPY: "JP",
   KGS: "KG",
+  KRW: "KR",
+  KWD: "KW",
+  MDL: "MD",
+  MNT: "MN",
+  MYR: "MY",
+  NOK: "NO",
+  NZD: "NZ",
+  PKR: "PK",
+  PLN: "PL",
   KZT: "KZ",
   RUB: "RU",
+  SAR: "SA",
+  SEK: "SE",
+  SGD: "SG",
+  TJS: "TJ",
+  TMT: "TM",
   TRY: "TR",
+  TWD: "TW",
   UAH: "UA",
   USD: "US",
   UZS: "UZ",
@@ -38,7 +64,52 @@ function FlagFrame({ children, className }: { children: ReactNode; className?: s
   );
 }
 
-function CountryFlag({ countryCode }: { countryCode: string }) {
+function FallbackCurrencyFlag({ currencyCode }: { currencyCode: string }) {
+  return (
+    <FlagFrame>
+      <defs>
+        <linearGradient id={`flag-fallback-${currencyCode}`} x1="0" y1="0" x2="20" y2="16" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#34d399" />
+          <stop offset="1" stopColor="#0f766e" />
+        </linearGradient>
+      </defs>
+      <rect width="20" height="16" fill={`url(#flag-fallback-${currencyCode})`} />
+      <text
+        x="10"
+        y="10.8"
+        textAnchor="middle"
+        fontSize="5.2"
+        fontWeight="700"
+        letterSpacing="0.2"
+        fill="#04130D"
+      >
+        {currencyCode.slice(0, 2)}
+      </text>
+    </FlagFrame>
+  );
+}
+
+function countryCodeToEmoji(countryCode: string) {
+  return countryCode
+    .toUpperCase()
+    .slice(0, 2)
+    .split("")
+    .map((letter) => String.fromCodePoint(127397 + letter.charCodeAt(0)))
+    .join("");
+}
+
+function EmojiCountryFlag({ countryCode }: { countryCode: string }) {
+  return (
+    <span
+      className="inline-flex h-4 w-5 shrink-0 items-center justify-center overflow-hidden rounded-[0.35rem] border border-white/12 bg-black/10 text-[0.72rem] leading-none shadow-[0_0_0_1px_rgba(255,255,255,0.03)]"
+      aria-hidden="true"
+    >
+      <span className="translate-y-[0.02rem]">{countryCodeToEmoji(countryCode)}</span>
+    </span>
+  );
+}
+
+function CountryFlag({ countryCode, currencyCode }: { countryCode: string; currencyCode: string }) {
   switch (countryCode) {
     case "US":
       return (
@@ -114,18 +185,10 @@ function CountryFlag({ countryCode }: { countryCode: string }) {
         </FlagFrame>
       );
     default:
-      return (
-        <FlagFrame>
-          <defs>
-            <linearGradient id="flag-fallback" x1="0" y1="0" x2="20" y2="16" gradientUnits="userSpaceOnUse">
-              <stop stopColor="#34d399" />
-              <stop offset="1" stopColor="#0f766e" />
-            </linearGradient>
-          </defs>
-          <rect width="20" height="16" fill="url(#flag-fallback)" />
-          <path d="M5 11.5 8.3 4.5h1.6l3.3 7h-1.7l-.7-1.6H7l-.7 1.6Zm2.6-2.9h2.8L9 5.8Z" fill="#04130D" />
-        </FlagFrame>
-      );
+      if (countryCode.length === 2) {
+        return <EmojiCountryFlag countryCode={countryCode} />;
+      }
+      return <FallbackCurrencyFlag currencyCode={currencyCode} />;
   }
 }
 
@@ -136,11 +199,12 @@ export function CurrencyFlag({
   currencyCode: string;
   className?: string;
 }) {
-  const countryCode = FLAG_COUNTRY_BY_CURRENCY[currencyCode.toUpperCase()] ?? "";
+  const normalizedCurrencyCode = currencyCode.toUpperCase();
+  const countryCode = FLAG_COUNTRY_BY_CURRENCY[normalizedCurrencyCode] ?? "";
 
   return (
     <span className={className}>
-      <CountryFlag countryCode={countryCode} />
+      <CountryFlag countryCode={countryCode} currencyCode={normalizedCurrencyCode} />
     </span>
   );
 }

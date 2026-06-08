@@ -44,16 +44,24 @@ export function middleware(request: NextRequest) {
 
   if (hasLocale) {
     const locale = pathname.split("/")[1];
-    const response = NextResponse.next();
 
     if (isLocale(locale)) {
+      const response = NextResponse.next();
       response.cookies.set(localeCookieName, locale);
+      return response;
     }
-
-    return response;
   }
 
   const locale = detectLocale(request);
+  if (locale === defaultLocale) {
+    const url = request.nextUrl.clone();
+    url.pathname = `/${locale}${pathname}`;
+
+    const response = pathname === "/" ? NextResponse.rewrite(url) : NextResponse.redirect(url);
+    response.cookies.set(localeCookieName, locale);
+    return response;
+  }
+
   const url = request.nextUrl.clone();
   url.pathname = `/${locale}${pathname}`;
 

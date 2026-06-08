@@ -8,6 +8,7 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from app.services import build_workspace_overview as build_finance_workspace_overview
+from app.serializers import get_request_locale
 
 from .serializers import (
     LoginSerializer,
@@ -95,4 +96,9 @@ class CurrentUserView(APIView):
 class WorkspaceOverviewView(APIView):
     def get(self, request, *args, **kwargs):
         ensure_user_bootstrap(request.user)
-        return Response(build_finance_workspace_overview(user=request.user))
+        return Response(
+            build_finance_workspace_overview(
+                user=request.user,
+                locale=get_request_locale(request),
+            )
+        )

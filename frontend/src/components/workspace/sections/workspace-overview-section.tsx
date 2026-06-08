@@ -1,20 +1,22 @@
 "use client";
 
-import { RiAddLine, RiBarChartBoxLine, RiBookletLine, RiCalendarLine, RiExchangeDollarLine } from "react-icons/ri";
+import { useState } from "react";
+import { RiAddLine, RiBarChartBoxLine, RiBookletLine, RiCalendarLine, RiExchangeDollarLine, RiPencilLine } from "react-icons/ri";
 
+import { AccountDetailsDialog } from "@/components/workspace/account-details-dialog";
+import { BudgetUtilizationBar } from "@/components/workspace/budget-utilization-bar";
 import type { UiCopy } from "@/components/workspace/finance-workspace.types";
 import { AccountCard, PriorityPill } from "@/components/workspace/finance-workspace-ui";
 import {
   formatDate,
   formatMoney,
+  transactionStatusLabel,
   transactionDisplayTitle,
   transactionSignedValue,
-  transactionStatusLabel,
 } from "@/components/workspace/finance-workspace.utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress, ProgressLabel } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { AccountRecord, BudgetRecord, TransactionRecord } from "@/lib/api/finance";
 import type { Dictionary } from "@/lib/i18n/dictionaries";
@@ -30,6 +32,7 @@ type WorkspaceOverviewSectionProps = {
   customCategoriesCount: number;
   onOpenQuickExpenseDialog: () => void;
   onOpenBudgetDialog: () => void;
+  onOpenTransactionEditDialog: (transaction: TransactionRecord) => void;
   onOpenTransactionsSection: () => void;
   onOpenBudgetsSection: () => void;
   onOpenSettingsSection: () => void;
@@ -46,10 +49,13 @@ export function WorkspaceOverviewSection({
   customCategoriesCount,
   onOpenQuickExpenseDialog,
   onOpenBudgetDialog,
+  onOpenTransactionEditDialog,
   onOpenTransactionsSection,
   onOpenBudgetsSection,
   onOpenSettingsSection,
 }: WorkspaceOverviewSectionProps) {
+  const [activeAccount, setActiveAccount] = useState<AccountRecord | null>(null);
+
   return (
     <>
       <Card className="surface-panel rounded-[2rem] border-white/8 bg-white/[0.04] py-0">
@@ -135,9 +141,9 @@ export function WorkspaceOverviewSection({
             <CardTitle className="text-white">{content.sections.accounts}</CardTitle>
             <CardDescription className="text-zinc-400">{content.sections.accountsDescription}</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3 p-6 pt-0">
-            {accounts.slice(0, 4).map((account) => (
-              <AccountCard key={account.id} account={account} ui={ui} />
+          <CardContent className="max-h-[34rem] space-y-3 overflow-y-auto p-6 pt-0 pr-4">
+            {accounts.map((account) => (
+              <AccountCard key={account.id} account={account} ui={ui} onOpen={(nextAccount) => setActiveAccount(nextAccount)} />
             ))}
           </CardContent>
         </Card>
@@ -152,7 +158,7 @@ export function WorkspaceOverviewSection({
               <div key={budget.id} className="rounded-[1.5rem] border border-white/8 bg-black/18 px-4 py-4">
                 <div className="mb-3 flex items-center justify-between gap-4">
                   <div>
-                    <p className="text-base font-medium text-white">{budget.category_name}</p>
+                    <p className="text-base font-medium text-white">{budget.name || budget.category_name || ui.budgetKindGoal}</p>
                     <p className="text-sm text-zinc-500">
                       {formatMoney(budget.spent_amount, budget.currency)} / {formatMoney(budget.amount, budget.currency)}
                     </p>
@@ -161,17 +167,22 @@ export function WorkspaceOverviewSection({
                     {Math.round(budget.utilization_percent)}%
                   </Badge>
                 </div>
-                <Progress value={budget.utilization_percent} className="gap-2">
-                  <ProgressLabel className="text-xs uppercase tracking-[0.18em] text-zinc-500">
-                    {content.labels.utilization}
-                  </ProgressLabel>
-                  <div className="ml-auto text-xs text-zinc-400">
-                    {content.remaining.replace(
-                      "{value}",
-                      formatMoney(String(Math.max(Number(budget.amount) - Number(budget.spent_amount), 0)), budget.currency),
-                    )}
-                  </div>
-                </Progress>
+                <BudgetUtilizationBar
+                  utilizationPercent={budget.utilization_percent}
+                  label={
+                    <div className="text-xs uppercase tracking-[0.18em] text-zinc-500">
+                      {content.labels.utilization}
+                    </div>
+                  }
+                  valueLabel={
+                    <div className="text-xs text-zinc-400">
+                      {content.remaining.replace(
+                        "{value}",
+                        formatMoney(String(Math.max(Number(budget.amount) - Number(budget.spent_amount), 0)), budget.currency),
+                      )}
+                    </div>
+                  }
+                />
               </div>
             ))}
           </CardContent>
@@ -199,7 +210,11 @@ export function WorkspaceOverviewSection({
                 const signedValue = transactionSignedValue(transaction);
 
                 return (
-                  <TableRow key={transaction.id} className="border-white/8 hover:bg-white/[0.03]">
+                  <TableRow
+                    key={transaction.id}
+                    className="group cursor-pointer border-white/8 hover:bg-white/[0.03]"
+                    onClick={() => onOpenTransactionEditDialog(transaction)}
+                  >
                     <TableCell>
                       <div>
                         <div className="font-medium text-white">{transactionDisplayTitle(transaction, ui)}</div>
@@ -209,8 +224,13 @@ export function WorkspaceOverviewSection({
                     <TableCell>{transaction.account_name}</TableCell>
                     <TableCell>{transaction.category_name || ui.transferLabel}</TableCell>
                     <TableCell>{formatDate(transaction.occurred_on)}</TableCell>
-                    <TableCell className={`text-right font-medium ${signedValue.startsWith("-") ? "text-rose-300" : "text-emerald-300"}`}>
-                      {formatMoney(signedValue, transaction.currency)}
+                    <TableCell className="text-right">
+                      <div className="inline-flex items-center justify-end gap-3">
+                        <span className={`font-medium ${signedValue.startsWith("-") ? "text-rose-300" : "text-emerald-300"}`}>
+                          {formatMoney(signedValue, transaction.currency)}
+                        </span>
+                        <RiPencilLine className="size-4 text-zinc-500 transition group-hover:text-zinc-200" />
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
@@ -219,6 +239,13 @@ export function WorkspaceOverviewSection({
           </Table>
         </CardContent>
       </Card>
+
+      <AccountDetailsDialog
+        account={activeAccount}
+        transactions={transactions}
+        ui={ui}
+        onClose={() => setActiveAccount(null)}
+      />
     </>
   );
 }

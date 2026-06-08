@@ -20,8 +20,8 @@ from .models import (
     Notification,
     NotificationReceipt,
     Transaction,
+    TransactionTemplate,
 )
-from .services import ensure_default_crypto_reference_data
 
 
 @admin.register(Currency)
@@ -157,38 +157,6 @@ class CryptoAssetAdmin(admin.ModelAdmin):
     search_fields = ("symbol", "name", "slug", "coingecko_id", "owner__email")
     autocomplete_fields = ("owner",)
     ordering = ("symbol",)
-    change_list_template = "admin/app/cryptoasset/change_list.html"
-
-    def get_urls(self):
-        urls = super().get_urls()
-        custom_urls = [
-            path(
-                "seed-reference/",
-                self.admin_site.admin_view(self.seed_reference_view),
-                name="app_cryptoasset_seed_reference",
-            ),
-        ]
-        return custom_urls + urls
-
-    def changelist_view(self, request, extra_context=None):
-        extra_context = extra_context or {}
-        extra_context["seed_crypto_reference_url"] = reverse("admin:app_cryptoasset_seed_reference")
-        return super().changelist_view(request, extra_context=extra_context)
-
-    def seed_reference_view(self, request: HttpRequest):
-        if not self.has_change_permission(request):
-            raise PermissionDenied
-
-        result = ensure_default_crypto_reference_data()
-        self.message_user(
-            request,
-            (
-                f"Crypto reference sync completed. Networks: {result.networks_synced}, "
-                f"assets: {result.assets_synced}, links: {result.links_synced}."
-            ),
-            level=messages.SUCCESS,
-        )
-        return HttpResponseRedirect(reverse("admin:app_cryptoasset_changelist"))
 
 
 @admin.register(CryptoAssetNetwork)
@@ -262,13 +230,31 @@ class TransactionAdmin(admin.ModelAdmin):
     search_fields = (
         "title",
         "merchant",
-        "counterparty",
         "owner__email",
         "external_reference",
         "idempotency_key",
     )
     autocomplete_fields = ("owner", "account", "destination_account", "category")
     ordering = ("-occurred_on", "-created_at")
+
+
+@admin.register(TransactionTemplate)
+class TransactionTemplateAdmin(admin.ModelAdmin):
+    list_display = (
+        "name",
+        "owner",
+        "type",
+        "status",
+        "account",
+        "destination_account",
+        "amount",
+        "is_active",
+        "last_used_at",
+    )
+    list_filter = ("type", "status", "is_active", "account__currency")
+    search_fields = ("name", "title", "merchant", "owner__email")
+    autocomplete_fields = ("owner", "account", "destination_account", "category")
+    ordering = ("sort_order", "name")
 
 
 @admin.register(Notification)

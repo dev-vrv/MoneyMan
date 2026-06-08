@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     "users",
     "backend.common",
     "app",
+    "subscribes",
 ]
 
 MIDDLEWARE = [

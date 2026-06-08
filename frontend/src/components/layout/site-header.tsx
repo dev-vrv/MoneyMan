@@ -1,10 +1,10 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   RiArrowDownSLine,
-  RiFundsBoxLine,
   RiGlobalLine,
   RiInformationLine,
   RiLoginCircleLine,
@@ -23,7 +23,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useLocalePreference } from "@/lib/i18n/client";
-import { Locale, locales, getLocalizedPath, replacePathLocale } from "@/lib/i18n/config";
+import { Locale, defaultLocale, locales, getLocalizedPath, replacePathLocale } from "@/lib/i18n/config";
 import type { Dictionary } from "@/lib/i18n/dictionaries";
 
 type SiteHeaderProps = {
@@ -36,17 +36,26 @@ export function SiteHeader({ locale, messages }: SiteHeaderProps) {
   const router = useRouter();
   const { isAuthenticated } = useAuth();
   const setLocalePreference = useLocalePreference();
+  const hasExplicitDefaultLocalePrefix = locale === defaultLocale && (pathname === `/${defaultLocale}` || pathname.startsWith(`/${defaultLocale}/`));
+  const buildHref = (path: string) => {
+    if (hasExplicitDefaultLocalePrefix) {
+      const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+      return `/${defaultLocale}${normalizedPath === "/" ? "" : normalizedPath}`;
+    }
+
+    return getLocalizedPath(locale, path);
+  };
 
   const navItems = [
-    { label: messages.navigation.pricing, href: getLocalizedPath(locale, "/pricing") },
-    { label: messages.navigation.contacts, href: getLocalizedPath(locale, "/contacts") },
-    { label: messages.navigation.security, href: getLocalizedPath(locale, "/security") },
+    { label: messages.navigation.pricing, href: buildHref("/pricing") },
+    { label: messages.navigation.contacts, href: buildHref("/contacts") },
+    { label: messages.navigation.security, href: buildHref("/security") },
   ];
 
   const infoItems = [
-    { label: messages.infoMenu.about, href: getLocalizedPath(locale, "/about") },
-    { label: messages.infoMenu.faq, href: getLocalizedPath(locale, "/faq") },
-    { label: messages.infoMenu.roadmap, href: getLocalizedPath(locale, "/roadmap") },
+    { label: messages.infoMenu.about, href: buildHref("/about") },
+    { label: messages.infoMenu.faq, href: buildHref("/faq") },
+    { label: messages.infoMenu.roadmap, href: buildHref("/roadmap") },
   ];
 
   return (
@@ -54,11 +63,18 @@ export function SiteHeader({ locale, messages }: SiteHeaderProps) {
       <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 rounded-[2rem] border border-white/8 bg-black/25 px-4 py-3 shadow-[0_18px_60px_rgba(0,0,0,0.22)] backdrop-blur-2xl sm:px-6">
         <div className="flex items-center gap-4 lg:gap-8">
           <Link
-            href={getLocalizedPath(locale, "/")}
+            href={buildHref("/")}
             className="inline-flex items-center gap-3 rounded-full border border-emerald-300/18 bg-emerald-300/10 px-4 py-2 text-sm font-semibold text-emerald-50 transition hover:border-emerald-300/28 hover:bg-emerald-300/14"
           >
-            <span className="flex size-9 items-center justify-center rounded-full border border-emerald-300/20 bg-emerald-300/12 text-emerald-100">
-              <RiFundsBoxLine className="size-4.5" />
+            <span className="flex size-9 items-center justify-center overflow-hidden rounded-full border border-emerald-300/20 bg-white/95">
+              <Image
+                src="/images/logo/fin.png"
+                alt={messages.logo}
+                width={36}
+                height={36}
+                className="size-8 object-contain"
+                priority
+              />
             </span>
             <span className="whitespace-nowrap">{messages.logo}</span>
           </Link>
@@ -167,7 +183,7 @@ export function SiteHeader({ locale, messages }: SiteHeaderProps) {
           </DropdownMenu>
 
           <Link
-            href={getLocalizedPath(locale, isAuthenticated ? "/workspace" : "/auth")}
+            href={buildHref(isAuthenticated ? "/workspace" : "/auth")}
             className="inline-flex h-11 items-center gap-2 rounded-full border border-emerald-300/20 bg-linear-to-r from-emerald-300 via-emerald-400 to-lime-300 px-5 text-sm font-semibold whitespace-nowrap text-slate-950 shadow-[0_12px_32px_rgba(74,222,128,0.16)] transition hover:brightness-105"
           >
             {isAuthenticated ? (
