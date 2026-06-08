@@ -36,30 +36,43 @@ export const enMessages = {
   home: {
     badge: "Fin Man Platform",
     architecture: "API-first fintech architecture",
-    eyebrow: "Personal finance, crypto, analytics, AI",
-    title: "Premium financial control built on a single scalable API core.",
+    eyebrow: "Personal finance, crypto, AI ops",
+    title: "See capital move. React before the market does.",
     description:
-      "Web, future mobile, integrations and automation all connect to one backend contract designed for secure financial operations.",
+      "Fast control surface for balances, cash flow and risk signals with one animated fintech command layer.",
     actions: {
       apiHealth: "API health",
       openApiDocs: "OpenAPI docs",
       uiComponents: "UI components",
     },
+    highlights: ["Live cash flow", "Risk radar", "Automation-ready"],
+    signals: {
+      sync: "market sync",
+      growth: "portfolio pulse",
+      security: "secured flow",
+    },
+    visual: {
+      topLeft: "signal mesh",
+      topRight: "fintech core",
+      radar: "radar",
+      radarValue: "92.4",
+      alert: "latency",
+      alertValue: "12ms",
+      flow: "cash flow",
+      flowValue: "+$48k",
+    },
     cards: [
       {
-        title: "Financial core",
-        description:
-          "Balances, transactions, recurring payments and account abstractions prepared for shared and business use cases.",
+        title: "Money tracking",
+        description: "Accounts, balances and every money movement in one place.",
       },
       {
-        title: "Analytics layer",
-        description:
-          "Typed APIs, background sync and realtime-ready data flows for charts, reports, PnL and forecasting modules.",
+        title: "Reports and insights",
+        description: "A clear view of income, spending and category trends.",
       },
       {
-        title: "Security baseline",
-        description:
-          "JWT rotation, environment-driven config, isolated services, Postgres consistency and Redis-backed async processing.",
+        title: "Secure access",
+        description: "Your data stays protected and account access stays in control.",
       },
     ],
   },

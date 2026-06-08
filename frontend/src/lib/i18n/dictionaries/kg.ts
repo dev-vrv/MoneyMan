@@ -38,30 +38,43 @@ export const kgMessages: typeof enMessages = {
   home: {
     badge: "Fin Man платформасы",
     architecture: "API-first fintech архитектурасы",
-    eyebrow: "Жеке финансы, крипто, аналитика, AI",
-    title: "Бирдиктүү масштабдалуучу API өзөгүндөгү премиум каржы көзөмөлү.",
+    eyebrow: "Жеке финансы, крипто, AI ops",
+    title: "Капиталдын кыймылын көрүңүз. Рыноктон эрте аракет кылыңыз.",
     description:
-      "Web, келечектеги mobile, интеграциялар жана automation коопсуз каржылык операциялар үчүн бир backend-келишим аркылуу иштейт.",
+      "Баланс, cash flow жана risk-сигналдар үчүн бир анимацияланган fintech control-surface.",
     actions: {
       apiHealth: "API абалы",
       openApiDocs: "OpenAPI docs",
       uiComponents: "UI components",
     },
+    highlights: ["Live cash flow", "Risk radar", "Automation-ready"],
+    signals: {
+      sync: "market sync",
+      growth: "portfolio pulse",
+      security: "secured flow",
+    },
+    visual: {
+      topLeft: "signal mesh",
+      topRight: "fintech core",
+      radar: "radar",
+      radarValue: "92.4",
+      alert: "latency",
+      alertValue: "12ms",
+      flow: "cash flow",
+      flowValue: "+$48k",
+    },
     cards: [
       {
-        title: "Каржылык өзөк",
-        description:
-          "Баланс, транзакциялар, кайталанма төлөмдөр жана personal, shared, business сценарийлерине даяр account abstraction.",
+        title: "Акчаны эсепке алуу",
+        description: "Эсептер, баланстар жана бардык акча кыймылы бир жерде.",
       },
       {
-        title: "Аналитика катмары",
-        description:
-          "Typed API, background sync жана графиктер, отчеттор, PnL жана прогноз үчүн realtime-ready маалымат агымдары.",
+        title: "Отчеттор жана аналитика",
+        description: "Киреше, чыгаша жана категориялар боюнча түшүнүктүү көрүнүш.",
       },
       {
-        title: "Коопсуздук базасы",
-        description:
-          "JWT rotation, env-driven конфиг, изоляцияланган сервистер, Postgres консистенттүүлүгү жана Redis аркылуу async processing.",
+        title: "Коопсуз кирүү",
+        description: "Маалыматыңыз корголот жана аккаунтка кирүү көзөмөлдө болот.",
       },
     ],
   },

@@ -38,30 +38,43 @@ export const ruMessages: typeof enMessages = {
   home: {
     badge: "Платформа Fin Man",
     architecture: "Fintech-архитектура с API-first подходом",
-    eyebrow: "Личные финансы, крипта, аналитика, AI",
-    title: "Премиальный контроль финансов на едином масштабируемом API-ядре.",
+    eyebrow: "Личные финансы, крипта, AI ops",
+    title: "Видьте движение капитала. Реагируйте раньше рынка.",
     description:
-      "Web, будущий mobile, интеграции и автоматизации работают через единый backend-контракт для безопасных финансовых операций.",
+      "Быстрая control-surface для балансов, cash flow и risk-сигналов в одном анимированном fintech-слое.",
     actions: {
       apiHealth: "Проверка API",
       openApiDocs: "OpenAPI документация",
       uiComponents: "UI components",
     },
+    highlights: ["Live cash flow", "Risk radar", "Automation-ready"],
+    signals: {
+      sync: "market sync",
+      growth: "portfolio pulse",
+      security: "secured flow",
+    },
+    visual: {
+      topLeft: "signal mesh",
+      topRight: "fintech core",
+      radar: "radar",
+      radarValue: "92.4",
+      alert: "latency",
+      alertValue: "12ms",
+      flow: "cash flow",
+      flowValue: "+$48k",
+    },
     cards: [
       {
-        title: "Финансовое ядро",
-        description:
-          "Балансы, транзакции, регулярные платежи и абстракции аккаунтов для personal, shared и business-сценариев.",
+        title: "Учет денег",
+        description: "Счета, балансы и все движения денег в одном месте.",
       },
       {
-        title: "Слой аналитики",
-        description:
-          "Typed API, background sync и realtime-ready потоки данных для графиков, отчетов, PnL и прогнозирования.",
+        title: "Отчеты и аналитика",
+        description: "Понятная картина по доходам, расходам и категориям.",
       },
       {
-        title: "Базовая безопасность",
-        description:
-          "JWT rotation, env-driven конфигурация, изолированные сервисы, консистентность Postgres и async processing через Redis.",
+        title: "Безопасный доступ",
+        description: "Ваши данные защищены, а доступ к аккаунту под контролем.",
       },
     ],
   },
