@@ -55,7 +55,6 @@ export function SiteHeader({ locale, messages }: SiteHeaderProps) {
   const infoItems = [
     { label: messages.infoMenu.about, href: buildHref("/about") },
     { label: messages.infoMenu.faq, href: buildHref("/faq") },
-    { label: messages.infoMenu.roadmap, href: buildHref("/roadmap") },
   ];
 
   return (

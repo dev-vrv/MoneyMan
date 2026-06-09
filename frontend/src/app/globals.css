@@ -577,6 +577,19 @@
   }
 }
 
+@keyframes audience-status-dot {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(0.9);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 @layer components {
   .surface-panel {
     @apply border border-white/8 backdrop-blur-xl;
@@ -802,6 +815,10 @@
     );
     animation: hero-money-line 4.6s ease-in-out infinite;
   }
+
+  .audience-status-dot {
+    animation: audience-status-dot 2.6s ease-in-out infinite;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -816,7 +833,8 @@
   .hero-drift-light-three,
   .hero-money-ring,
   .hero-money-beacon-sweep,
-  .hero-money-line {
+  .hero-money-line,
+  .audience-status-dot {
     animation: none;
   }
 }

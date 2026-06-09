@@ -74,13 +74,12 @@ function SheetContent({
             render={
               <Button
                 variant="ghost"
-                className="absolute top-3 right-3"
-                size="icon-sm"
+                className="absolute top-3 right-3 size-12 rounded-full border border-white/18 bg-black/48 text-white shadow-[0_12px_30px_rgba(0,0,0,0.32)] ring-1 ring-black/18 backdrop-blur-md transition hover:scale-[1.03] hover:border-white/28 hover:bg-black/60 hover:text-white focus-visible:ring-2 focus-visible:ring-emerald-300/60"
+                size="icon"
               />
             }
           >
-            <RiCloseLine
-            />
+            <RiCloseLine className="size-6" />
             <span className="sr-only">Close</span>
           </SheetPrimitive.Close>
         )}

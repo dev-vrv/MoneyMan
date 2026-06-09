@@ -2,7 +2,7 @@ from rest_framework import serializers
 
 from app.serializers import get_request_locale
 
-from .models import SubscriptionPlan
+from .models import SubscriptionPlan, UserSubscription
 
 
 class SubscriptionPlanSerializer(serializers.ModelSerializer):
@@ -20,8 +20,11 @@ class SubscriptionPlanSerializer(serializers.ModelSerializer):
             "duration_value",
             "duration_unit",
             "duration_label",
+            "billing_mode",
             "price_usd",
             "currency",
+            "trial_days",
+            "grace_period_days",
             "is_highlighted",
             "features",
         )
@@ -69,3 +72,25 @@ class SubscriptionPlanSerializer(serializers.ModelSerializer):
             unit = variants[0]
 
         return f"{value} {unit}"
+
+
+class UserSubscriptionSerializer(serializers.ModelSerializer):
+    plan = SubscriptionPlanSerializer(read_only=True)
+
+    class Meta:
+        model = UserSubscription
+        fields = (
+            "id",
+            "plan",
+            "status",
+            "started_at",
+            "expires_at",
+            "trial_ends_at",
+            "next_billing_at",
+            "last_payment_at",
+            "canceled_at",
+            "cancel_at_period_end",
+            "auto_renew",
+            "created_at",
+            "updated_at",
+        )

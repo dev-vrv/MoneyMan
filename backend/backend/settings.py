@@ -45,6 +45,8 @@ INSTALLED_APPS = [
     "users",
     "backend.common",
     "app",
+    "mails",
+    "payments",
     "subscribes",
 ]
 
@@ -166,6 +168,7 @@ CELERY_BEAT_SCHEDULE = {
 FX_KG_API_BASE_URL = env("FX_KG_API_BASE_URL", default="https://data.fx.kg/api/v1")
 FX_KG_API_TOKEN = env("FX_KG_API_TOKEN", default="")
 FX_KG_API_TIMEOUT = env.int("FX_KG_API_TIMEOUT", default=15)
+MARKETING_SITE_URL = env("MARKETING_SITE_URL", default="http://localhost:3000")
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SESSION_COOKIE_SECURE = not DEBUG

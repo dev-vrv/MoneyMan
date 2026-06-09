@@ -1,8 +1,11 @@
-import { HeroCardDeck } from "@/components/home/hero-card-deck";
+import { ContactSection } from "@/components/contact/contact-section";
+import { HomeAudienceSection } from "@/components/home/home-audience-section";
+import { HomeHeroSection } from "@/components/home/home-hero-section";
 import { HomeInsightsSection } from "@/components/home/home-insights-section";
-import { AnimatedText } from "@/components/ui/animated-text";
-import { SiteHeader } from "@/components/layout/site-header";
+import { HomeUseCasesSection } from "@/components/home/home-use-cases-section";
+import { SiteFooter } from "@/components/layout/site-footer";
 import { AppProviders } from "@/components/providers/app-providers";
+import { getPublicContactDetails } from "@/lib/api/public-contact";
 import { defaultLocale } from "@/lib/i18n/config";
 import { getLocaleDictionary } from "@/lib/i18n/server";
 
@@ -10,6 +13,7 @@ export default async function RootPage() {
   const locale = defaultLocale;
   const dictionary = await getLocaleDictionary(locale);
   const home = dictionary.home;
+  const publicContactDetails = await getPublicContactDetails(locale);
 
   return (
     <AppProviders locale={locale} messages={dictionary}>
@@ -21,53 +25,29 @@ export default async function RootPage() {
         <div className="absolute left-1/2 top-24 h-72 w-72 -translate-x-1/2 rounded-full bg-emerald-400/12 blur-3xl" />
         <div className="absolute right-0 top-0 h-80 w-80 rounded-full bg-lime-400/6 blur-3xl" />
 
-        <section className="relative z-10 mx-auto flex min-h-screen w-full max-w-7xl flex-col">
-          <SiteHeader locale={locale} messages={dictionary.header} />
-
-          <div className="flex flex-1 items-center px-6 pb-16 pt-8 sm:px-10 lg:px-12">
-            <div className="w-full">
-              <div className="mb-10 flex items-center justify-between">
-                <div className="rounded-full border border-emerald-400/10 bg-white/5 px-5 py-2.5 text-sm font-medium uppercase tracking-[0.22em] text-emerald-50/70 backdrop-blur">
-                  {home.badge}
-                </div>
-                <div className="hidden rounded-full border border-emerald-400/20 bg-emerald-400/10 px-5 py-2.5 text-sm font-medium text-emerald-100 md:block">
-                  {home.architecture}
-                </div>
-              </div>
-
-              <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(360px,560px)] lg:items-center">
-                <div className="space-y-5">
-                  <p className="text-xs uppercase tracking-[0.42em] text-emerald-200/70">
-                    {home.eyebrow}
-                  </p>
-                  <AnimatedText
-                    text={home.title}
-                    as="h1"
-                    size="2xl"
-                    className="max-w-3xl font-semibold leading-[0.98] tracking-[-0.05em] text-white sm:text-5xl lg:text-6xl"
-                    letterClassName="drop-shadow-[0_0_24px_rgba(110,231,183,0.22)]"
-                    config={{ duration: 0.35, delayStep: 26, distance: 52 }}
-                  />
-                  <AnimatedText
-                    text={home.description}
-                    as="p"
-                    size="lg"
-                    delay={280}
-                    className="max-w-xl text-base leading-7 text-slate-300 sm:text-lg"
-                    config={{ duration: 0.28, delayStep: 12, distance: 22 }}
-                  />
-                </div>
-
-                <HeroCardDeck cards={home.cards} visual={home.visual} copy={home.deck} />
-              </div>
-            </div>
-          </div>
-        </section>
+        <HomeHeroSection locale={locale} header={dictionary.header} home={home} />
 
         <HomeInsightsSection
           section={home.insightsSection}
           beacon={home.beacon}
           widget={home.widget}
+        />
+
+        <HomeUseCasesSection section={home.useCasesSection} />
+
+        <HomeAudienceSection section={home.audienceSection} />
+
+        <ContactSection
+          eyebrow={home.contactSection.eyebrow}
+          title={home.contactSection.title}
+          description={home.contactSection.description}
+          form={dictionary.contactForm}
+        />
+
+        <SiteFooter
+          locale={locale}
+          content={dictionary.footer}
+          publicContactDetails={publicContactDetails}
         />
       </main>
     </AppProviders>

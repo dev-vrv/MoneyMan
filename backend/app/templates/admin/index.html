@@ -1,10 +1,46 @@
 {% extends "admin/base_site.html" %}
-{% load admin_groups %}
+{% load admin_groups admin_dashboard %}
 
 {% block content %}
   {% admin_grouped_app_list app_list as grouped_sections %}
 
   <div class="finman-admin-dashboard">
+    <section class="finman-admin-hero">
+      <div class="finman-admin-hero__copy">
+        <p class="finman-admin-hero__eyebrow">Fin Man Control Layer</p>
+        <h1 class="finman-admin-hero__title">Операционное ядро админки</h1>
+        <p class="finman-admin-hero__description">
+          Быстрый доступ к ключевым разделам, обновлению рыночных данных и управлению сущностями продукта.
+        </p>
+      </div>
+
+      <div class="finman-admin-hero__panel">
+        <div class="finman-admin-hero__status">
+          <span class="finman-admin-hero__status-dot"></span>
+          <span>Панель активна</span>
+        </div>
+        <div class="finman-admin-quick-actions">
+          <a href="{% url 'admin:app_exchangerate_sync_fx_kg' %}" class="finman-admin-quick-action finman-admin-quick-action--primary">
+            Обновить FX.kg
+          </a>
+          <a href="{% url 'admin:app_transaction_add' %}" class="finman-admin-quick-action">
+            Новая транзакция
+          </a>
+          <a href="{% url 'admin:app_account_add' %}" class="finman-admin-quick-action">
+            Новый счет
+          </a>
+          <a href="{% url 'admin:mails_publiccontactdetails_add' %}" class="finman-admin-quick-action">
+            Контакты сайта
+          </a>
+          <a href="{% url 'admin:subscribes_subscriptionplan_add' %}" class="finman-admin-quick-action">
+            Тарифный план
+          </a>
+        </div>
+      </div>
+    </section>
+
+    {% render_admin_dashboard_charts %}
+
     {% if grouped_sections %}
       {% for section in grouped_sections %}
         <section class="finman-admin-section">

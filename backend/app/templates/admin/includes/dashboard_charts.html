@@ -1,0 +1,195 @@
+<section class="finman-admin-charts">
+  <article class="finman-admin-chart-card finman-admin-chart-card--wide">
+    <header class="finman-admin-chart-card__header">
+      <div>
+        <p class="finman-admin-chart-card__eyebrow">{{ transactions.title }}</p>
+        <h2>{{ transactions.total }}</h2>
+        <p>{{ transactions.subtitle }}</p>
+      </div>
+    </header>
+
+    <div class="finman-admin-line-chart">
+      <svg viewBox="0 0 {{ transactions.width }} {{ transactions.height }}" class="finman-admin-line-chart__svg" role="img" aria-label="{{ transactions.title }}">
+        <defs>
+          <linearGradient id="finman-chart-area" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="rgba(103,232,249,0.32)" />
+            <stop offset="100%" stop-color="rgba(103,232,249,0.02)" />
+          </linearGradient>
+        </defs>
+        <path
+          d="{{ transactions.area_path }}"
+          fill="url(#finman-chart-area)"
+          class="finman-admin-line-chart__area"
+        />
+        <path
+          d="{{ transactions.path }}"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="3"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="finman-admin-line-chart__path"
+        />
+        {% for point in transactions.series %}
+          <circle
+            cx="{{ point.x }}"
+            cy="{{ point.y }}"
+            r="4"
+            class="finman-admin-line-chart__point"
+          />
+        {% endfor %}
+      </svg>
+      <div class="finman-admin-line-chart__labels">
+        {% for point in transactions.series %}
+          <div class="finman-admin-line-chart__label">
+            <span>{{ point.label }}</span>
+            <strong>{{ point.value }}</strong>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </article>
+
+  <article class="finman-admin-chart-card">
+    <header class="finman-admin-chart-card__header">
+      <div>
+        <p class="finman-admin-chart-card__eyebrow">{{ payments.title }}</p>
+        <h2>{{ payments.total }}</h2>
+        <p>{{ payments.subtitle }}</p>
+      </div>
+    </header>
+    <div class="finman-admin-status-chart">
+      {% for item in payments.items %}
+        <div class="finman-admin-status-row">
+          <div class="finman-admin-status-row__head">
+            <span>{{ item.label }}</span>
+            <strong>{{ item.value }}</strong>
+          </div>
+          <div class="finman-admin-status-row__track">
+            <div class="finman-admin-status-row__fill finman-admin-status-row__fill--{{ item.tone }}" style="width: {{ item.percent }}%;"></div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </article>
+
+  <article class="finman-admin-chart-card">
+    <header class="finman-admin-chart-card__header">
+      <div>
+        <p class="finman-admin-chart-card__eyebrow">{{ subscriptions.title }}</p>
+        <h2>{{ subscriptions.total }}</h2>
+        <p>{{ subscriptions.subtitle }}</p>
+      </div>
+    </header>
+    <div class="finman-admin-status-chart">
+      {% for item in subscriptions.items %}
+        <div class="finman-admin-status-row">
+          <div class="finman-admin-status-row__head">
+            <span>{{ item.label }}</span>
+            <strong>{{ item.value }}</strong>
+          </div>
+          <div class="finman-admin-status-row__track">
+            <div class="finman-admin-status-row__fill finman-admin-status-row__fill--{{ item.tone }}" style="width: {{ item.percent }}%;"></div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </article>
+
+  <article class="finman-admin-chart-card finman-admin-chart-card--wide">
+    <header class="finman-admin-chart-card__header">
+      <div>
+        <p class="finman-admin-chart-card__eyebrow">{{ traffic.title }}</p>
+        <h2>{{ traffic.total }}</h2>
+        <p>{{ traffic.subtitle }}</p>
+      </div>
+    </header>
+
+    <div class="finman-admin-line-chart">
+      <svg viewBox="0 0 {{ traffic.width }} {{ traffic.height }}" class="finman-admin-line-chart__svg" role="img" aria-label="{{ traffic.title }}">
+        <defs>
+          <linearGradient id="finman-traffic-area" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="rgba(74,222,128,0.28)" />
+            <stop offset="100%" stop-color="rgba(74,222,128,0.02)" />
+          </linearGradient>
+        </defs>
+        <path
+          d="{{ traffic.area_path }}"
+          fill="url(#finman-traffic-area)"
+          class="finman-admin-line-chart__area"
+        />
+        <path
+          d="{{ traffic.path }}"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="3"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="finman-admin-line-chart__path finman-admin-line-chart__path--traffic"
+        />
+        {% for point in traffic.series %}
+          <circle
+            cx="{{ point.x }}"
+            cy="{{ point.y }}"
+            r="4"
+            class="finman-admin-line-chart__point finman-admin-line-chart__point--traffic"
+          />
+        {% endfor %}
+      </svg>
+      <div class="finman-admin-line-chart__labels">
+        {% for point in traffic.series %}
+          <div class="finman-admin-line-chart__label">
+            <span>{{ point.label }}</span>
+            <strong>{{ point.value }}</strong>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </article>
+
+  <article class="finman-admin-chart-card">
+    <header class="finman-admin-chart-card__header">
+      <div>
+        <p class="finman-admin-chart-card__eyebrow">{{ traffic_sources.title }}</p>
+        <h2>{{ traffic_sources.total }}</h2>
+        <p>{{ traffic_sources.subtitle }}</p>
+      </div>
+    </header>
+    <div class="finman-admin-status-chart">
+      {% for item in traffic_sources.items %}
+        <div class="finman-admin-status-row">
+          <div class="finman-admin-status-row__head">
+            <span>{{ item.label }}</span>
+            <strong>{{ item.value }}</strong>
+          </div>
+          <div class="finman-admin-status-row__track">
+            <div class="finman-admin-status-row__fill finman-admin-status-row__fill--{{ item.tone }}" style="width: {{ item.percent }}%;"></div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </article>
+
+  <article class="finman-admin-chart-card">
+    <header class="finman-admin-chart-card__header">
+      <div>
+        <p class="finman-admin-chart-card__eyebrow">{{ referrers.title }}</p>
+        <h2>{{ referrers.total }}</h2>
+        <p>{{ referrers.subtitle }}</p>
+      </div>
+    </header>
+    <div class="finman-admin-status-chart">
+      {% for item in referrers.items %}
+        <div class="finman-admin-status-row">
+          <div class="finman-admin-status-row__head">
+            <span>{{ item.label }}</span>
+            <strong>{{ item.value }}</strong>
+          </div>
+          <div class="finman-admin-status-row__track">
+            <div class="finman-admin-status-row__fill finman-admin-status-row__fill--{{ item.tone }}" style="width: {{ item.percent }}%;"></div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </article>
+</section>

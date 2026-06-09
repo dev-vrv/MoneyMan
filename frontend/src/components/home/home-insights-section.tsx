@@ -1,5 +1,7 @@
 import { HeroMoneyBeacon } from "@/components/home/hero-money-beacon";
+import { HomeSectionHeading } from "@/components/home/home-section-heading";
 import { HeroSideWidget } from "@/components/home/hero-side-widget";
+import { ScrollReveal } from "@/components/ui/scroll-reveal";
 
 type HomeInsightsSectionProps = {
   section: {
@@ -42,21 +44,20 @@ export function HomeInsightsSection({
   return (
     <section className="relative z-10 flex min-h-screen items-center">
       <div className="mx-auto w-full max-w-7xl px-6 py-16 sm:px-10 lg:px-12 lg:py-20">
-        <div className="mx-auto max-w-3xl text-center">
-          <p className="text-xs uppercase tracking-[0.3em] text-emerald-200/70">
-            {section.eyebrow}
-          </p>
-          <h2 className="mt-4 text-3xl font-semibold tracking-[-0.04em] text-white sm:text-4xl lg:text-5xl">
-            {section.title}
-          </h2>
-          <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-slate-300 sm:text-base">
-            {section.description}
-          </p>
-        </div>
+        <HomeSectionHeading
+          eyebrow={section.eyebrow}
+          title={section.title}
+          description={section.description}
+          maxWidthClassName="max-w-3xl"
+        />
 
         <div className="mt-12 grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,420px)] xl:items-stretch">
-          <HeroMoneyBeacon copy={beacon} />
-          <HeroSideWidget copy={widget} />
+          <ScrollReveal delay={0.05} distance={34}>
+            <HeroMoneyBeacon copy={beacon} />
+          </ScrollReveal>
+          <ScrollReveal delay={0.16} distance={34}>
+            <HeroSideWidget copy={widget} />
+          </ScrollReveal>
         </div>
       </div>
     </section>

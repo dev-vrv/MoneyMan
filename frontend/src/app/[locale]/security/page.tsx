@@ -1,4 +1,5 @@
-import { PlaceholderPageShell } from "@/components/layout/placeholder-page-shell";
+import { MarketingPageShell } from "@/components/marketing/marketing-page-shell";
+import { SecurityPageExperience } from "@/components/marketing/security-page-experience";
 import { type Locale } from "@/lib/i18n/config";
 import { getLocaleDictionary } from "@/lib/i18n/server";
 
@@ -11,13 +12,11 @@ type SecurityPageProps = {
 export default async function SecurityPage({ params }: SecurityPageProps) {
   const { locale } = await params;
   const dictionary = await getLocaleDictionary(locale);
+  const page = dictionary.pages.security;
 
   return (
-    <PlaceholderPageShell
-      locale={locale}
-      title={dictionary.pages.security.title}
-      description={dictionary.pages.security.description}
-      common={dictionary.pages.common}
-    />
+    <MarketingPageShell locale={locale} header={dictionary.header}>
+      <SecurityPageExperience locale={locale} page={page} />
+    </MarketingPageShell>
   );
 }

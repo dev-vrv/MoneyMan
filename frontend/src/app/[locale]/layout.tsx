@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import { SiteVisitTracker } from "@/components/analytics/site-visit-tracker";
+import { SiteFooterShell } from "@/components/layout/site-footer-shell";
 import { AppProviders } from "@/components/providers/app-providers";
+import { getPublicContactDetails } from "@/lib/api/public-contact";
 import {
   defaultLocale,
   isLocale,
@@ -46,10 +49,17 @@ export default async function LocaleLayout({
 
   const locale: Locale = rawLocale;
   const dictionary = await getLocaleDictionary(locale);
+  const publicContactDetails = await getPublicContactDetails(locale);
 
   return (
     <AppProviders locale={locale} messages={dictionary}>
+      <SiteVisitTracker />
       {children}
+      <SiteFooterShell
+        fallbackLocale={locale}
+        footer={dictionary.footer}
+        publicContactDetails={publicContactDetails}
+      />
     </AppProviders>
   );
 }
