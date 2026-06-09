@@ -1,13 +1,17 @@
+"use client";
+
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
   RiArrowRightUpLine,
+  RiArrowRightLine,
+  RiExchangeFundsLine,
   RiFlashlightLine,
-  RiFlowChart,
   RiPulseLine,
-  RiRadarLine,
+  RiRobot3Line,
   RiSparklingLine,
-  RiShieldCheckLine,
   RiStackLine,
+  RiWallet3Line,
 } from "react-icons/ri";
 
 import { HomeSectionHeading } from "@/components/home/home-section-heading";
@@ -19,6 +23,13 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { getLocalizedPath, type Locale } from "@/lib/i18n/config";
 import { cn } from "@/lib/utils";
 
@@ -38,6 +49,7 @@ type CardItem = {
   title: string;
   description: string;
   meta?: string;
+  details?: string[];
 };
 
 type TimelineItem = {
@@ -103,7 +115,63 @@ type MarketingInfoPageExperienceProps = {
   cta: CtaSection;
 };
 
-const cardIcons = [RiShieldCheckLine, RiFlowChart, RiRadarLine, RiStackLine] as const;
+const cardIcons = [RiWallet3Line, RiExchangeFundsLine, RiRobot3Line, RiStackLine] as const;
+const primaryCardStyles = [
+  {
+    articleClassName:
+      "border-cyan-300/18 bg-[linear-gradient(180deg,rgba(8,18,26,0.96),rgba(7,10,15,0.99))] hover:border-cyan-200/28 hover:shadow-[0_22px_70px_rgba(4,16,26,0.34)]",
+    overlayClassName:
+      "bg-[radial-gradient(circle_at_16%_18%,rgba(34,211,238,0.18),transparent_24%),radial-gradient(circle_at_84%_18%,rgba(59,130,246,0.14),transparent_22%),linear-gradient(135deg,rgba(34,211,238,0.08),transparent_54%)]",
+    patternClassName:
+      "bg-[linear-gradient(135deg,rgba(34,211,238,0.08)_0,rgba(34,211,238,0.08)_2px,transparent_2px,transparent_18px)] bg-[size:22px_22px]",
+    iconWrapClassName: "border-cyan-300/20 bg-cyan-300/10 text-cyan-100",
+    badgeClassName: "border-cyan-300/18 bg-cyan-300/10 text-cyan-100/78",
+    accentClassName: "text-cyan-100/78",
+    modalClassName:
+      "border-cyan-300/18 bg-[linear-gradient(180deg,rgba(8,18,26,0.98),rgba(7,10,15,1))] text-white shadow-[0_28px_100px_rgba(0,0,0,0.42)]",
+    modalGlowClassName:
+      "bg-[radial-gradient(circle_at_18%_18%,rgba(34,211,238,0.18),transparent_26%),radial-gradient(circle_at_82%_18%,rgba(59,130,246,0.12),transparent_24%)]",
+    bulletClassName: "bg-cyan-300 shadow-[0_0_14px_rgba(34,211,238,0.42)]",
+    orbOneClassName: "bg-cyan-300/20",
+    orbTwoClassName: "bg-sky-400/18",
+  },
+  {
+    articleClassName:
+      "border-amber-300/18 bg-[linear-gradient(180deg,rgba(28,18,8,0.96),rgba(12,9,6,0.99))] hover:border-amber-200/28 hover:shadow-[0_22px_70px_rgba(28,16,4,0.28)]",
+    overlayClassName:
+      "bg-[radial-gradient(circle_at_84%_18%,rgba(251,191,36,0.18),transparent_24%),linear-gradient(160deg,rgba(249,115,22,0.08),transparent_55%)]",
+    patternClassName:
+      "bg-[radial-gradient(circle,rgba(251,191,36,0.12)_1px,transparent_1px)] bg-[size:18px_18px]",
+    iconWrapClassName: "border-amber-300/20 bg-amber-300/10 text-amber-100",
+    badgeClassName: "border-amber-300/18 bg-amber-300/10 text-amber-100/78",
+    accentClassName: "text-amber-100/78",
+    modalClassName:
+      "border-amber-300/18 bg-[linear-gradient(180deg,rgba(28,18,8,0.98),rgba(12,9,6,1))] text-white shadow-[0_28px_100px_rgba(0,0,0,0.42)]",
+    modalGlowClassName:
+      "bg-[radial-gradient(circle_at_84%_18%,rgba(251,191,36,0.18),transparent_24%),radial-gradient(circle_at_22%_82%,rgba(249,115,22,0.1),transparent_24%)]",
+    bulletClassName: "bg-amber-300 shadow-[0_0_14px_rgba(251,191,36,0.42)]",
+    orbOneClassName: "bg-amber-300/18",
+    orbTwoClassName: "bg-orange-300/14",
+  },
+  {
+    articleClassName:
+      "border-emerald-300/18 bg-[linear-gradient(180deg,rgba(8,24,18,0.96),rgba(7,11,13,0.99))] hover:border-emerald-200/28 hover:shadow-[0_22px_70px_rgba(5,22,12,0.32)]",
+    overlayClassName:
+      "bg-[radial-gradient(circle_at_18%_18%,rgba(74,222,128,0.16),transparent_24%),radial-gradient(circle_at_82%_18%,rgba(168,85,247,0.12),transparent_24%),linear-gradient(135deg,rgba(74,222,128,0.07),transparent_54%)]",
+    patternClassName:
+      "bg-[linear-gradient(to_right,rgba(74,222,128,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(74,222,128,0.08)_1px,transparent_1px)] bg-[size:22px_22px]",
+    iconWrapClassName: "border-emerald-300/20 bg-emerald-300/10 text-emerald-100",
+    badgeClassName: "border-emerald-300/18 bg-emerald-300/10 text-emerald-100/78",
+    accentClassName: "text-emerald-100/78",
+    modalClassName:
+      "border-emerald-300/18 bg-[linear-gradient(180deg,rgba(8,24,18,0.98),rgba(6,10,12,1))] text-white shadow-[0_28px_100px_rgba(0,0,0,0.42)]",
+    modalGlowClassName:
+      "bg-[radial-gradient(circle_at_20%_18%,rgba(74,222,128,0.18),transparent_26%),radial-gradient(circle_at_82%_18%,rgba(16,185,129,0.12),transparent_24%)]",
+    bulletClassName: "bg-emerald-300 shadow-[0_0_14px_rgba(74,222,128,0.42)]",
+    orbOneClassName: "bg-emerald-300/20",
+    orbTwoClassName: "bg-teal-300/16",
+  },
+] as const;
 
 function getPageCopy(locale: Locale) {
   switch (locale) {
@@ -121,6 +189,9 @@ function getPageCopy(locale: Locale) {
         step: "Шаг",
         operationalDetail: "Рабочая деталь",
         nextAction: "Следующее действие",
+        openDetails: "Открыть подробнее",
+        detailedOverview: "Подробный разбор",
+        detailedPoints: "Что внутри",
       };
     case "kg":
       return {
@@ -136,6 +207,9 @@ function getPageCopy(locale: Locale) {
         step: "Кадам",
         operationalDetail: "Иштөөчү деталь",
         nextAction: "Кийинки аракет",
+        openDetails: "Толугураак ачуу",
+        detailedOverview: "Толук разбор",
+        detailedPoints: "Эмне кирет",
       };
     default:
       return {
@@ -151,6 +225,9 @@ function getPageCopy(locale: Locale) {
         step: "Step",
         operationalDetail: "Operational detail",
         nextAction: "Next action",
+        openDetails: "Open details",
+        detailedOverview: "Detailed breakdown",
+        detailedPoints: "What is inside",
       };
   }
 }
@@ -202,6 +279,14 @@ export function MarketingInfoPageExperience({
 }: MarketingInfoPageExperienceProps) {
   const copy = getPageCopy(locale);
   const sectionMap = buildSectionMap(locale, primarySection, secondarySection, faqSection);
+  const [selectedPrimaryCardIndex, setSelectedPrimaryCardIndex] = useState<number | null>(null);
+  const selectedPrimaryCard = useMemo(
+    () => (selectedPrimaryCardIndex === null ? null : primarySection.cards[selectedPrimaryCardIndex] ?? null),
+    [primarySection.cards, selectedPrimaryCardIndex],
+  );
+  const selectedPrimaryStyle = selectedPrimaryCardIndex === null
+    ? primaryCardStyles[0]
+    : primaryCardStyles[selectedPrimaryCardIndex % primaryCardStyles.length];
 
   return (
     <div className="px-6 sm:px-10 lg:px-12">
@@ -380,6 +465,8 @@ export function MarketingInfoPageExperience({
           <div className={cn("grid gap-5", streamlined ? "mt-7 md:grid-cols-2 xl:grid-cols-3" : "mt-10 lg:grid-cols-3")}>
             {primarySection.cards.map((card, index) => {
               const Icon = cardIcons[index % cardIcons.length];
+              const style = primaryCardStyles[index % primaryCardStyles.length];
+              const isInteractive = Boolean(card.details?.length);
 
               return (
                 <ScrollReveal
@@ -388,64 +475,139 @@ export function MarketingInfoPageExperience({
                   distance={30}
                   blur={12}
                 >
-                  <article
-                    className={cn(
-                      "group relative h-full overflow-hidden border border-white/10 transition duration-300",
-                      streamlined
-                        ? "rounded-[1.5rem] bg-[linear-gradient(180deg,rgba(9,14,18,0.94),rgba(7,10,16,0.98))] p-5 hover:border-white/16"
-                        : "rounded-[2rem] bg-[linear-gradient(180deg,rgba(10,16,18,0.94),rgba(8,10,18,0.98))] p-6 hover:-translate-y-1.5 hover:border-emerald-300/24 hover:shadow-[0_22px_70px_rgba(0,0,0,0.26)]",
-                    )}
+                  <button
+                    type="button"
+                    onClick={isInteractive ? () => setSelectedPrimaryCardIndex(index) : undefined}
+                    className={cn("block h-full w-full text-left", isInteractive ? "cursor-pointer" : "cursor-default")}
                   >
-                    {!streamlined ? (
-                      <>
-                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.08),transparent_28%),linear-gradient(135deg,rgba(34,197,94,0.05),transparent_52%)] opacity-80" />
-                        <div className="absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/16 to-transparent" />
-                      </>
-                    ) : null}
-                    <div className="relative z-10">
+                    <article
+                      className={cn(
+                        "group relative h-full overflow-hidden border transition duration-300",
+                        streamlined
+                          ? "rounded-[1.5rem] bg-[linear-gradient(180deg,rgba(9,14,18,0.94),rgba(7,10,16,0.98))] p-5 hover:border-white/16"
+                          : `rounded-[2rem] p-6 hover:-translate-y-1.5 ${style.articleClassName}`,
+                      )}
+                    >
                       {!streamlined ? (
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="inline-flex rounded-[1rem] border border-white/10 bg-white/6 p-3 text-white">
-                            <Icon className="size-5" />
+                        <>
+                          <div className={cn("pointer-events-none absolute left-[-2.5rem] top-[-2rem] size-28 rounded-full blur-3xl opacity-75 animate-[hero-float_7.6s_ease-in-out_infinite]", style.orbOneClassName)} />
+                          <div className={cn("pointer-events-none absolute bottom-[-2.75rem] right-[-2rem] size-32 rounded-full blur-3xl opacity-70 animate-[hero-float_9.4s_ease-in-out_infinite] [animation-delay:1.2s]", style.orbTwoClassName)} />
+                          <div className={cn("absolute inset-0 opacity-90", style.overlayClassName)} />
+                          <div className={cn("absolute inset-0 opacity-20", style.patternClassName)} />
+                          <div className="absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/16 to-transparent" />
+                        </>
+                      ) : null}
+                      <div className="relative z-10 flex h-full flex-col">
+                        {!streamlined ? (
+                          <div className="flex items-start justify-between gap-4">
+                            <div className={cn("inline-flex rounded-[1rem] border p-3", style.iconWrapClassName)}>
+                              <Icon className="size-5" />
+                            </div>
+                            <div className={cn("rounded-full border px-3 py-1 text-[0.66rem] uppercase tracking-[0.16em]", style.badgeClassName)}>
+                              {String(index + 1).padStart(2, "0")}
+                            </div>
                           </div>
-                          <div className="rounded-full border border-white/10 bg-white/6 px-3 py-1 text-[0.66rem] uppercase tracking-[0.16em] text-white/52">
+                        ) : (
+                          <div className="text-[0.66rem] uppercase tracking-[0.18em] text-white/38">
                             {String(index + 1).padStart(2, "0")}
                           </div>
-                        </div>
-                      ) : (
-                        <div className="text-[0.66rem] uppercase tracking-[0.18em] text-white/38">
-                          {String(index + 1).padStart(2, "0")}
-                        </div>
-                      )}
-                      {card.eyebrow ? (
-                        <div className={cn("text-[0.68rem] uppercase tracking-[0.24em] text-white/52", streamlined ? "mt-3" : "mt-5")}>
-                          {card.eyebrow}
-                        </div>
-                      ) : null}
-                      <h2 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-white">
-                        {card.title}
-                      </h2>
-                      <p className="mt-3 text-sm leading-7 text-slate-300">
-                        {card.description}
-                      </p>
-                      {card.meta && !streamlined ? (
-                        <div className="mt-5 inline-flex rounded-full border border-white/10 bg-white/6 px-3 py-1 text-xs text-white/72">
-                          {card.meta}
-                        </div>
-                      ) : null}
-                      {!streamlined ? (
-                        <div className="mt-6 flex items-center gap-2 text-[0.68rem] uppercase tracking-[0.18em] text-white/38">
-                          <RiSparklingLine className="size-3.5 text-emerald-200/70" />
-                          <span>{card.eyebrow || copy.workingLayer}</span>
-                        </div>
-                      ) : null}
-                    </div>
-                  </article>
+                        )}
+                        {card.eyebrow ? (
+                          <div className={cn("text-[0.68rem] uppercase tracking-[0.24em]", streamlined ? "mt-3 text-white/52" : `mt-5 ${style.accentClassName}`)}>
+                            {card.eyebrow}
+                          </div>
+                        ) : null}
+                        <h2 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-white">
+                          {card.title}
+                        </h2>
+                        <p className="mt-3 text-sm leading-7 text-slate-300">
+                          {card.description}
+                        </p>
+                        {card.meta && !streamlined ? (
+                          <div className="mt-5 inline-flex rounded-full border border-white/10 bg-white/6 px-3 py-1 text-xs text-white/72">
+                            {card.meta}
+                          </div>
+                        ) : null}
+                        {!streamlined ? (
+                          <div className="mt-auto pt-6 flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-2 text-[0.68rem] uppercase tracking-[0.18em] text-white/38">
+                              <RiSparklingLine className={cn("size-3.5", style.accentClassName)} />
+                              <span>{card.eyebrow || copy.workingLayer}</span>
+                            </div>
+                            {isInteractive ? (
+                              <div className={cn("inline-flex items-center gap-1 text-[0.68rem] uppercase tracking-[0.16em]", style.accentClassName)}>
+                                <span>{copy.openDetails}</span>
+                                <RiArrowRightLine className="size-3.5" />
+                              </div>
+                            ) : null}
+                          </div>
+                        ) : null}
+                      </div>
+                    </article>
+                  </button>
                 </ScrollReveal>
               );
             })}
           </div>
         </section>
+
+      <Dialog
+        open={selectedPrimaryCardIndex !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedPrimaryCardIndex(null);
+          }
+        }}
+      >
+        {selectedPrimaryCard ? (
+          <DialogContent className={cn("max-w-[calc(100%-2rem)] sm:max-w-2xl overflow-hidden border p-0", selectedPrimaryStyle.modalClassName)}>
+            <div className="relative">
+              <div className={cn("absolute inset-0 opacity-95", selectedPrimaryStyle.modalGlowClassName)} />
+              <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:30px_30px] opacity-20" />
+              <div className="absolute right-[-2rem] top-[-2rem] size-28 rounded-full border border-white/10 rotate-12" />
+              <div className="absolute left-[-2rem] bottom-[-2rem] size-32 rounded-full border border-white/8" />
+              <div className="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/18 to-transparent" />
+
+              <div className="relative z-10 p-6 sm:p-7">
+                <DialogHeader className="gap-4">
+                  <div className="flex items-start justify-between gap-4 pr-10">
+                    <div className={cn("inline-flex rounded-full border px-3 py-1 text-[0.66rem] uppercase tracking-[0.16em]", selectedPrimaryStyle.badgeClassName)}>
+                      {selectedPrimaryCard.eyebrow || copy.detailedOverview}
+                    </div>
+                    <div className={cn("text-[0.68rem] uppercase tracking-[0.18em]", selectedPrimaryStyle.accentClassName)}>
+                      {selectedPrimaryCardIndex !== null ? String(selectedPrimaryCardIndex + 1).padStart(2, "0") : ""}
+                    </div>
+                  </div>
+                  <DialogTitle className="text-3xl leading-[1.08] tracking-[-0.04em] text-white">
+                    {selectedPrimaryCard.title}
+                  </DialogTitle>
+                  <DialogDescription className="max-w-2xl text-sm leading-7 text-slate-300">
+                    {selectedPrimaryCard.description}
+                  </DialogDescription>
+                </DialogHeader>
+
+                {selectedPrimaryCard.details?.length ? (
+                  <div className="mt-6 rounded-[1.6rem] border border-white/10 bg-black/18 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+                    <div className="text-[0.68rem] uppercase tracking-[0.18em] text-white/42">
+                      {copy.detailedPoints}
+                    </div>
+                    <div className="mt-4 space-y-3">
+                      {selectedPrimaryCard.details.map((detail, detailIndex) => (
+                        <div key={`${detail}-${detailIndex}`} className="flex items-start gap-3 rounded-[1rem] border border-white/8 bg-white/[0.03] px-4 py-3">
+                          <div className={cn("mt-1.5 size-2.5 shrink-0 rounded-full", selectedPrimaryStyle.bulletClassName)} />
+                          <div className="text-sm leading-7 text-slate-200">
+                            {detail}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          </DialogContent>
+        ) : null}
+      </Dialog>
 
       {secondarySection ? (
         <section
@@ -564,9 +726,9 @@ export function MarketingInfoPageExperience({
 
       {faqSection ? (
         <section id="page-faq" className={cn("relative z-10", compactHero ? "py-8 lg:py-10" : "py-12 lg:py-14")}>
-          <div className={cn("max-w-4xl", compactHero ? "" : "space-y-5")}>
-            {!compactHero ? (
-              <div className="max-w-2xl">
+          <div className={cn("grid gap-6 xl:grid-cols-[minmax(0,0.88fr)_minmax(0,1.12fr)] xl:items-start", compactHero ? "" : "space-y-0")}>
+            <div className="max-w-2xl">
+              <div className="sticky top-24">
                 <div className="text-[0.68rem] uppercase tracking-[0.18em] text-white/42">
                   {faqSection.eyebrow}
                 </div>
@@ -577,9 +739,9 @@ export function MarketingInfoPageExperience({
                   {faqSection.description}
                 </p>
               </div>
-            ) : null}
+            </div>
 
-            <div className="rounded-[1.6rem] border border-white/10 bg-[linear-gradient(180deg,rgba(9,14,18,0.9),rgba(7,10,16,0.96))] p-3 backdrop-blur-xl sm:p-4">
+            <div className="w-full rounded-[1.6rem] border border-white/10 bg-[linear-gradient(180deg,rgba(9,14,18,0.9),rgba(7,10,16,0.96))] p-3 backdrop-blur-xl sm:p-4">
               <Accordion className="gap-1.5">
                 {faqSection.items.map((item, index) => (
                   <AccordionItem

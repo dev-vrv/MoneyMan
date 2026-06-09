@@ -125,7 +125,7 @@ export const enMessages = {
     architecture: "API-first fintech architecture",
     eyebrow: "Personal finance, AI, FX and crypto",
     title: "Full control of personal finance.",
-    description: "All money movements, an AI assistant, and daily FX and crypto rates in one manager available on web, Android, iOS, and Windows.",
+    description: "All money movements, an AI assistant with voice capture, receipt scans, and fast category assignment, plus daily FX and crypto rates in one manager available on web, Android, iOS, and Windows.",
     actions: {
       apiHealth: "API health",
       openApiDocs: "OpenAPI docs",
@@ -156,13 +156,13 @@ export const enMessages = {
     },
     insightsSection: {
       eyebrow: "Money guidance layer",
-      title: "AI guidance and money overview.",
-      description: "Strategy, balance, and rates in one screen across web, Android, iOS, and Windows.",
+      title: "AI guidance, fast capture, and money overview.",
+      description: "Strategy, balance, voice capture, receipt scans, and rates in one screen across web, Android, iOS, and Windows.",
     },
     useCasesSection: {
       eyebrow: "How it is used",
       title: "Three daily flows.",
-      description: "Money, rates, and AI prompts in one live working layer.",
+      description: "Money, rates, AI prompts, voice capture, and receipt-based tracking in one live working layer.",
       modalCta: "Learn more",
       modalHighlightsTitle: "What the scenario includes",
       cards: [
@@ -228,7 +228,7 @@ export const enMessages = {
         },
         {
           title: "AI review",
-          description: "Prompts on risk, movement, and the next actions for your money.",
+          description: "Prompts on risk and next actions, plus fast tracking through voice input and receipt scans.",
           kicker: "AI",
           metric: "Signals",
           accent: "Next move",
@@ -237,6 +237,8 @@ export const enMessages = {
             "A scenario where the system helps read change instead of just showing numbers: spotting anomalies, surfacing risk, and suggesting the next practical step.",
           highlights: [
             "Unusual movements and behavior shifts are brought forward immediately.",
+            "You can dictate an expense or scan a receipt to capture operations faster.",
+            "Transactions can be routed into categories much faster instead of relying on long manual entry.",
             "Signals point to risks, spending pressure, and areas that need attention now.",
             "The interface suggests next actions instead of stopping at raw numbers.",
             "Financial review turns into faster decision support.",
@@ -350,11 +352,11 @@ export const enMessages = {
     },
     beacon: {
       title: "AI capital strategy",
-      description: "AI helps show what to do next with your money.",
+      description: "AI helps show what to do next with your money and speeds up tracking through voice and receipts.",
       radarLabel: "AI strategy review",
       active: "active",
       headline: "Your next capital move",
-      body: "Prompts on savings, spending, and growth points.",
+      body: "Prompts on savings, spending, and growth points, plus receipt parsing and voice-based capture of operations.",
       scan: "analysis",
       scanValue: "AI",
       pulse: "focus",
@@ -369,7 +371,7 @@ export const enMessages = {
       },
       {
         title: "AI assistant",
-        description: "Helps you understand spending, spot patterns and make financial decisions faster.",
+        description: "Helps you understand spending, dictate operations, scan receipts, and assign transactions to categories faster.",
       },
       {
         title: "FX and crypto rates",
@@ -964,8 +966,8 @@ export const enMessages = {
             price: "$29",
             period: "/ month",
             badge: "AI layer",
-            description: "For users who need AI breakdowns of money scenarios, risk, and the next move.",
-            features: ["AI capital guidance", "Risk and growth scenarios", "Priority support"],
+            description: "For users who need AI breakdowns of money scenarios, risk, faster receipt capture, and the next move.",
+            features: ["AI capital guidance", "Voice capture and receipt scans", "Risk and growth scenarios", "Priority support"],
           },
         ],
       },
@@ -987,7 +989,7 @@ export const enMessages = {
           {
             eyebrow: "AI",
             title: "Guidance on the next move",
-            description: "AI helps show where money leaks, where safety margin exists, and what needs attention next.",
+            description: "AI helps show where money leaks, while also speeding up tracking through dictated entries, receipt scans, and fast category assignment.",
           },
         ],
       },
@@ -1335,16 +1337,32 @@ export const enMessages = {
             eyebrow: "Personal finance",
             title: "How to manage accounts and movement",
             description: "The working layer for accounts, balances, transfers, categories, and daily operations.",
+            details: [
+              "The workspace starts with account structure: cash, cards, wallets, savings, and any separate finance boundary you want to track clearly.",
+              "Money movement is organized around understandable operations: income, expenses, transfers between accounts, and repeatable daily scenarios.",
+              "Categories and balances are not there as bureaucracy. They exist to show where money sits, where it goes, and what is already committed.",
+            ],
           },
           {
             eyebrow: "Rates",
             title: "How currencies and crypto work",
             description: "Daily market updates, asset revaluation, and a quick view of current capital value.",
+            details: [
+              "The platform pulls a live market layer so currencies and crypto assets do not remain frozen between manual recalculations.",
+              "Asset revaluation helps expose how rates reshape total capital, not just the price of an isolated instrument.",
+              "The point of this block is not decorative tickers. It is to connect market movement to your real balance sheet and asset structure.",
+            ],
           },
           {
             eyebrow: "AI",
             title: "What the AI assistant actually does",
-            description: "Guidance on risk, scenarios, and next steps instead of decorative summary blocks.",
+            description: "Guidance on risk, scenarios, voice capture, and receipt scans instead of decorative summary blocks.",
+            details: [
+              "The AI assistant does not replace the user. It helps break down financial context into risk, capital structure, and likely next actions.",
+              "It also speeds up tracking: you can dictate an operation, upload a receipt, and get to the right category faster.",
+              "It belongs to the scenario layer: spotting weak points, recurring patterns, and faster decisions based on actual context.",
+              "Its value is measured not by text volume, but by how much faster and more accurately it helps you make finance decisions.",
+            ],
           },
         ],
       },
