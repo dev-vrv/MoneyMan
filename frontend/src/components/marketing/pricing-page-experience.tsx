@@ -363,15 +363,17 @@ export function PricingPageExperience({
           <div className="relative flex overflow-hidden rounded-[2rem] border border-white/10 bg-[linear-gradient(135deg,rgba(9,14,16,0.96),rgba(8,10,18,0.99))] px-6 py-7 shadow-[0_20px_70px_rgba(0,0,0,0.24)] sm:px-8 sm:py-8">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_24%,rgba(34,211,238,0.16),transparent_28%),radial-gradient(circle_at_82%_18%,rgba(74,222,128,0.18),transparent_26%),radial-gradient(circle_at_50%_110%,rgba(251,191,36,0.14),transparent_30%)]" />
             <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:42px_42px] opacity-20" />
-            <div className="relative z-10 flex h-full flex-col">
-              <h2 className="text-2xl font-semibold leading-[1.14] tracking-[-0.04em] text-white sm:text-[2rem]">
-                {page.cta.title}
-              </h2>
-              <p className="mt-4 text-sm leading-7 text-slate-300 sm:text-base">
-                {page.cta.description}
-              </p>
+            <div className="relative z-10 grid h-full gap-7 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+              <div className="max-w-2xl">
+                <h2 className="text-2xl font-semibold leading-[1.14] tracking-[-0.04em] text-white sm:text-[2rem]">
+                  {page.cta.title}
+                </h2>
+                <p className="mt-4 text-sm leading-7 text-slate-300 sm:text-base">
+                  {page.cta.description}
+                </p>
+              </div>
 
-              <div className="mt-7 flex flex-1 flex-col justify-end gap-3">
+              <div className="flex flex-wrap items-center gap-3 lg:justify-end">
                 <Link
                   href={getLocalizedPath(locale, "/contacts")}
                   className="inline-flex items-center justify-center gap-2 rounded-full border border-emerald-300/20 bg-linear-to-r from-emerald-300 via-emerald-400 to-lime-300 px-6 py-3 text-sm font-semibold text-slate-950 shadow-[0_12px_32px_rgba(74,222,128,0.16)] transition hover:brightness-105"

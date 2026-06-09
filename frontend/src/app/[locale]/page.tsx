@@ -3,6 +3,7 @@ import { HomeAudienceSection } from "@/components/home/home-audience-section";
 import { HomeHeroSection } from "@/components/home/home-hero-section";
 import { HomeInsightsSection } from "@/components/home/home-insights-section";
 import { HomeUseCasesSection } from "@/components/home/home-use-cases-section";
+import { ScrollToTopButton } from "@/components/marketing/scroll-to-top-button";
 import { type Locale } from "@/lib/i18n/config";
 import { getLocaleDictionary } from "@/lib/i18n/server";
 
@@ -46,6 +47,7 @@ export default async function Home({ params }: HomePageProps) {
         description={home.contactSection.description}
         form={dictionary.contactForm}
       />
+      <ScrollToTopButton locale={locale} />
     </main>
   );
 }

@@ -37,7 +37,7 @@ export function MarketingCtaPanel({
               </p>
             </div>
 
-            <div className="flex flex-col gap-3 sm:flex-row xl:justify-end">
+            <div className="flex flex-wrap items-center gap-3 xl:justify-end">
               <Link
                 href={getLocalizedPath(locale, primaryHref)}
                 className="inline-flex items-center justify-center gap-2 rounded-full border border-emerald-300/20 bg-linear-to-r from-emerald-300 via-emerald-400 to-lime-300 px-6 py-3 text-sm font-semibold text-slate-950 shadow-[0_12px_32px_rgba(74,222,128,0.16)] transition hover:brightness-105"
