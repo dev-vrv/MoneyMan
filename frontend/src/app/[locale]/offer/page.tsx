@@ -15,7 +15,7 @@ export default async function OfferPage({ params }: OfferPageProps) {
   const page = dictionary.pages.offer;
 
   return (
-    <MarketingPageShell locale={locale} header={dictionary.header}>
+    <MarketingPageShell locale={locale} header={dictionary.header} pattern="offer">
       <MarketingInfoPageExperience
         locale={locale}
         compactHero

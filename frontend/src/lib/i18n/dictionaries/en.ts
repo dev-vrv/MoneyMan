@@ -12,6 +12,7 @@ export const enMessages = {
   header: {
     logo: "Fin Man",
     navigation: {
+      home: "Home",
       pricing: "Pricing",
       contacts: "Contacts",
       security: "Security",
@@ -164,6 +165,8 @@ export const enMessages = {
       title: "Three daily flows.",
       description: "Money, rates, AI prompts, voice capture, and receipt-based tracking in one live working layer.",
       modalCta: "Learn more",
+      previousLabel: "Previous",
+      nextLabel: "Next",
       modalHighlightsTitle: "What the scenario includes",
       cards: [
         {
@@ -1138,11 +1141,13 @@ export const enMessages = {
       ],
       visual: {
         title: "Security core",
+        badge: "Secure",
         description: "Security is built as a geometry of control: access, storage, and event layers converge into one protected boundary around financial data.",
         items: [
-          { label: "Access", value: "Session boundary", detail: "Sign-in, sessions, and sensitive transitions do not drift across the system." },
-          { label: "Storage", value: "Data isolation", detail: "Financial entities and operation history should never exist without boundaries." },
-          { label: "Trace", value: "Event visibility", detail: "Important actions stay visible instead of disappearing into system noise." },
+          { label: "Access", value: "Session boundary", detail: "Sign-in, sessions, and sensitive transitions do not drift across the system.", extended: "The sign-in zone has to live inside a dedicated control layer: authentication, session state, token refresh, and critical transitions should not be spread across the product. In a finance workflow this means explicit checkpoints and predictable behavior around sensitive actions." },
+          { label: "Storage", value: "Data isolation", detail: "Financial entities and operation history should never exist without boundaries.", extended: "Balances, operations, categories, documents, and related context need to stay inside a clearly separated data layer. That reduces accidental overlap, makes access control easier to reason about, and keeps the architecture more resilient as the system grows." },
+          { label: "Trace", value: "Event visibility", detail: "Important actions stay visible instead of disappearing into system noise.", extended: "If access changes, a sensitive operation happens, or an important entity is updated, the system should leave a readable event behind. Observability here is not decorative; it is required for verification, investigation, and normal support of a finance product." },
+          { label: "Response", value: "Deviation boundary", detail: "Risk signals, anomalies, and unusual flows do not stay unanswered.", extended: "A protection model needs more than entry control and event history. It also needs an explicit response layer: suspicious patterns, unusual actions, sharp context changes, and sensitive deviations should enter a clear review boundary. That helps the product do more than record a trail. It helps contain issues early and prevents them from spreading across the system." },
         ],
       },
       pillars: {
@@ -1191,8 +1196,8 @@ export const enMessages = {
       },
       faq: {
         eyebrow: "Security FAQ",
-        title: "What people usually want to understand before trusting the product with money and history.",
-        description: "Short and direct answers on access, storage, and system boundaries.",
+        title: "What matters before you start.",
+        description: "Access, storage, and system boundaries.",
         items: [
           {
             question: "Why does security have its own page?",
@@ -1209,8 +1214,8 @@ export const enMessages = {
         ],
       },
       cta: {
-        title: "If you have separate security requirements, they should be reviewed as architecture, not as marketing copy.",
-        description: "We can walk through access rules, critical workflows, data isolation, and operational constraints for your case.",
+        title: "Security questions are better reviewed directly.",
+        description: "We can walk through access rules, isolation, and critical workflows.",
         primary: "Review requirements",
         secondary: "Go to FAQ",
       },
@@ -1219,11 +1224,11 @@ export const enMessages = {
       eyebrow: "Founder vision",
       title: "About us",
       description:
-        "I have been seeing the same market gap for years: there is still no finance manager that genuinely does it all. That is why I am building one system for money, assets, crypto, analytics, taxes, and AI assistance without splitting the workflow across disconnected tools.",
+        "I am building one finance manager for money, assets, crypto, analytics, taxes, and AI assistance without splitting the workflow apart.",
       founder: {
         eyebrow: "Why this is being built",
-        title: "I am an experienced developer, and for too long I have seen that the market still lacks a truly complete finance manager.",
-        description: "Most products solve only a fragment: tracking in one place, rates in another, crypto somewhere else, reports in another tool, and AI mostly as noise. I am building a product that brings all of this into one powerful control surface for personal finances and for the finances of your own organizations.",
+        title: "The goal is simple: one complete finance manager in one layer.",
+        description: "Most products solve only a fragment. Here the goal is different: money, assets, analytics, market context, and AI should work together.",
         badges: ["Web", "Windows", "iOS", "Android", "Crypto", "AI systems"],
         signals: [
           { label: "Finance scope", value: "Classic + crypto" },
@@ -1233,8 +1238,8 @@ export const enMessages = {
       },
       platforms: {
         eyebrow: "No device gap",
-        title: "One product across the main screens and working modes.",
-        description: "The system is designed from the start as one product living in the browser, on Windows, on iPhone, and on Android instead of fragmented interfaces with different logic.",
+        title: "One product across the core screens.",
+        description: "The system is designed as one product for browser, Windows, iPhone, and Android.",
         items: [
           {
             label: "01",
@@ -1260,51 +1265,51 @@ export const enMessages = {
       },
       capabilities: {
         eyebrow: "What it actually needs to do",
-        title: "Not a narrow expense tracker, but a full finance control layer.",
-        description: "The system is meant to cover everyday tracking, market context, and more advanced capital analysis scenarios.",
+        title: "A full finance control layer.",
+        description: "The system should cover daily tracking, market context, and capital analysis.",
         cards: [
           {
             eyebrow: "Money and crypto",
-            title: "Control over regular money, assets, and crypto in one logic",
-            description: "Accounts, transfers, spending, savings, currencies, crypto positions, and capital structure should live together instead of being spread across five tools.",
+            title: "Money, assets, and crypto in one logic",
+            description: "Accounts, transfers, spending, savings, currencies, and crypto positions should live together.",
           },
           {
             eyebrow: "Analytics and taxes",
-            title: "Statistics, analytics, forecasts, and a tax-aware layer",
-            description: "The product should not just store numbers. It should expose dynamics, weak spots, taxes, cash flow, and the real movement of capital.",
+            title: "Analytics, forecasts, and tax awareness",
+            description: "The product should expose dynamics, taxes, cash flow, and the real movement of capital.",
           },
           {
             eyebrow: "AI systems",
-            title: "AI help for decisions, risk scenarios, and next actions",
-            description: "AI is here for forecasting, focus, risk warning, and help with managing both personal finances and organizational money, not for decorative summaries.",
+            title: "AI help for decisions and risks",
+            description: "AI is here for forecasting, focus, and risk warning, not decorative summaries.",
           },
         ],
       },
       stack: {
         eyebrow: "What a strong product means to me",
-        title: "Modern technology should deliver control, not just a glossy shell.",
-        description: "I care about a living system that helps people move faster and decide with more clarity, not another decorative fintech surface.",
+        title: "Technology should deliver control.",
+        description: "The point is a living system for faster, clearer financial decisions.",
         items: [
           {
             label: "01",
-            title: "One financial boundary without manual fragmentation",
+            title: "One financial boundary",
             description: "Tracking, assets, rates, crypto, taxes, statistics, and AI should not exist as isolated islands.",
           },
           {
             label: "02",
-            title: "Built for personal capital and for your own organizations",
-            description: "The product should be useful both for personal control and for more serious management scenarios around your own structures.",
+            title: "Built for personal capital and your own structures",
+            description: "The product should work for both personal control and more serious management scenarios.",
           },
           {
             label: "03",
-            title: "Modern stack with room to keep evolving",
-            description: "It is built on current technologies so the product stays fast, extensible, and ready for deeper analytics and AI layers over time.",
+            title: "Modern stack with room to evolve",
+            description: "It is built on current technologies to stay fast, extensible, and ready for deeper layers over time.",
           },
         ],
       },
       cta: {
-        title: "If you also want a finance manager that goes beyond basic tracking, let us shape the right scenario.",
-        description: "We can discuss personal finance, crypto, analytics, tax logic, AI assistance, and the operating layer for your organizations.",
+        title: "If you need a finance manager beyond basic tracking, let us shape the right scenario.",
+        description: "We can discuss personal finance, crypto, analytics, taxes, AI assistance, and the operating layer for your organizations.",
         primary: "Write to us",
         secondary: "See pricing",
       },

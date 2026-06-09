@@ -51,7 +51,7 @@ export function HomeInsightsSection({
           maxWidthClassName="max-w-3xl"
         />
 
-        <div className="mt-12 grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,420px)] xl:items-stretch">
+        <div className="mt-12 grid gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(360px,420px)] xl:items-stretch">
           <ScrollReveal delay={0.05} distance={34}>
             <HeroMoneyBeacon copy={beacon} />
           </ScrollReveal>

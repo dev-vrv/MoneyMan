@@ -15,7 +15,7 @@ export default async function PricingPage({ params }: PricingPageProps) {
   const page = dictionary.pages.pricing;
 
   return (
-    <MarketingPageShell locale={locale} header={dictionary.header}>
+    <MarketingPageShell locale={locale} header={dictionary.header} pattern="pricing">
       <PricingPageExperience
         locale={locale}
         page={page}

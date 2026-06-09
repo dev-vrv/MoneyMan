@@ -83,6 +83,7 @@ export function SiteHeader({ locale, messages }: SiteHeaderProps) {
   };
 
   const navItems: HeaderLinkItem[] = [
+    { label: messages.navigation.home, href: buildHref("/") },
     { label: messages.navigation.pricing, href: buildHref("/pricing") },
     { label: messages.navigation.contacts, href: buildHref("/contacts") },
     { label: messages.infoMenu.about, href: buildHref("/about") },

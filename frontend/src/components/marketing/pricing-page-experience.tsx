@@ -11,13 +11,8 @@ import {
 
 import { HomeSectionHeading } from "@/components/home/home-section-heading";
 import { MarketingPageIntro } from "@/components/marketing/marketing-page-intro";
+import { FaqAccordionShowcase } from "@/components/ui/faq-accordion-showcase";
 import { ScrollReveal } from "@/components/ui/scroll-reveal";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import { getLocalizedPath, type Locale } from "@/lib/i18n/config";
 import { cn } from "@/lib/utils";
 
@@ -354,43 +349,22 @@ export function PricingPageExperience({
       </section>
 
       <section className="relative z-10 py-10 lg:py-14">
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(22rem,26rem)] xl:items-stretch">
-          <div className="h-full rounded-[1.6rem] border border-white/10 bg-[linear-gradient(180deg,rgba(9,14,18,0.9),rgba(7,10,16,0.96))] p-3 backdrop-blur-xl sm:p-4">
-            <div className="px-3 pb-3 pt-2">
-              <div className="text-[0.68rem] uppercase tracking-[0.18em] text-white/42">
-                {page.faq.eyebrow}
-              </div>
-              <h2 className="mt-4 max-w-2xl text-3xl font-semibold leading-[1.12] tracking-[-0.04em] text-white sm:text-4xl">
-                {page.faq.title}
-              </h2>
-              <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-300 sm:text-base">
-                {page.faq.description}
-              </p>
-            </div>
+        <FaqAccordionShowcase
+          eyebrow={page.faq.eyebrow}
+          title={page.faq.title}
+          description={page.faq.description}
+          items={page.faq.items}
+          previousLabel={locale === "ru" ? "Назад" : locale === "kg" ? "Артка" : "Previous"}
+          nextLabel={locale === "ru" ? "Дальше" : locale === "kg" ? "Кийинки" : "Next"}
+          sidebarVariant="compact"
+        />
 
-            <Accordion className="gap-1.5">
-              {page.faq.items.map((item, index) => (
-                <AccordionItem
-                  key={`${item.question}-${index}`}
-                  value={`pricing-faq-${index}`}
-                  className="rounded-[1rem] border-none px-3 transition hover:bg-white/[0.03]"
-                >
-                  <AccordionTrigger className="py-3 text-left text-[0.96rem] font-medium leading-6 text-white hover:no-underline">
-                    {item.question}
-                  </AccordionTrigger>
-                  <AccordionContent className="pb-3 text-sm leading-6 text-slate-300">
-                    {item.answer}
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
-          </div>
-
-          <div className="relative flex h-full overflow-hidden rounded-[2rem] border border-white/10 bg-[linear-gradient(135deg,rgba(9,14,16,0.96),rgba(8,10,18,0.99))] px-6 py-7 shadow-[0_20px_70px_rgba(0,0,0,0.24)] sm:px-8 sm:py-8">
+        <div className="mt-6">
+          <div className="relative flex overflow-hidden rounded-[2rem] border border-white/10 bg-[linear-gradient(135deg,rgba(9,14,16,0.96),rgba(8,10,18,0.99))] px-6 py-7 shadow-[0_20px_70px_rgba(0,0,0,0.24)] sm:px-8 sm:py-8">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_24%,rgba(34,211,238,0.16),transparent_28%),radial-gradient(circle_at_82%_18%,rgba(74,222,128,0.18),transparent_26%),radial-gradient(circle_at_50%_110%,rgba(251,191,36,0.14),transparent_30%)]" />
             <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:42px_42px] opacity-20" />
             <div className="relative z-10 flex h-full flex-col">
-              <h2 className="text-3xl font-semibold leading-[1.12] tracking-[-0.04em] text-white sm:text-4xl">
+              <h2 className="text-2xl font-semibold leading-[1.14] tracking-[-0.04em] text-white sm:text-[2rem]">
                 {page.cta.title}
               </h2>
               <p className="mt-4 text-sm leading-7 text-slate-300 sm:text-base">

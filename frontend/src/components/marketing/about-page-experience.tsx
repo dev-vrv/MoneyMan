@@ -83,15 +83,6 @@ const platformIcons: IconType[] = [
 const platformStyles = [
   {
     articleClassName:
-      "border-emerald-300/16 bg-[linear-gradient(180deg,rgba(7,24,18,0.96),rgba(7,12,14,0.99))] shadow-[0_18px_54px_rgba(3,18,10,0.28)]",
-    glowClassName:
-      "bg-[radial-gradient(circle_at_18%_20%,rgba(74,222,128,0.18),transparent_24%),radial-gradient(circle_at_88%_14%,rgba(163,230,53,0.14),transparent_20%),linear-gradient(145deg,rgba(74,222,128,0.06),transparent_58%)]",
-    iconWrapClassName: "border-emerald-300/20 bg-emerald-300/12 text-emerald-50",
-    labelClassName: "text-emerald-100/60",
-    numberClassName: "text-emerald-50",
-  },
-  {
-    articleClassName:
       "border-cyan-300/16 bg-[linear-gradient(180deg,rgba(7,18,24,0.96),rgba(7,10,16,0.99))] shadow-[0_18px_54px_rgba(3,10,18,0.28)]",
     glowClassName:
       "bg-[radial-gradient(circle_at_16%_18%,rgba(34,211,238,0.18),transparent_24%),radial-gradient(circle_at_84%_18%,rgba(59,130,246,0.14),transparent_22%),linear-gradient(145deg,rgba(34,211,238,0.06),transparent_58%)]",
@@ -101,16 +92,25 @@ const platformStyles = [
   },
   {
     articleClassName:
-      "border-lime-300/14 bg-[linear-gradient(180deg,rgba(18,24,10,0.96),rgba(10,12,8,0.99))] shadow-[0_18px_54px_rgba(14,18,3,0.28)]",
+      "border-amber-300/16 bg-[linear-gradient(180deg,rgba(29,18,8,0.96),rgba(13,10,8,0.99))] shadow-[0_18px_54px_rgba(24,14,3,0.28)]",
     glowClassName:
-      "bg-[radial-gradient(circle_at_22%_18%,rgba(190,242,100,0.16),transparent_24%),radial-gradient(circle_at_84%_18%,rgba(74,222,128,0.12),transparent_22%),linear-gradient(145deg,rgba(163,230,53,0.06),transparent_58%)]",
-    iconWrapClassName: "border-lime-300/18 bg-lime-300/10 text-lime-50",
-    labelClassName: "text-lime-100/60",
-    numberClassName: "text-lime-50",
+      "bg-[radial-gradient(circle_at_20%_18%,rgba(251,191,36,0.18),transparent_24%),radial-gradient(circle_at_84%_18%,rgba(249,115,22,0.14),transparent_22%),linear-gradient(145deg,rgba(251,191,36,0.06),transparent_58%)]",
+    iconWrapClassName: "border-amber-300/20 bg-amber-300/12 text-amber-50",
+    labelClassName: "text-amber-100/60",
+    numberClassName: "text-amber-50",
   },
   {
     articleClassName:
-      "border-emerald-300/18 bg-[linear-gradient(180deg,rgba(8,26,18,0.96),rgba(7,11,12,0.99))] shadow-[0_18px_54px_rgba(4,18,9,0.28)]",
+      "border-fuchsia-300/16 bg-[linear-gradient(180deg,rgba(24,14,28,0.96),rgba(11,8,18,0.99))] shadow-[0_18px_54px_rgba(18,7,22,0.28)]",
+    glowClassName:
+      "bg-[radial-gradient(circle_at_20%_18%,rgba(232,121,249,0.18),transparent_24%),radial-gradient(circle_at_84%_18%,rgba(168,85,247,0.14),transparent_22%),linear-gradient(145deg,rgba(232,121,249,0.06),transparent_58%)]",
+    iconWrapClassName: "border-fuchsia-300/20 bg-fuchsia-300/12 text-fuchsia-50",
+    labelClassName: "text-fuchsia-100/60",
+    numberClassName: "text-fuchsia-50",
+  },
+  {
+    articleClassName:
+      "border-emerald-300/16 bg-[linear-gradient(180deg,rgba(8,24,18,0.96),rgba(7,11,13,0.99))] shadow-[0_18px_54px_rgba(4,18,9,0.28)]",
     glowClassName:
       "bg-[radial-gradient(circle_at_20%_18%,rgba(52,211,153,0.18),transparent_24%),radial-gradient(circle_at_86%_20%,rgba(34,211,238,0.12),transparent_22%),linear-gradient(145deg,rgba(16,185,129,0.08),transparent_58%)]",
     iconWrapClassName: "border-emerald-300/20 bg-emerald-300/12 text-emerald-50",
@@ -147,6 +147,21 @@ export function AboutPageExperience({
   locale,
   page,
 }: AboutPageExperienceProps) {
+  const aboutCopy = locale === "ru"
+    ? {
+        founderSignal: "Сигнал основателя",
+        epicBuild: "Сборка продукта",
+      }
+    : locale === "kg"
+      ? {
+          founderSignal: "Негиздөөчүнүн сигналы",
+          epicBuild: "Продукт түзүлүшү",
+        }
+      : {
+          founderSignal: "Founder signal",
+          epicBuild: "Product build",
+        };
+
   return (
     <div className="px-6 sm:px-10 lg:px-12">
       <section className="relative z-10 py-14 lg:py-18">
@@ -156,7 +171,7 @@ export function AboutPageExperience({
               eyebrow={page.eyebrow}
               title={page.title}
               description={page.description}
-              maxWidthClassName="max-w-4xl"
+              maxWidthClassName="max-w-3xl"
             />
           </div>
 
@@ -171,7 +186,7 @@ export function AboutPageExperience({
               <div className="relative z-10">
                 <div className="flex items-center justify-between gap-4">
                   <div className="inline-flex rounded-full border border-emerald-300/18 bg-emerald-300/10 px-3 py-1 text-[0.68rem] uppercase tracking-[0.18em] text-emerald-100">
-                    Founder signal
+                    {aboutCopy.founderSignal}
                   </div>
                   <RiShieldStarLine className="size-5 text-emerald-200/80" />
                 </div>
@@ -225,7 +240,7 @@ export function AboutPageExperience({
                 <div className="text-[0.68rem] uppercase tracking-[0.18em] text-white/42">
                   {page.founder.eyebrow}
                 </div>
-                <h2 className="mt-4 text-3xl font-semibold leading-[1.12] tracking-[-0.04em] text-white sm:text-4xl">
+                <h2 className="mt-4 max-w-lg text-3xl font-semibold leading-[1.12] tracking-[-0.04em] text-white sm:text-4xl">
                   {page.platforms.title}
                 </h2>
                 <p className="mt-4 text-sm leading-7 text-slate-300 sm:text-base">
@@ -247,11 +262,11 @@ export function AboutPageExperience({
                   distance={20}
                   blur={8}
                 >
-                  <article className={`about-platform-card group relative overflow-hidden rounded-[1.7rem] border p-5 transition duration-300 hover:-translate-y-1 hover:shadow-[0_26px_70px_rgba(0,0,0,0.28)] ${style.articleClassName}`}>
+                  <article className={`about-platform-card group relative h-full overflow-hidden rounded-[1.7rem] border p-5 transition duration-300 hover:-translate-y-1 hover:shadow-[0_26px_70px_rgba(0,0,0,0.28)] ${style.articleClassName}`}>
                     <div className={`absolute inset-0 opacity-90 ${style.glowClassName}`} />
                     <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:24px_24px] opacity-15" />
                     <div className="about-platform-card-line absolute inset-x-0 top-0 h-px" />
-                    <div className="relative z-10">
+                    <div className="relative z-10 flex h-full flex-col">
                       <div className={`inline-flex rounded-[1rem] border p-3 ${style.iconWrapClassName}`}>
                         <Icon className="size-5" />
                       </div>
@@ -266,7 +281,7 @@ export function AboutPageExperience({
                           {item.label.padStart(2, "0")}
                         </div>
                       </div>
-                      <p className="mt-3 text-sm leading-7 text-slate-300">
+                      <p className="mt-3 flex-1 text-sm leading-7 text-slate-300">
                         {item.detail}
                       </p>
                     </div>
@@ -283,7 +298,7 @@ export function AboutPageExperience({
           eyebrow={page.capabilities.eyebrow}
           title={page.capabilities.title}
           description={page.capabilities.description}
-          maxWidthClassName="max-w-3xl"
+          maxWidthClassName="max-w-2xl"
         />
 
         <div className="mt-8 grid gap-4 lg:grid-cols-3">
@@ -308,7 +323,7 @@ export function AboutPageExperience({
                     <div className="mt-5 text-[0.68rem] uppercase tracking-[0.22em] text-white/46">
                       {card.eyebrow}
                     </div>
-                    <h3 className="mt-3 text-2xl font-semibold leading-[1.12] tracking-[-0.04em] text-white">
+                    <h3 className="mt-3 max-w-[12rem] text-2xl font-semibold leading-[1.12] tracking-[-0.04em] text-white">
                       {card.title}
                     </h3>
                     <p className="mt-4 text-sm leading-7 text-slate-300">
@@ -329,7 +344,7 @@ export function AboutPageExperience({
             title={page.stack.title}
             description={page.stack.description}
             align="left"
-            maxWidthClassName="max-w-xl"
+            maxWidthClassName="max-w-lg"
           />
 
           <div className="space-y-4">
@@ -370,9 +385,9 @@ export function AboutPageExperience({
             <div className="max-w-2xl">
               <div className="inline-flex rounded-full border border-white/10 bg-white/6 px-3 py-1 text-[0.66rem] uppercase tracking-[0.16em] text-white/52">
                 <RiSparklingLine className="mr-2 size-3.5 text-emerald-200" />
-                Epic build
+                {aboutCopy.epicBuild}
               </div>
-              <h2 className="mt-4 text-3xl font-semibold leading-[1.12] tracking-[-0.04em] text-white sm:text-4xl">
+              <h2 className="mt-4 text-2xl font-semibold leading-[1.14] tracking-[-0.04em] text-white sm:text-[2rem]">
                 {page.cta.title}
               </h2>
               <p className="mt-4 text-sm leading-7 text-slate-300 sm:text-base">

@@ -15,7 +15,7 @@ export default async function TermsPage({ params }: TermsPageProps) {
   const page = dictionary.pages.terms;
 
   return (
-    <MarketingPageShell locale={locale} header={dictionary.header}>
+    <MarketingPageShell locale={locale} header={dictionary.header} pattern="terms">
       <MarketingInfoPageExperience
         locale={locale}
         compactHero

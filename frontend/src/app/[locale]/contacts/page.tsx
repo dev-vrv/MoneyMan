@@ -17,7 +17,7 @@ export default async function ContactsPage({ params }: ContactsPageProps) {
   const publicContactDetails = await getPublicContactDetails(locale);
 
   return (
-    <MarketingPageShell locale={locale} header={dictionary.header}>
+    <MarketingPageShell locale={locale} header={dictionary.header} pattern="contacts">
       <ContactPageExperience
         page={page}
         form={dictionary.contactForm}

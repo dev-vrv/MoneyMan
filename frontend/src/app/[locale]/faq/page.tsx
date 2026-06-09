@@ -15,7 +15,7 @@ export default async function FaqPage({ params }: FaqPageProps) {
   const page = dictionary.pages.faq;
 
   return (
-    <MarketingPageShell locale={locale} header={dictionary.header}>
+    <MarketingPageShell locale={locale} header={dictionary.header} pattern="faq">
       <MarketingInfoPageExperience
         locale={locale}
         compactHero

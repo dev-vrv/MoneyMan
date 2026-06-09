@@ -15,7 +15,7 @@ export default async function SecurityPage({ params }: SecurityPageProps) {
   const page = dictionary.pages.security;
 
   return (
-    <MarketingPageShell locale={locale} header={dictionary.header}>
+    <MarketingPageShell locale={locale} header={dictionary.header} pattern="security">
       <SecurityPageExperience locale={locale} page={page} />
     </MarketingPageShell>
   );

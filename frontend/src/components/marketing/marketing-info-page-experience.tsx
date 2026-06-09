@@ -18,18 +18,12 @@ import { HomeSectionHeading } from "@/components/home/home-section-heading";
 import { MarketingPageIntro } from "@/components/marketing/marketing-page-intro";
 import { ScrollReveal } from "@/components/ui/scroll-reveal";
 import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import {
-  Dialog,
-  DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { FaqAccordionShowcase } from "@/components/ui/faq-accordion-showcase";
+import { FeatureDialog } from "@/components/ui/feature-dialog";
 import { getLocalizedPath, type Locale } from "@/lib/i18n/config";
 import { cn } from "@/lib/utils";
 
@@ -181,6 +175,7 @@ function getPageCopy(locale: Locale) {
         core: "Основа",
         details: "Детали",
         faq: "FAQ",
+        previous: "Назад",
         next: "Дальше",
         nextStep: "Следующий шаг",
         readingMap: "Карта страницы",
@@ -199,6 +194,7 @@ function getPageCopy(locale: Locale) {
         core: "Негиз",
         details: "Деталдар",
         faq: "FAQ",
+        previous: "Артка",
         next: "Кийинки",
         nextStep: "Кийинки кадам",
         readingMap: "Барак картасы",
@@ -217,6 +213,7 @@ function getPageCopy(locale: Locale) {
         core: "Core",
         details: "Details",
         faq: "FAQ",
+        previous: "Previous",
         next: "Next",
         nextStep: "Next step",
         readingMap: "Reading map",
@@ -287,7 +284,6 @@ export function MarketingInfoPageExperience({
   const selectedPrimaryStyle = selectedPrimaryCardIndex === null
     ? primaryCardStyles[0]
     : primaryCardStyles[selectedPrimaryCardIndex % primaryCardStyles.length];
-
   return (
     <div className="px-6 sm:px-10 lg:px-12">
       <section
@@ -485,13 +481,26 @@ export function MarketingInfoPageExperience({
                         "group relative h-full overflow-hidden border transition duration-300",
                         streamlined
                           ? "rounded-[1.5rem] bg-[linear-gradient(180deg,rgba(9,14,18,0.94),rgba(7,10,16,0.98))] p-5 hover:border-white/16"
-                          : `rounded-[2rem] p-6 hover:-translate-y-1.5 ${style.articleClassName}`,
+                          : `rounded-[2rem] p-6 hover:-translate-y-2.5 hover:scale-[1.01] ${style.articleClassName}`,
+                        isInteractive && !streamlined
+                          ? "animate-[hero-float_6.6s_ease-in-out_infinite] will-change-transform"
+                          : "",
+                        isInteractive && !streamlined && index % 3 === 0
+                          ? "-rotate-[1.6deg] hover:rotate-[0.35deg]"
+                          : "",
+                        isInteractive && !streamlined && index % 3 === 1
+                          ? "rotate-[1.4deg] hover:-rotate-[0.3deg]"
+                          : "",
+                        isInteractive && !streamlined && index % 3 === 2
+                          ? "-rotate-[1deg] hover:rotate-[0.25deg]"
+                          : "",
                       )}
+                      style={isInteractive && !streamlined ? { animationDelay: `${index * 0.45}s` } : undefined}
                     >
                       {!streamlined ? (
                         <>
-                          <div className={cn("pointer-events-none absolute left-[-2.5rem] top-[-2rem] size-28 rounded-full blur-3xl opacity-75 animate-[hero-float_7.6s_ease-in-out_infinite]", style.orbOneClassName)} />
-                          <div className={cn("pointer-events-none absolute bottom-[-2.75rem] right-[-2rem] size-32 rounded-full blur-3xl opacity-70 animate-[hero-float_9.4s_ease-in-out_infinite] [animation-delay:1.2s]", style.orbTwoClassName)} />
+                          <div className={cn("pointer-events-none absolute left-[-2.5rem] top-[-2rem] size-28 rounded-full blur-3xl opacity-85 animate-[hero-float_5.8s_ease-in-out_infinite]", style.orbOneClassName)} />
+                          <div className={cn("pointer-events-none absolute bottom-[-2.75rem] right-[-2rem] size-32 rounded-full blur-3xl opacity-80 animate-[hero-float_7.1s_ease-in-out_infinite] [animation-delay:0.8s]", style.orbTwoClassName)} />
                           <div className={cn("absolute inset-0 opacity-90", style.overlayClassName)} />
                           <div className={cn("absolute inset-0 opacity-20", style.patternClassName)} />
                           <div className="absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/16 to-transparent" />
@@ -551,63 +560,77 @@ export function MarketingInfoPageExperience({
           </div>
         </section>
 
-      <Dialog
+      <FeatureDialog
         open={selectedPrimaryCardIndex !== null}
         onOpenChange={(open) => {
           if (!open) {
             setSelectedPrimaryCardIndex(null);
           }
         }}
+        dialogClassName={cn("max-w-[calc(100%-2rem)] overflow-hidden border p-0 sm:max-w-4xl", selectedPrimaryStyle.modalClassName)}
+        glowClassName={cn("opacity-95", selectedPrimaryStyle.modalGlowClassName)}
+        patternClassName="bg-[size:30px_30px] opacity-20"
+        decorations={
+          <>
+            <div className="absolute right-[-2rem] top-[-2rem] size-28 rotate-12 rounded-full border border-white/10" />
+            <div className="absolute left-[-2rem] bottom-[-2rem] size-32 rounded-full border border-white/8" />
+          </>
+        }
+        bodyClassName="p-6 sm:p-7"
+        navigation={{
+          currentIndex: selectedPrimaryCardIndex ?? 0,
+          total: primarySection.cards.length,
+          previousLabel: copy.previous,
+          nextLabel: copy.next,
+          onPrevious: () =>
+            setSelectedPrimaryCardIndex((current) =>
+              current === null ? 0 : (current - 1 + primarySection.cards.length) % primarySection.cards.length,
+            ),
+          onNext: () =>
+            setSelectedPrimaryCardIndex((current) =>
+              current === null ? 0 : (current + 1) % primarySection.cards.length,
+            ),
+        }}
       >
         {selectedPrimaryCard ? (
-          <DialogContent className={cn("max-w-[calc(100%-2rem)] sm:max-w-2xl overflow-hidden border p-0", selectedPrimaryStyle.modalClassName)}>
-            <div className="relative">
-              <div className={cn("absolute inset-0 opacity-95", selectedPrimaryStyle.modalGlowClassName)} />
-              <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:30px_30px] opacity-20" />
-              <div className="absolute right-[-2rem] top-[-2rem] size-28 rounded-full border border-white/10 rotate-12" />
-              <div className="absolute left-[-2rem] bottom-[-2rem] size-32 rounded-full border border-white/8" />
-              <div className="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/18 to-transparent" />
-
-              <div className="relative z-10 p-6 sm:p-7">
-                <DialogHeader className="gap-4">
-                  <div className="flex items-start justify-between gap-4 pr-10">
-                    <div className={cn("inline-flex rounded-full border px-3 py-1 text-[0.66rem] uppercase tracking-[0.16em]", selectedPrimaryStyle.badgeClassName)}>
-                      {selectedPrimaryCard.eyebrow || copy.detailedOverview}
-                    </div>
-                    <div className={cn("text-[0.68rem] uppercase tracking-[0.18em]", selectedPrimaryStyle.accentClassName)}>
-                      {selectedPrimaryCardIndex !== null ? String(selectedPrimaryCardIndex + 1).padStart(2, "0") : ""}
-                    </div>
-                  </div>
-                  <DialogTitle className="text-3xl leading-[1.08] tracking-[-0.04em] text-white">
-                    {selectedPrimaryCard.title}
-                  </DialogTitle>
-                  <DialogDescription className="max-w-2xl text-sm leading-7 text-slate-300">
-                    {selectedPrimaryCard.description}
-                  </DialogDescription>
-                </DialogHeader>
-
-                {selectedPrimaryCard.details?.length ? (
-                  <div className="mt-6 rounded-[1.6rem] border border-white/10 bg-black/18 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-                    <div className="text-[0.68rem] uppercase tracking-[0.18em] text-white/42">
-                      {copy.detailedPoints}
-                    </div>
-                    <div className="mt-4 space-y-3">
-                      {selectedPrimaryCard.details.map((detail, detailIndex) => (
-                        <div key={`${detail}-${detailIndex}`} className="flex items-start gap-3 rounded-[1rem] border border-white/8 bg-white/[0.03] px-4 py-3">
-                          <div className={cn("mt-1.5 size-2.5 shrink-0 rounded-full", selectedPrimaryStyle.bulletClassName)} />
-                          <div className="text-sm leading-7 text-slate-200">
-                            {detail}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
+          <>
+            <DialogHeader className="gap-4">
+              <div className="flex items-start justify-between gap-4 pr-10">
+                <div className={cn("inline-flex rounded-full border px-3 py-1 text-[0.66rem] uppercase tracking-[0.16em]", selectedPrimaryStyle.badgeClassName)}>
+                  {selectedPrimaryCard.eyebrow || copy.detailedOverview}
+                </div>
+                <div className={cn("text-[0.68rem] uppercase tracking-[0.18em]", selectedPrimaryStyle.accentClassName)}>
+                  {selectedPrimaryCardIndex !== null ? String(selectedPrimaryCardIndex + 1).padStart(2, "0") : ""}
+                </div>
               </div>
-            </div>
-          </DialogContent>
+              <DialogTitle className="text-3xl leading-[1.08] tracking-[-0.04em] text-white">
+                {selectedPrimaryCard.title}
+              </DialogTitle>
+              <DialogDescription className="max-w-2xl text-sm leading-7 text-slate-300">
+                {selectedPrimaryCard.description}
+              </DialogDescription>
+            </DialogHeader>
+
+            {selectedPrimaryCard.details?.length ? (
+              <div className="mt-6 rounded-[1.6rem] border border-white/10 bg-black/18 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+                <div className="text-[0.68rem] uppercase tracking-[0.18em] text-white/42">
+                  {copy.detailedPoints}
+                </div>
+                <div className="mt-4 space-y-3">
+                  {selectedPrimaryCard.details.map((detail, detailIndex) => (
+                    <div key={`${detail}-${detailIndex}`} className="flex items-start gap-3 rounded-[1rem] border border-white/8 bg-white/[0.03] px-4 py-3">
+                      <div className={cn("mt-1.5 size-2.5 shrink-0 rounded-full", selectedPrimaryStyle.bulletClassName)} />
+                      <div className="text-sm leading-7 text-slate-200">
+                        {detail}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </>
         ) : null}
-      </Dialog>
+      </FeatureDialog>
 
       {secondarySection ? (
         <section
@@ -726,40 +749,14 @@ export function MarketingInfoPageExperience({
 
       {faqSection ? (
         <section id="page-faq" className={cn("relative z-10", compactHero ? "py-8 lg:py-10" : "py-12 lg:py-14")}>
-          <div className={cn("grid gap-6 xl:grid-cols-[minmax(0,0.88fr)_minmax(0,1.12fr)] xl:items-start", compactHero ? "" : "space-y-0")}>
-            <div className="max-w-2xl">
-              <div className="sticky top-24">
-                <div className="text-[0.68rem] uppercase tracking-[0.18em] text-white/42">
-                  {faqSection.eyebrow}
-                </div>
-                <div className="mt-3 text-3xl font-semibold leading-[1.12] tracking-[-0.04em] text-white">
-                  {faqSection.title}
-                </div>
-                <p className="mt-3 text-sm leading-7 text-slate-300">
-                  {faqSection.description}
-                </p>
-              </div>
-            </div>
-
-            <div className="w-full rounded-[1.6rem] border border-white/10 bg-[linear-gradient(180deg,rgba(9,14,18,0.9),rgba(7,10,16,0.96))] p-3 backdrop-blur-xl sm:p-4">
-              <Accordion className="gap-1.5">
-                {faqSection.items.map((item, index) => (
-                  <AccordionItem
-                    key={`${item.question}-${index}`}
-                    value={`faq-${index}`}
-                    className="rounded-[1rem] border-none px-3 transition hover:bg-white/[0.03]"
-                  >
-                    <AccordionTrigger className="py-3 text-left text-[0.96rem] font-medium leading-6 text-white hover:no-underline">
-                      {item.question}
-                    </AccordionTrigger>
-                    <AccordionContent className="pb-3 text-sm leading-6 text-slate-300">
-                      {item.answer}
-                    </AccordionContent>
-                  </AccordionItem>
-                ))}
-              </Accordion>
-            </div>
-          </div>
+          <FaqAccordionShowcase
+            eyebrow={faqSection.eyebrow}
+            title={faqSection.title}
+            description={faqSection.description}
+            items={faqSection.items}
+            previousLabel={copy.previous}
+            nextLabel={copy.next}
+          />
         </section>
       ) : null}
 
@@ -772,7 +769,7 @@ export function MarketingInfoPageExperience({
               <div className="inline-flex rounded-full border border-white/10 bg-white/6 px-3 py-1 text-[0.66rem] uppercase tracking-[0.16em] text-white/52">
                 {copy.nextAction}
               </div>
-              <h2 className="mt-4 text-3xl font-semibold tracking-[-0.04em] text-white sm:text-4xl">
+              <h2 className="mt-4 text-2xl font-semibold tracking-[-0.04em] text-white sm:text-[2rem]">
                 {cta.title}
               </h2>
               <p className="mt-4 text-sm leading-7 text-slate-300 sm:text-base">

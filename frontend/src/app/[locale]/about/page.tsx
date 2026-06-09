@@ -15,7 +15,7 @@ export default async function AboutPage({ params }: AboutPageProps) {
   const page = dictionary.pages.about;
 
   return (
-    <MarketingPageShell locale={locale} header={dictionary.header}>
+    <MarketingPageShell locale={locale} header={dictionary.header} pattern="about">
       <AboutPageExperience locale={locale} page={page} />
     </MarketingPageShell>
   );

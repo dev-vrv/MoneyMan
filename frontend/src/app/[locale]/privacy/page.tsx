@@ -15,7 +15,7 @@ export default async function PrivacyPage({ params }: PrivacyPageProps) {
   const page = dictionary.pages.privacy;
 
   return (
-    <MarketingPageShell locale={locale} header={dictionary.header}>
+    <MarketingPageShell locale={locale} header={dictionary.header} pattern="privacy">
       <MarketingInfoPageExperience
         locale={locale}
         compactHero

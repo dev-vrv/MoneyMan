@@ -29,7 +29,7 @@ export function MarketingCtaPanel({
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_24%,rgba(34,211,238,0.18),transparent_28%),radial-gradient(circle_at_82%_22%,rgba(74,222,128,0.18),transparent_26%),radial-gradient(circle_at_50%_110%,rgba(251,191,36,0.15),transparent_30%)]" />
           <div className="relative z-10 grid gap-6 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
             <div className="max-w-2xl">
-              <h2 className="text-3xl font-semibold tracking-[-0.04em] text-white sm:text-4xl">
+              <h2 className="text-2xl font-semibold tracking-[-0.04em] text-white sm:text-[2rem]">
                 {title}
               </h2>
               <p className="mt-4 text-sm leading-7 text-slate-300 sm:text-base">
