@@ -18,6 +18,7 @@ export default async function PrivacyPage({ params }: PrivacyPageProps) {
     <MarketingPageShell locale={locale} header={dictionary.header}>
       <MarketingInfoPageExperience
         locale={locale}
+        compactHero
         hero={page}
         primarySection={page.summary}
         secondarySection={page.dataUse}

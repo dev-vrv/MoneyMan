@@ -88,7 +88,7 @@ export function HomeHeroSection({
                 text={home.title}
                 as="h1"
                 size="2xl"
-                className="max-w-3xl font-semibold leading-[0.98] tracking-[-0.05em] text-white sm:text-5xl lg:text-6xl"
+                className="max-w-3xl font-semibold leading-[1.08] tracking-[-0.05em] text-white sm:text-5xl lg:text-6xl"
                 letterClassName="drop-shadow-[0_0_24px_rgba(110,231,183,0.22)]"
                 config={{ duration: 0.35, delayStep: 26, distance: 52 }}
               />

@@ -18,10 +18,11 @@ export default async function TermsPage({ params }: TermsPageProps) {
     <MarketingPageShell locale={locale} header={dictionary.header}>
       <MarketingInfoPageExperience
         locale={locale}
+        compactHero
+        streamlined
         hero={page}
         primarySection={page.summary}
         secondarySection={page.rules}
-        faqSection={page.faq}
         cta={{
           ...page.cta,
           primaryHref: "/contacts",

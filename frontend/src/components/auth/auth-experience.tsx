@@ -172,7 +172,7 @@ export function AuthExperience({ locale, content }: AuthExperienceProps) {
                   text={activeTheme.title}
                   as="h1"
                   size="xl"
-                  className="text-2xl font-semibold leading-[1.28] tracking-tight text-white sm:text-3xl"
+                  className="text-2xl font-semibold leading-[1.36] tracking-tight text-white sm:text-3xl"
                   delay={0.08}
                   duration={0.44}
                   stagger={0.024}
@@ -202,7 +202,7 @@ export function AuthExperience({ locale, content }: AuthExperienceProps) {
                 >
                   <span className="inline-flex size-11 items-center justify-center overflow-hidden rounded-full border border-emerald-300/20 bg-white/95 shadow-[0_10px_24px_rgba(0,0,0,0.18)]">
                     <Image
-                      src="/images/logo/fin.png"
+                      src="/images/logo/logo.png"
                       alt={content.badge}
                       width={44}
                       height={44}

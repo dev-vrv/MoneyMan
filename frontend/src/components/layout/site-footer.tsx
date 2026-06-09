@@ -50,6 +50,18 @@ export function SiteFooter({ locale, content, publicContactDetails }: SiteFooter
   const [primarySection, secondarySection, tertiarySection] = content.sections;
   const socialLinks = getPublicContactSocialLinks(publicContactDetails);
   const directItems = getPublicContactDirectItems(publicContactDetails).slice(0, 3);
+  const iconOnlyDirectItems = directItems.filter(
+    (item) =>
+      item.key === "email" ||
+      item.key === "phone_primary" ||
+      item.key === "phone_secondary",
+  );
+  const textDirectItems = directItems.filter(
+    (item) =>
+      item.key !== "email" &&
+      item.key !== "phone_primary" &&
+      item.key !== "phone_secondary",
+  );
 
   return (
     <footer className="relative z-10 mt-auto overflow-hidden border-t border-white/8 bg-[linear-gradient(180deg,rgba(4,8,9,0.94),rgba(3,5,7,0.99))]">
@@ -86,7 +98,7 @@ export function SiteFooter({ locale, content, publicContactDetails }: SiteFooter
 
             {socialLinks.length > 0 || directItems.length > 0 ? (
               <div className="mt-7 flex flex-col gap-4">
-                {socialLinks.length > 0 ? (
+                {socialLinks.length > 0 || iconOnlyDirectItems.length > 0 ? (
                   <div className="flex flex-wrap gap-3">
                     {socialLinks.map((item) => {
                       const Icon = socialIconMap[item.key];
@@ -104,12 +116,8 @@ export function SiteFooter({ locale, content, publicContactDetails }: SiteFooter
                         </Link>
                       );
                     })}
-                  </div>
-                ) : null}
 
-                {directItems.length > 0 ? (
-                  <div className="flex flex-wrap gap-3">
-                    {directItems.map((item) => {
+                    {iconOnlyDirectItems.map((item) => {
                       const Icon = directIconMap[item.key];
                       const href =
                         item.key === "email"
@@ -119,9 +127,8 @@ export function SiteFooter({ locale, content, publicContactDetails }: SiteFooter
                             : null;
 
                       const contentNode = (
-                        <span className="inline-flex items-center gap-2">
-                          <Icon className="size-4 shrink-0 text-emerald-200" />
-                          <span>{item.value}</span>
+                        <span className="inline-flex size-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white/84 transition hover:border-emerald-300/20 hover:bg-white/[0.08] hover:text-white">
+                          <Icon className="size-5 text-emerald-200" />
                         </span>
                       );
 
@@ -129,16 +136,37 @@ export function SiteFooter({ locale, content, publicContactDetails }: SiteFooter
                         <Link
                           key={`${item.key}-${item.value}`}
                           href={href}
-                          className="rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-sm text-white/78 transition hover:border-white/18 hover:text-white"
+                          aria-label={item.value}
+                          className="inline-flex"
                         >
                           {contentNode}
                         </Link>
                       ) : (
                         <div
                           key={`${item.key}-${item.value}`}
-                          className="rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-sm text-white/78"
+                          className="inline-flex"
                         >
                           {contentNode}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : null}
+
+                {textDirectItems.length > 0 ? (
+                  <div className="flex flex-wrap gap-3">
+                    {textDirectItems.map((item) => {
+                      const Icon = directIconMap[item.key];
+
+                      return (
+                        <div
+                          key={`${item.key}-${item.value}`}
+                          className="rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-sm text-white/78"
+                        >
+                          <span className="inline-flex items-center gap-2">
+                            <Icon className="size-4 shrink-0 text-emerald-200" />
+                            <span>{item.value}</span>
+                          </span>
                         </div>
                       );
                     })}

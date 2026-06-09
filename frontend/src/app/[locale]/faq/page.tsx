@@ -18,6 +18,7 @@ export default async function FaqPage({ params }: FaqPageProps) {
     <MarketingPageShell locale={locale} header={dictionary.header}>
       <MarketingInfoPageExperience
         locale={locale}
+        compactHero
         hero={page}
         primarySection={page.topics}
         faqSection={page.questions}

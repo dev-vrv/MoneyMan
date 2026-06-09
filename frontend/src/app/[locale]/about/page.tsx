@@ -1,4 +1,4 @@
-import { MarketingInfoPageExperience } from "@/components/marketing/marketing-info-page-experience";
+import { AboutPageExperience } from "@/components/marketing/about-page-experience";
 import { MarketingPageShell } from "@/components/marketing/marketing-page-shell";
 import { type Locale } from "@/lib/i18n/config";
 import { getLocaleDictionary } from "@/lib/i18n/server";
@@ -16,17 +16,7 @@ export default async function AboutPage({ params }: AboutPageProps) {
 
   return (
     <MarketingPageShell locale={locale} header={dictionary.header}>
-      <MarketingInfoPageExperience
-        locale={locale}
-        hero={page}
-        primarySection={page.principles}
-        secondarySection={page.product}
-        cta={{
-          ...page.cta,
-          primaryHref: "/contacts",
-          secondaryHref: "/pricing",
-        }}
-      />
+      <AboutPageExperience locale={locale} page={page} />
     </MarketingPageShell>
   );
 }

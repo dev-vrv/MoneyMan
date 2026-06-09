@@ -12,6 +12,7 @@ type ScrollRevealProps = {
   distance?: number;
   once?: boolean;
   amount?: number;
+  margin?: string;
   blur?: number;
   scale?: number;
 };
@@ -23,7 +24,8 @@ export function ScrollReveal({
   duration = 0.65,
   distance = 28,
   once = true,
-  amount = 0.2,
+  amount = 0.01,
+  margin = "0px 0px 12% 0px",
   blur = 10,
   scale = 0.985,
 }: ScrollRevealProps) {
@@ -32,7 +34,7 @@ export function ScrollReveal({
   const isInView = useInView(ref, {
     once,
     amount,
-    margin: "0px 0px -10% 0px",
+    margin,
   });
 
   if (reduceMotion) {

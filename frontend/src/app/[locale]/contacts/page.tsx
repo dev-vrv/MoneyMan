@@ -19,7 +19,6 @@ export default async function ContactsPage({ params }: ContactsPageProps) {
   return (
     <MarketingPageShell locale={locale} header={dictionary.header}>
       <ContactPageExperience
-        locale={locale}
         page={page}
         form={dictionary.contactForm}
         publicContactDetails={publicContactDetails}

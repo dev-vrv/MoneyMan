@@ -60,7 +60,7 @@ export function PasswordRecoveryExperience({
                 text={content.form.title}
                 as="h1"
                 size="xl"
-                className="font-semibold leading-[1.08] tracking-tight text-white"
+                className="font-semibold leading-[1.18] tracking-tight text-white"
                 delay={0.08}
                 duration={0.44}
                 stagger={0.024}
@@ -83,7 +83,7 @@ export function PasswordRecoveryExperience({
               >
                 <span className="inline-flex size-11 items-center justify-center overflow-hidden rounded-full border border-emerald-300/20 bg-white/95 shadow-[0_10px_24px_rgba(0,0,0,0.18)]">
                   <Image
-                    src="/images/logo/fin.png"
+                    src="/images/logo/logo.png"
                     alt={content.title}
                     width={44}
                     height={44}

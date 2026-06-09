@@ -18,6 +18,7 @@ export default async function OfferPage({ params }: OfferPageProps) {
     <MarketingPageShell locale={locale} header={dictionary.header}>
       <MarketingInfoPageExperience
         locale={locale}
+        compactHero
         hero={page}
         primarySection={page.summary}
         secondarySection={page.payments}

@@ -590,6 +590,197 @@
   }
 }
 
+@keyframes header-aurora-shift-one {
+  0% {
+    transform: translate3d(-6%, 0, 0) scaleX(1);
+    opacity: 0.3;
+  }
+
+  50% {
+    transform: translate3d(8%, 2%, 0) scaleX(1.08);
+    opacity: 0.55;
+  }
+
+  100% {
+    transform: translate3d(-4%, -2%, 0) scaleX(0.96);
+    opacity: 0.34;
+  }
+}
+
+@keyframes header-aurora-shift-two {
+  0% {
+    transform: translate3d(8%, -4%, 0) scale(1);
+    opacity: 0.2;
+  }
+
+  50% {
+    transform: translate3d(-6%, 4%, 0) scale(1.08);
+    opacity: 0.42;
+  }
+
+  100% {
+    transform: translate3d(4%, -2%, 0) scale(0.94);
+    opacity: 0.24;
+  }
+}
+
+@keyframes pricing-pro-aurora {
+  0% {
+    transform: translate3d(-8%, -4%, 0) scale(1);
+    opacity: 0.38;
+  }
+
+  35% {
+    transform: translate3d(6%, 2%, 0) scale(1.08);
+    opacity: 0.58;
+  }
+
+  68% {
+    transform: translate3d(-2%, 8%, 0) scale(0.96);
+    opacity: 0.46;
+  }
+
+  100% {
+    transform: translate3d(8%, -3%, 0) scale(1.05);
+    opacity: 0.52;
+  }
+}
+
+@keyframes about-orb-drift-one {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.28;
+  }
+
+  50% {
+    transform: translate3d(16px, 18px, 0) scale(1.08);
+    opacity: 0.52;
+  }
+
+  100% {
+    transform: translate3d(-12px, 10px, 0) scale(0.96);
+    opacity: 0.34;
+  }
+}
+
+@keyframes about-orb-drift-two {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.22;
+  }
+
+  50% {
+    transform: translate3d(-18px, 12px, 0) scale(1.1);
+    opacity: 0.44;
+  }
+
+  100% {
+    transform: translate3d(10px, -8px, 0) scale(0.94);
+    opacity: 0.28;
+  }
+}
+
+@keyframes about-grid-shift {
+  0% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0.2;
+  }
+
+  50% {
+    transform: translate3d(0, -10px, 0);
+    opacity: 0.34;
+  }
+
+  100% {
+    transform: translate3d(0, 4px, 0);
+    opacity: 0.22;
+  }
+}
+
+@keyframes about-beam-scan {
+  0% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+
+  18% {
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateX(220%);
+    opacity: 0;
+  }
+}
+
+@keyframes security-grid-drift {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+
+  100% {
+    transform: translate3d(18px, 12px, 0);
+  }
+}
+
+@keyframes security-aurora-drift {
+  0% {
+    transform: translate3d(-3%, -2%, 0) scale(1);
+    opacity: 0.44;
+  }
+
+  100% {
+    transform: translate3d(4%, 3%, 0) scale(1.08);
+    opacity: 0.72;
+  }
+}
+
+@keyframes security-ring-pulse {
+  0% {
+    transform: scale(0.96);
+    opacity: 0.24;
+  }
+
+  50% {
+    opacity: 0.72;
+  }
+
+  100% {
+    transform: scale(1.04);
+    opacity: 0.28;
+  }
+}
+
+@keyframes security-scan-rotate {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes security-node-pulse {
+  0% {
+    transform: scale(0.86);
+    opacity: 0.48;
+    box-shadow: 0 0 0 0 rgba(34, 211, 238, 0.32);
+  }
+
+  55% {
+    transform: scale(1);
+    opacity: 1;
+    box-shadow: 0 0 0 10px rgba(34, 211, 238, 0);
+  }
+
+  100% {
+    transform: scale(0.92);
+    opacity: 0.64;
+    box-shadow: 0 0 0 0 rgba(34, 211, 238, 0);
+  }
+}
+
 @layer components {
   .surface-panel {
     @apply border border-white/8 backdrop-blur-xl;
@@ -819,6 +1010,176 @@
   .audience-status-dot {
     animation: audience-status-dot 2.6s ease-in-out infinite;
   }
+
+  .header-aurora {
+    pointer-events: none;
+    filter: blur(48px);
+    mix-blend-mode: screen;
+    opacity: 0.4;
+  }
+
+  .header-aurora-primary {
+    background:
+      radial-gradient(circle at 18% 50%, rgba(34, 211, 238, 0.28) 0%, transparent 28%),
+      radial-gradient(circle at 48% 45%, rgba(74, 222, 128, 0.26) 0%, transparent 30%),
+      radial-gradient(circle at 80% 42%, rgba(251, 191, 36, 0.24) 0%, transparent 26%);
+    animation: header-aurora-shift-one 18s ease-in-out infinite alternate;
+  }
+
+  .header-aurora-secondary {
+    background:
+      radial-gradient(circle at 26% 56%, rgba(244, 114, 182, 0.18) 0%, transparent 24%),
+      radial-gradient(circle at 70% 40%, rgba(168, 85, 247, 0.2) 0%, transparent 26%),
+      radial-gradient(circle at 88% 60%, rgba(34, 211, 238, 0.14) 0%, transparent 20%);
+    animation: header-aurora-shift-two 24s ease-in-out infinite alternate;
+  }
+
+  .pricing-pro-aurora {
+    background:
+      radial-gradient(circle at 18% 22%, rgba(34, 211, 238, 0.2) 0%, transparent 24%),
+      radial-gradient(circle at 82% 20%, rgba(59, 130, 246, 0.18) 0%, transparent 26%),
+      radial-gradient(circle at 46% 84%, rgba(168, 85, 247, 0.14) 0%, transparent 22%),
+      linear-gradient(135deg, rgba(34, 211, 238, 0.08), transparent 42%, rgba(59, 130, 246, 0.08) 74%, transparent 100%);
+    filter: blur(18px);
+    animation: pricing-pro-aurora 7.8s ease-in-out infinite alternate;
+  }
+
+  .about-command-shell {
+    background-image: linear-gradient(
+      180deg,
+      rgba(10, 16, 24, 0.96) 0%,
+      rgba(8, 10, 18, 0.99) 100%
+    );
+  }
+
+  .about-command-grid {
+    background-image:
+      linear-gradient(to right, rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+    background-size: 28px 28px;
+    animation: about-grid-shift 7.6s ease-in-out infinite alternate;
+  }
+
+  .about-command-beam {
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(34, 211, 238, 0.32) 26%,
+      rgba(255, 255, 255, 0.92) 50%,
+      rgba(74, 222, 128, 0.3) 74%,
+      transparent 100%
+    );
+    animation: about-beam-scan 6.8s linear infinite;
+  }
+
+  .about-command-orb {
+    filter: blur(52px);
+    mix-blend-mode: screen;
+    pointer-events: none;
+  }
+
+  .about-command-orb-one {
+    background: radial-gradient(circle, rgba(34, 211, 238, 0.22) 0%, transparent 72%);
+    animation: about-orb-drift-one 8.4s ease-in-out infinite alternate;
+  }
+
+  .about-command-orb-two {
+    background: radial-gradient(circle, rgba(74, 222, 128, 0.22) 0%, transparent 72%);
+    animation: about-orb-drift-two 9.2s ease-in-out infinite alternate;
+  }
+
+  .about-command-orb-three {
+    background: radial-gradient(circle, rgba(168, 85, 247, 0.18) 0%, transparent 72%);
+    animation: about-orb-drift-one 10.2s ease-in-out infinite alternate-reverse;
+  }
+
+  .about-float {
+    animation: hero-float 5.8s ease-in-out infinite;
+  }
+
+  .about-platform-card-line {
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(34, 211, 238, 0.36) 34%,
+      rgba(255, 255, 255, 0.85) 50%,
+      rgba(74, 222, 128, 0.34) 70%,
+      transparent 100%
+    );
+    opacity: 0.72;
+  }
+
+  .security-command-grid {
+    background-image:
+      linear-gradient(to right, rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+    background-size: 30px 30px;
+    animation: security-grid-drift 9.6s ease-in-out infinite alternate;
+  }
+
+  .security-mini-grid::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(135deg, rgba(34, 211, 238, 0.1), transparent 36%, rgba(74, 222, 128, 0.08) 72%, transparent 100%);
+    pointer-events: none;
+  }
+
+  .security-aurora {
+    background:
+      radial-gradient(circle at 18% 22%, rgba(34, 211, 238, 0.2) 0%, transparent 22%),
+      radial-gradient(circle at 82% 20%, rgba(74, 222, 128, 0.16) 0%, transparent 22%),
+      radial-gradient(circle at 46% 84%, rgba(59, 130, 246, 0.15) 0%, transparent 26%);
+    filter: blur(28px);
+    animation: security-aurora-drift 11.8s ease-in-out infinite alternate;
+    mix-blend-mode: screen;
+    opacity: 0.6;
+  }
+
+  .security-ring {
+    animation: security-ring-pulse 4.8s ease-in-out infinite;
+  }
+
+  .security-ring-delay {
+    animation-delay: 0.9s;
+  }
+
+  .security-ring-slow {
+    animation-delay: 1.7s;
+    animation-duration: 5.9s;
+  }
+
+  .security-scan {
+    background: conic-gradient(
+      from 0deg,
+      transparent 0deg,
+      rgba(34, 211, 238, 0.26) 48deg,
+      rgba(34, 211, 238, 0.04) 82deg,
+      transparent 112deg
+    );
+    filter: blur(2px);
+    animation: security-scan-rotate 9s linear infinite;
+    mask-image: radial-gradient(circle, transparent 0 46%, black 50% 100%);
+    -webkit-mask-image: radial-gradient(circle, transparent 0 46%, black 50% 100%);
+  }
+
+  .security-node {
+    animation: security-node-pulse 3.1s ease-in-out infinite;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18);
+  }
+
+  .security-card-beam {
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(34, 211, 238, 0.36) 30%,
+      rgba(255, 255, 255, 0.88) 50%,
+      rgba(74, 222, 128, 0.32) 68%,
+      transparent 100%
+    );
+    opacity: 0.76;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -834,7 +1195,21 @@
   .hero-money-ring,
   .hero-money-beacon-sweep,
   .hero-money-line,
-  .audience-status-dot {
+  .audience-status-dot,
+  .header-aurora-primary,
+  .header-aurora-secondary,
+  .pricing-pro-aurora,
+  .about-command-grid,
+  .about-command-beam,
+  .about-command-orb-one,
+  .about-command-orb-two,
+  .about-command-orb-three,
+  .about-float,
+  .security-command-grid,
+  .security-aurora,
+  .security-ring,
+  .security-scan,
+  .security-node {
     animation: none;
   }
 }

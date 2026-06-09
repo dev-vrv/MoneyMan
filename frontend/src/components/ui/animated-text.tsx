@@ -134,7 +134,7 @@ export function AnimatedText({
                       letterClassName,
                     )}
                     style={{
-                      lineHeight: 1,
+                      lineHeight: "inherit",
                       opacity: isVisible
                         ? mergedConfig.toOpacity
                         : mergedConfig.fromOpacity,

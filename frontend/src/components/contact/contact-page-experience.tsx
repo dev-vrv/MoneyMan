@@ -11,8 +11,8 @@ import type { IconType } from "react-icons";
 
 import { ContactForm, type ContactFormCopy } from "@/components/contact/contact-form";
 import { HomeSectionHeading } from "@/components/home/home-section-heading";
+import { MarketingPageIntro } from "@/components/marketing/marketing-page-intro";
 import { ScrollReveal } from "@/components/ui/scroll-reveal";
-import type { Locale } from "@/lib/i18n/config";
 import type { Dictionary } from "@/lib/i18n/dictionaries";
 import {
   getPublicContactSocialLinks,
@@ -20,7 +20,6 @@ import {
 } from "@/lib/public-contact-details";
 
 type ContactPageExperienceProps = {
-  locale: Locale;
   page: Dictionary["pages"]["contacts"];
   form: ContactFormCopy;
   publicContactDetails: PublicContactDetails | null;
@@ -102,20 +101,20 @@ export function ContactPageExperience({
 
   return (
     <div className="relative z-10 flex flex-1 flex-col px-6 py-14 sm:px-10 lg:px-12 lg:py-18">
-      <section className="relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-[linear-gradient(180deg,rgba(7,14,18,0.98),rgba(7,11,18,0.98))] px-6 py-8 shadow-[0_24px_100px_rgba(0,0,0,0.28)] sm:px-8 sm:py-10 lg:px-10">
+      <section className="relative z-10 py-0">
+        <MarketingPageIntro
+          eyebrow={page.eyebrow}
+          title={page.title}
+          description={page.description}
+        />
+      </section>
+
+      <section className="relative mt-8 overflow-hidden rounded-[2.5rem] border border-white/10 bg-[linear-gradient(180deg,rgba(7,14,18,0.98),rgba(7,11,18,0.98))] px-6 py-8 shadow-[0_24px_100px_rgba(0,0,0,0.28)] sm:px-8 sm:py-10 lg:px-10">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_14%_18%,rgba(34,211,238,0.18),transparent_22%),radial-gradient(circle_at_84%_18%,rgba(74,222,128,0.14),transparent_24%),radial-gradient(circle_at_52%_100%,rgba(251,191,36,0.12),transparent_28%)]" />
         <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.055)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.055)_1px,transparent_1px)] bg-[size:42px_42px] opacity-20" />
 
         <div className="relative z-10 min-w-0">
-          <HomeSectionHeading
-            eyebrow={page.eyebrow}
-            title={page.title}
-            description={page.description}
-            align="left"
-            maxWidthClassName="max-w-3xl"
-          />
-
-          <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {page.channels.cards.map((card, index) => (
               <ScrollReveal
                 key={`${card.title}-${index}`}

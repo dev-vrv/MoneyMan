@@ -20,6 +20,8 @@ export default async function Home({ params }: HomePageProps) {
   return (
     <main className="relative flex min-h-screen flex-1 flex-col overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(34,197,94,0.16),_transparent_28%),linear-gradient(180deg,_#040806_0%,_#08110d_42%,_#040705_100%)]">
       <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.085)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.085)_1px,transparent_1px),linear-gradient(to_right,rgba(34,211,238,0.075)_1px,transparent_1px),linear-gradient(to_bottom,rgba(244,114,182,0.06)_1px,transparent_1px)] bg-[size:72px_72px,72px_72px,216px_216px,216px_216px] opacity-40" />
+      <div className="header-aurora header-aurora-primary absolute inset-x-[4%] top-[-4rem] h-40 sm:h-48 lg:top-[-3rem] lg:h-56" />
+      <div className="header-aurora header-aurora-secondary absolute inset-x-[10%] top-6 h-32 sm:h-40 lg:top-8 lg:h-44" />
       <div className="hero-drift-light hero-drift-light-cyan hero-drift-light-one absolute left-[-8%] top-[10%] h-[24rem] w-[24rem] rounded-full" />
       <div className="hero-drift-light hero-drift-light-amber hero-drift-light-two absolute right-[-6%] top-[18%] h-[28rem] w-[28rem] rounded-full" />
       <div className="hero-drift-light hero-drift-light-fuchsia hero-drift-light-three absolute bottom-[-6%] left-[28%] h-[26rem] w-[26rem] rounded-full" />
