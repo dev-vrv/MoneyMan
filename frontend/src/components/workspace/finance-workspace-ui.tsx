@@ -372,7 +372,7 @@ export function AccountCard({
   return (
     <div
       className={cn(
-        "group relative flex flex-col overflow-hidden rounded-[1.45rem] border bg-[linear-gradient(180deg,rgba(11,17,15,0.98)_0%,rgba(8,13,12,0.96)_100%)] p-4 transition duration-200 hover:-translate-y-0.5",
+        "group relative flex flex-col overflow-visible rounded-[1.45rem] border bg-[linear-gradient(180deg,rgba(11,17,15,0.98)_0%,rgba(8,13,12,0.96)_100%)] p-4 transition duration-200 hover:-translate-y-0.5",
         onOpen ? "cursor-pointer" : "",
         className,
       )}
@@ -505,56 +505,76 @@ export function MetricCard({
   const remainingCount = Math.max(breakdown.length - visibleEntries.length, 0);
   const toneStyles = {
     emerald: {
-      cardSurface: "bg-[linear-gradient(180deg,rgba(10,26,19,0.92)_0%,rgba(6,18,12,0.98)_100%)]",
-      cardHover: "hover:border-emerald-300/18 hover:shadow-[0_24px_60px_rgba(16,185,129,0.16)]",
-      iconWrap: "border-emerald-300/16 bg-emerald-300/10 text-emerald-100",
-      actionWrap: "border-emerald-300/18 bg-emerald-300/10 text-emerald-100 group-hover:bg-emerald-300/14",
-      actionDot: "border-emerald-300/18",
-      progressTrack: "rgba(167,243,208,0.9)",
-      valueText: "text-emerald-50",
+      cardSurface: "bg-[linear-gradient(180deg,rgba(11,12,12,0.96)_0%,rgba(7,8,8,0.985)_100%)] backdrop-blur-xl",
+      cardHover: "hover:border-emerald-300/14 hover:shadow-[0_24px_60px_rgba(16,185,129,0.1)]",
+      iconWrap: "border-emerald-300/12 bg-emerald-300/[0.07] text-emerald-100",
+      actionWrap: "border-emerald-300/14 bg-emerald-300/[0.07] text-emerald-100 group-hover:bg-emerald-300/[0.09]",
+      actionDot: "border-emerald-300/14",
+      progressTrack: "rgba(110,231,183,0.7)",
+      valueText: "text-zinc-50",
+      overlayGlow:
+        "bg-[radial-gradient(circle_at_18%_18%,rgba(52,211,153,0.1),transparent_24%),radial-gradient(circle_at_82%_14%,rgba(16,185,129,0.05),transparent_26%)]",
+      overlayPattern:
+        "bg-[linear-gradient(to_right,rgba(255,255,255,0.07)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.07)_1px,transparent_1px)] bg-[size:28px_28px]",
     },
     rose: {
-      cardSurface: "bg-[linear-gradient(180deg,rgba(30,12,18,0.92)_0%,rgba(20,8,13,0.98)_100%)]",
-      cardHover: "hover:border-rose-300/18 hover:shadow-[0_24px_60px_rgba(244,63,94,0.16)]",
-      iconWrap: "border-rose-300/16 bg-rose-300/10 text-rose-100",
-      actionWrap: "border-rose-300/18 bg-rose-300/10 text-rose-100 group-hover:bg-rose-300/14",
-      actionDot: "border-rose-300/18",
-      progressTrack: "rgba(253,164,175,0.9)",
-      valueText: "text-rose-50",
+      cardSurface: "bg-[linear-gradient(180deg,rgba(12,11,12,0.96)_0%,rgba(8,7,8,0.985)_100%)] backdrop-blur-xl",
+      cardHover: "hover:border-rose-300/14 hover:shadow-[0_24px_60px_rgba(244,63,94,0.1)]",
+      iconWrap: "border-rose-300/12 bg-rose-300/[0.07] text-rose-100",
+      actionWrap: "border-rose-300/14 bg-rose-300/[0.07] text-rose-100 group-hover:bg-rose-300/[0.09]",
+      actionDot: "border-rose-300/14",
+      progressTrack: "rgba(253,164,175,0.68)",
+      valueText: "text-zinc-50",
+      overlayGlow:
+        "bg-[radial-gradient(circle_at_18%_20%,rgba(251,113,133,0.1),transparent_24%),radial-gradient(circle_at_78%_18%,rgba(244,63,94,0.05),transparent_28%)]",
+      overlayPattern:
+        "bg-[radial-gradient(circle,rgba(255,255,255,0.08)_1px,transparent_1px)] bg-[size:18px_18px]",
     },
     sky: {
-      cardSurface: "bg-[linear-gradient(180deg,rgba(8,18,24,0.92)_0%,rgba(7,12,19,0.98)_100%)]",
-      cardHover: "hover:border-sky-300/18 hover:shadow-[0_24px_60px_rgba(56,189,248,0.16)]",
-      iconWrap: "border-sky-300/16 bg-sky-300/10 text-sky-100",
-      actionWrap: "border-sky-300/18 bg-sky-300/10 text-sky-100 group-hover:bg-sky-300/14",
-      actionDot: "border-sky-300/18",
-      progressTrack: "rgba(125,211,252,0.9)",
-      valueText: "text-sky-50",
+      cardSurface: "bg-[linear-gradient(180deg,rgba(10,11,13,0.96)_0%,rgba(7,8,10,0.985)_100%)] backdrop-blur-xl",
+      cardHover: "hover:border-sky-300/14 hover:shadow-[0_24px_60px_rgba(56,189,248,0.1)]",
+      iconWrap: "border-sky-300/12 bg-sky-300/[0.07] text-sky-100",
+      actionWrap: "border-sky-300/14 bg-sky-300/[0.07] text-sky-100 group-hover:bg-sky-300/[0.09]",
+      actionDot: "border-sky-300/14",
+      progressTrack: "rgba(125,211,252,0.68)",
+      valueText: "text-zinc-50",
+      overlayGlow:
+        "bg-[radial-gradient(circle_at_16%_18%,rgba(56,189,248,0.1),transparent_24%),radial-gradient(circle_at_84%_16%,rgba(59,130,246,0.05),transparent_26%)]",
+      overlayPattern:
+        "bg-[linear-gradient(135deg,rgba(255,255,255,0.08)_0,rgba(255,255,255,0.08)_2px,transparent_2px,transparent_14px)] bg-[size:20px_20px]",
     },
     violet: {
-      cardSurface: "bg-[linear-gradient(180deg,rgba(18,13,30,0.92)_0%,rgba(11,8,20,0.98)_100%)]",
-      cardHover: "hover:border-violet-300/18 hover:shadow-[0_24px_60px_rgba(139,92,246,0.16)]",
-      iconWrap: "border-violet-300/16 bg-violet-300/10 text-violet-100",
-      actionWrap: "border-violet-300/18 bg-violet-300/10 text-violet-100 group-hover:bg-violet-300/14",
-      actionDot: "border-violet-300/18",
-      progressTrack: "rgba(196,181,253,0.9)",
-      valueText: "text-violet-50",
+      cardSurface: "bg-[linear-gradient(180deg,rgba(11,10,13,0.96)_0%,rgba(7,7,10,0.985)_100%)] backdrop-blur-xl",
+      cardHover: "hover:border-violet-300/14 hover:shadow-[0_24px_60px_rgba(139,92,246,0.1)]",
+      iconWrap: "border-violet-300/12 bg-violet-300/[0.07] text-violet-100",
+      actionWrap: "border-violet-300/14 bg-violet-300/[0.07] text-violet-100 group-hover:bg-violet-300/[0.09]",
+      actionDot: "border-violet-300/14",
+      progressTrack: "rgba(196,181,253,0.68)",
+      valueText: "text-zinc-50",
+      overlayGlow:
+        "bg-[radial-gradient(circle_at_18%_18%,rgba(167,139,250,0.1),transparent_25%),radial-gradient(circle_at_82%_14%,rgba(99,102,241,0.05),transparent_28%)]",
+      overlayPattern:
+        "bg-[linear-gradient(to_right,rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[size:24px_24px]",
     },
     amber: {
-      cardSurface: "bg-[linear-gradient(180deg,rgba(30,22,8,0.92)_0%,rgba(20,15,7,0.98)_100%)]",
+      cardSurface: "bg-[linear-gradient(180deg,rgba(13,12,10,0.96)_0%,rgba(9,8,7,0.985)_100%)] backdrop-blur-xl",
       cardHover: "hover:border-amber-300/18 hover:shadow-[0_24px_60px_rgba(251,191,36,0.16)]",
       iconWrap: "border-amber-300/16 bg-amber-300/10 text-amber-100",
       actionWrap: "border-amber-300/18 bg-amber-300/10 text-amber-100 group-hover:bg-amber-300/14",
       actionDot: "border-amber-300/18",
       progressTrack: "rgba(252,211,77,0.9)",
       valueText: "text-amber-50",
+      overlayGlow:
+        "bg-[radial-gradient(circle_at_18%_18%,rgba(251,191,36,0.16),transparent_25%),radial-gradient(circle_at_82%_16%,rgba(249,115,22,0.1),transparent_28%)]",
+      overlayPattern:
+        "bg-[radial-gradient(circle,rgba(255,255,255,0.08)_1px,transparent_1px)] bg-[size:16px_16px]",
     },
   }[tone];
 
   return (
     <Card
       className={cn(
-        "surface-panel-muted h-full rounded-[1.8rem] border-white/8 py-0",
+        "surface-panel-muted relative h-full overflow-hidden rounded-[1.8rem] border-white/8 py-0",
         toneStyles.cardSurface,
         onOpenBreakdown ? `group cursor-pointer transition duration-200 hover:-translate-y-0.5 ${toneStyles.cardHover}` : "",
         className,
@@ -572,7 +592,10 @@ export function MetricCard({
       role={onOpenBreakdown ? "button" : undefined}
       tabIndex={onOpenBreakdown ? 0 : undefined}
     >
-      <CardHeader className="flex h-full flex-1 flex-col p-5">
+      <div className={cn("pointer-events-none absolute inset-0 opacity-90", toneStyles.overlayGlow)} />
+      <div className={cn("pointer-events-none absolute inset-0 opacity-30", toneStyles.overlayPattern)} />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/28 to-transparent" />
+      <CardHeader className="relative z-10 flex h-full flex-1 flex-col p-5">
         <div className="flex h-full flex-col gap-4 sm:flex-row sm:items-stretch sm:justify-between">
           <div className="flex min-w-0 flex-1 flex-col">
             <div className={cn("mb-3 inline-flex size-11 items-center justify-center rounded-2xl border", toneStyles.iconWrap)}>
@@ -640,7 +663,7 @@ export function MetricCard({
 
 export function PriorityPill({ label, value }: { label: string; value: string }) {
   return (
-    <div className="min-w-0 rounded-[1.4rem] border border-white/8 bg-black/18 px-4 py-4">
+    <div className="min-w-0 rounded-[1.4rem] border border-white/10 bg-[linear-gradient(180deg,rgba(12,18,14,0.88)_0%,rgba(8,12,10,0.94)_100%)] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
       <p className="break-words text-xs uppercase leading-5 tracking-[0.14em] text-zinc-500">{label}</p>
       <p className="mt-2 break-words text-sm leading-5 font-medium text-zinc-100 sm:text-base">{value}</p>
     </div>
@@ -649,7 +672,7 @@ export function PriorityPill({ label, value }: { label: string; value: string })
 
 export function EmptyState({ text, className }: { text: string; className?: string }) {
   return (
-    <div className={cn("w-full rounded-[1.6rem] border border-dashed border-white/10 bg-black/12 px-5 py-10 text-center text-sm text-zinc-500", className)}>
+    <div className={cn("w-full rounded-[1.6rem] border border-dashed border-white/12 bg-[rgba(10,16,12,0.72)] px-5 py-10 text-center text-sm text-zinc-500", className)}>
       {text}
     </div>
   );
@@ -660,29 +683,48 @@ export function QuickActionRow({
   icon: Icon,
   onClick,
   compact = false,
+  variant = "secondary",
+  className,
 }: {
   label: string;
   icon: ComponentType<{ className?: string }>;
   onClick: () => void;
   compact?: boolean;
+  variant?: "primary" | "secondary";
+  className?: string;
 }) {
+  const isPrimary = variant === "primary";
+
   return (
     <button
       type="button"
       onClick={onClick}
-      className={
+      className={cn(
         compact
-          ? "flex h-11 items-center gap-3 rounded-2xl border border-white/8 bg-black/15 px-4 text-left text-sm text-zinc-200 transition hover:bg-white/[0.04] hover:text-white"
-          : "flex w-full items-center justify-between rounded-[1.2rem] border border-white/8 bg-black/15 px-4 py-3 text-left text-sm text-zinc-200 transition hover:bg-white/[0.04] hover:text-white"
-      }
+          ? "flex h-12 items-center gap-3 rounded-2xl border px-4 text-left text-sm font-medium transition duration-200 hover:-translate-y-0.5"
+          : "flex w-full items-center justify-between rounded-[1.2rem] border px-4 py-3 text-left text-sm font-medium transition duration-200 hover:-translate-y-0.5",
+        isPrimary
+          ? "border-emerald-300/20 bg-[linear-gradient(135deg,rgba(16,185,129,0.18)_0%,rgba(16,185,129,0.12)_55%,rgba(163,230,53,0.12)_100%)] text-emerald-50 shadow-[0_12px_28px_rgba(16,185,129,0.12)] hover:border-emerald-200/28 hover:bg-[linear-gradient(135deg,rgba(16,185,129,0.22)_0%,rgba(16,185,129,0.14)_55%,rgba(163,230,53,0.14)_100%)] hover:shadow-[0_16px_36px_rgba(16,185,129,0.16)]"
+          : "border-white/10 bg-[rgba(10,16,12,0.72)] text-zinc-200 hover:border-emerald-300/16 hover:bg-white/[0.06] hover:text-white",
+        className,
+      )}
     >
       <span className="flex items-center gap-3">
-        <span className="inline-flex size-9 items-center justify-center rounded-2xl border border-white/8 bg-white/[0.03]">
+        <span
+          className={cn(
+            "inline-flex size-9 items-center justify-center rounded-2xl border",
+            isPrimary
+              ? "border-emerald-300/18 bg-emerald-300/10 text-emerald-100"
+              : "border-white/10 bg-white/[0.05]",
+          )}
+        >
           <Icon className="size-4" />
         </span>
         <span>{label}</span>
       </span>
-      {!compact ? <RiAddLine className="size-4 text-emerald-200" /> : null}
+      {!compact ? (
+        <RiAddLine className={cn("size-4", isPrimary ? "text-emerald-100" : "text-emerald-200")} />
+      ) : null}
     </button>
   );
 }

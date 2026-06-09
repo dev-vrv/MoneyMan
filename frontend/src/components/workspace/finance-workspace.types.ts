@@ -1,7 +1,7 @@
 import type { Dictionary } from "@/lib/i18n/dictionaries";
 import type { Locale } from "@/lib/i18n/config";
 
-export type WorkspaceSection = "overview" | "analytics" | "accounts" | "transactions" | "budgets" | "rates" | "settings";
+export type WorkspaceSection = "overview" | "analytics" | "accounts" | "transactions" | "budgets" | "rates" | "markets" | "settings";
 
 export type FinanceWorkspaceProps = {
   locale: Locale;
@@ -11,6 +11,7 @@ export type FinanceWorkspaceProps = {
 
 export type UiCopy = {
   overview: string;
+  markets: string;
   accounts: string;
   transactions: string;
   budgets: string;

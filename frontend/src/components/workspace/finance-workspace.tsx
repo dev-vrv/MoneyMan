@@ -12,13 +12,17 @@ import {
   RiBarChartBoxLine,
   RiBookletLine,
   RiCoinsLine,
+  RiDonutChartLine,
   RiDashboardLine,
   RiDeleteBin6Line,
   RiExchangeDollarLine,
+  RiHome5Line,
   RiNotification3Line,
   RiGlobalLine,
+  RiLineChartLine,
   RiSettings3Line,
   RiSafe2Line,
+  RiCustomerService2Line,
   RiWallet3Line,
 } from "react-icons/ri";
 
@@ -31,6 +35,7 @@ import { PremiumUpgradeDialog } from "@/components/workspace/premium-upgrade-dia
 import { WorkspaceAccountsSection } from "@/components/workspace/sections/workspace-accounts-section";
 import { WorkspaceAnalyticsSection } from "@/components/workspace/sections/workspace-analytics-section";
 import { WorkspaceBudgetsSection } from "@/components/workspace/sections/workspace-budgets-section";
+import { WorkspaceMarketsSection } from "@/components/workspace/sections/workspace-markets-section";
 import { WorkspaceNavigation } from "@/components/workspace/sections/workspace-navigation";
 import { WorkspaceOverviewSection } from "@/components/workspace/sections/workspace-overview-section";
 import { WorkspaceRatesSection } from "@/components/workspace/sections/workspace-rates-section";
@@ -107,7 +112,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -172,7 +176,7 @@ const workspacePreferenceStorageKey = "fin-man-workspace-preferences";
 const ratesComparisonCurrencySessionStorageKey = "fin-man-rates-comparison-currency";
 const NO_TRANSACTION_TEMPLATE_VALUE = "__no_transaction_template__";
 const premiumCtaClassName =
-  "relative overflow-hidden rounded-2xl border border-cyan-300/28 bg-[linear-gradient(135deg,rgba(34,211,238,0.2)_0%,rgba(56,189,248,0.14)_35%,rgba(129,140,248,0.18)_100%)] text-cyan-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_0_1px_rgba(56,189,248,0.08),0_10px_30px_rgba(14,165,233,0.18),0_0_36px_rgba(59,130,246,0.12)] transition-all duration-300 before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_left_center,rgba(255,255,255,0.2),transparent_42%)] before:opacity-70 before:content-[''] hover:border-cyan-200/44 hover:text-cyan-50 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_0_0_1px_rgba(103,232,249,0.14),0_16px_42px_rgba(14,165,233,0.24),0_0_52px_rgba(99,102,241,0.18)]";
+  "relative overflow-hidden rounded-2xl border border-emerald-300/24 bg-[linear-gradient(135deg,rgba(16,185,129,0.18)_0%,rgba(52,211,153,0.12)_42%,rgba(163,230,53,0.14)_100%)] text-emerald-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_0_1px_rgba(52,211,153,0.08),0_10px_30px_rgba(6,95,70,0.2),0_0_36px_rgba(16,185,129,0.1)] transition-all duration-300 before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_left_center,rgba(255,255,255,0.16),transparent_42%)] before:opacity-70 before:content-[''] hover:border-emerald-200/40 hover:text-emerald-50 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_0_0_1px_rgba(110,231,183,0.14),0_16px_42px_rgba(6,95,70,0.26),0_0_52px_rgba(16,185,129,0.16)]";
 
 function isSubscriptionCategory(category: { slug?: string; parent_name?: string | null; name: string } | null) {
   if (!category) {
@@ -413,6 +417,7 @@ function getUiCopy(locale: Locale): UiCopy {
   if (locale === "ru") {
     return {
       overview: "Обзор",
+      markets: "Рынки",
       accounts: "Счета",
       transactions: "Транзакции",
       budgets: "Бюджеты",
@@ -816,6 +821,7 @@ function getUiCopy(locale: Locale): UiCopy {
   if (locale === "kg") {
     return {
       overview: "Обзор",
+      markets: "Рынок",
       accounts: "Эсептер",
       transactions: "Транзакциялар",
       budgets: "Бюджеттер",
@@ -1218,6 +1224,7 @@ function getUiCopy(locale: Locale): UiCopy {
 
   return {
     overview: "Overview",
+    markets: "Markets",
     accounts: "Accounts",
     transactions: "Transactions",
     budgets: "Budgets",
@@ -1833,6 +1840,9 @@ export function FinanceWorkspace({
         ["finance-exchange-rates", "KGS"],
         ["finance-market-snapshot", storedWorkspacePreferences.crypto_market_provider, "KGS"],
       ],
+      markets: [
+        ["finance-market-snapshot", storedWorkspacePreferences.crypto_market_provider, "KGS"],
+      ],
       settings: [
         ["finance-categories"],
         ["finance-currencies"],
@@ -1841,7 +1851,7 @@ export function FinanceWorkspace({
     };
 
     void Promise.all(
-      sectionQueryKeys[section].map((queryKey) =>
+      (sectionQueryKeys[section] ?? []).map((queryKey) =>
         queryClient.refetchQueries({ queryKey, exact: true }),
       ),
     );
@@ -2325,6 +2335,7 @@ export function FinanceWorkspace({
     { id: "budgets", href: getLocalizedPath(locale, "/workspace/budgets"), label: ui.budgets, icon: RiBarChartBoxLine },
     { id: "analytics", href: getLocalizedPath(locale, "/workspace/analytics"), label: ui.analyticsWorkflowTitle, icon: RiBarChartBoxLine },
     { id: "rates", href: getLocalizedPath(locale, "/workspace/rates"), label: ui.marketRates, icon: RiGlobalLine },
+    { id: "markets", href: getLocalizedPath(locale, "/workspace/markets"), label: ui.markets, icon: RiLineChartLine },
     { id: "settings", href: getLocalizedPath(locale, "/workspace/settings"), label: ui.settings, icon: RiSettings3Line },
   ] as const;
 
@@ -2572,6 +2583,10 @@ export function FinanceWorkspace({
         : [],
     [summaryBreakdownModal, summaryDetailTransactions],
   );
+  const summaryDetailBreakdownTotalAbs = useMemo(
+    () => summaryDetailBreakdown.reduce((sum, entry) => sum + Math.abs(entry.amount), 0),
+    [summaryDetailBreakdown],
+  );
   const summaryDetailTotal = useMemo(() => {
     return summaryDetailTransactions.reduce((accumulator, item) => {
       const amount =
@@ -2612,7 +2627,18 @@ export function FinanceWorkspace({
 
     return [...totals.values()].sort((left, right) => Math.abs(right.amount) - Math.abs(left.amount));
   }, [exchangeRates, summaryBreakdownModal, summaryDetailTransactions, ui.transferLabel, workspaceSummaryCurrency]);
+  const summaryDetailCategoryTotalAbs = useMemo(
+    () => summaryDetailCategoryTotals.reduce((sum, entry) => sum + Math.abs(entry.amount), 0),
+    [summaryDetailCategoryTotals],
+  );
   const currentMonthLabel = useMemo(() => formatMonthLabel(new Date(), locale), [locale]);
+  const workspaceHeaderLinks = useMemo(
+    () => ({
+      home: locale === "ru" ? "Главная" : locale === "kg" ? "Башкы бет" : "Home",
+      contacts: locale === "ru" ? "Контакты" : locale === "kg" ? "Байланыш" : "Contacts",
+    }),
+    [locale],
+  );
   const cashFlowSeries = useMemo(
     () =>
       buildCashFlowSeries(
@@ -2671,7 +2697,6 @@ export function FinanceWorkspace({
     [recentExpensesBoundary, transactions],
   );
   const monthlyCashFlow = monthlyNetTotal;
-  const monthlyCashFlowTone: "emerald" | "rose" = monthlyCashFlow >= 0 ? "emerald" : "rose";
   const budgetAlertsCount = useMemo(
     () => budgets.filter((item) => item.utilization_percent >= item.alert_threshold).length,
     [budgets],
@@ -2921,7 +2946,7 @@ export function FinanceWorkspace({
 
   if (loading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,_rgba(110,231,183,0.18),_transparent_24%),linear-gradient(180deg,_#020504_0%,_#07110c_42%,_#040806_100%)] px-6">
+      <main className="workspace-canvas flex min-h-screen items-center justify-center px-6">
         <div className="surface-panel flex w-full max-w-md items-center gap-4 rounded-[2rem] px-6 py-6">
           <Spinner className="size-5 text-emerald-200" />
           <div>
@@ -2935,7 +2960,7 @@ export function FinanceWorkspace({
 
   if (!overview) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,_rgba(110,231,183,0.18),_transparent_24%),linear-gradient(180deg,_#020504_0%,_#07110c_42%,_#040806_100%)] px-6">
+      <main className="workspace-canvas flex min-h-screen items-center justify-center px-6">
         <Card className="surface-panel w-full max-w-xl rounded-[2rem] border-white/8 bg-white/[0.04] py-0">
           <CardHeader className="p-6">
             <CardTitle className="text-white">{content.error.title}</CardTitle>
@@ -2947,11 +2972,16 @@ export function FinanceWorkspace({
   }
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(110,231,183,0.18),_transparent_24%),radial-gradient(circle_at_86%_10%,_rgba(56,189,248,0.12),_transparent_20%),linear-gradient(180deg,_#020504_0%,_#07110c_40%,_#040806_100%)]">
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:68px_68px] opacity-15" />
+    <main className="workspace-canvas relative min-h-screen overflow-hidden">
+      <div className="workspace-geometry-grid pointer-events-none absolute inset-0" />
+      <div className="pointer-events-none absolute left-[-8rem] top-20 h-[24rem] w-[24rem] rounded-full border border-emerald-300/10 bg-[radial-gradient(circle_at_center,rgba(110,231,183,0.14),rgba(6,95,70,0.04)_56%,transparent_74%)] blur-2xl" />
+      <div className="pointer-events-none absolute right-[-10rem] top-28 h-[30rem] w-[30rem] rounded-full border border-sky-300/10 bg-[radial-gradient(circle_at_center,rgba(56,189,248,0.12),rgba(14,44,78,0.04)_58%,transparent_76%)] blur-3xl" />
+      <div className="pointer-events-none absolute inset-x-0 top-[16rem] mx-auto h-px w-[min(92vw,1200px)] bg-gradient-to-r from-transparent via-emerald-200/18 to-transparent" />
 
       <section className="relative z-10 mx-auto flex w-full max-w-[1680px] flex-col px-4 pb-12 pt-6 sm:px-6 lg:px-8">
-        <header className="surface-panel rounded-[2rem] border border-white/8 bg-[linear-gradient(180deg,rgba(8,18,14,0.92)_0%,rgba(7,14,11,0.96)_100%)] px-5 py-5 sm:px-6">
+        <header className="surface-panel relative overflow-hidden rounded-[2rem] border border-white/10 bg-[linear-gradient(180deg,rgba(9,16,15,0.9)_0%,rgba(7,10,12,0.97)_100%)] px-5 py-5 sm:px-6">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_18%,rgba(110,231,183,0.1),transparent_24%),radial-gradient(circle_at_84%_16%,rgba(56,189,248,0.08),transparent_26%),linear-gradient(120deg,rgba(255,255,255,0.03),transparent_34%,rgba(56,189,248,0.025)_72%,transparent)]" />
+          <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
           <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
             <div className="min-w-0 flex-1">
               <div className="flex items-start gap-4">
@@ -2974,6 +3004,22 @@ export function FinanceWorkspace({
                       {currentMonthLabel}
                     </span>
                   </div>
+                  <div className="mt-4 flex flex-wrap gap-2 xl:hidden">
+                    <Link
+                      href={getLocalizedPath(locale, "/")}
+                      className="group inline-flex items-center gap-2 rounded-2xl border border-emerald-300/16 bg-emerald-300/10 px-4 py-2 text-sm font-medium text-emerald-100 transition duration-200 hover:-translate-y-0.5 hover:border-emerald-300/24 hover:bg-emerald-300/14 hover:shadow-[0_12px_28px_rgba(16,185,129,0.14)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/30"
+                    >
+                      <RiHome5Line className="size-4" />
+                      <span>{workspaceHeaderLinks.home}</span>
+                    </Link>
+                    <Link
+                      href={getLocalizedPath(locale, "/contacts")}
+                      className="group inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-2 text-sm font-medium text-zinc-100 transition duration-200 hover:-translate-y-0.5 hover:border-emerald-300/18 hover:bg-emerald-300/10 hover:text-emerald-100 hover:shadow-[0_12px_28px_rgba(16,185,129,0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/30"
+                    >
+                      <RiCustomerService2Line className="size-4" />
+                      <span>{workspaceHeaderLinks.contacts}</span>
+                    </Link>
+                  </div>
                   <h1 className="mt-4 text-2xl font-semibold tracking-tight text-white sm:text-[2.05rem]">
                     {activeNavigationItem.label}
                   </h1>
@@ -2981,20 +3027,37 @@ export function FinanceWorkspace({
               </div>
             </div>
 
-            <div className="flex flex-wrap items-stretch gap-3 xl:max-w-[30rem] xl:justify-end">
+            <div className="flex flex-wrap items-stretch gap-3 xl:max-w-[44rem] xl:justify-end">
               <button
                 type="button"
                 onClick={() => setNotificationsOpen(true)}
-                className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/8 bg-black/20 text-zinc-300 transition hover:bg-white/[0.04] hover:text-white"
+                className="relative inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-[rgba(10,16,12,0.72)] px-4 text-zinc-300 transition duration-200 hover:-translate-y-0.5 hover:border-emerald-300/16 hover:bg-white/[0.06] hover:text-white xl:min-w-[11rem] xl:justify-start"
               >
-                <RiNotification3Line className="size-4" />
+                <RiNotification3Line className="size-4 shrink-0" />
+                <span className="hidden text-sm font-medium xl:inline">{ui.notificationsTitle}</span>
                 {unreadNotificationsCount > 0 ? (
                   <span className="absolute right-2 top-2 inline-flex min-w-5 items-center justify-center rounded-full border border-emerald-300/16 bg-emerald-300/12 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-emerald-100">
                     {unreadNotificationsCount > 9 ? "9+" : unreadNotificationsCount}
                   </span>
                 ) : null}
               </button>
-              <div className="flex min-w-[210px] flex-1 items-center gap-3 rounded-2xl border border-white/8 bg-black/20 px-3 pr-4">
+              <div className="hidden xl:flex xl:flex-wrap xl:items-stretch xl:gap-2">
+                <Link
+                  href={getLocalizedPath(locale, "/")}
+                  className="group inline-flex h-12 items-center gap-2 rounded-2xl border border-white/10 bg-[rgba(10,16,12,0.72)] px-4 text-sm font-medium text-zinc-100 transition duration-200 hover:-translate-y-0.5 hover:border-emerald-300/18 hover:bg-emerald-300/10 hover:text-emerald-100 hover:shadow-[0_12px_28px_rgba(16,185,129,0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/30"
+                >
+                  <RiHome5Line className="size-4" />
+                  <span>{workspaceHeaderLinks.home}</span>
+                </Link>
+                <Link
+                  href={getLocalizedPath(locale, "/contacts")}
+                  className="group inline-flex h-12 items-center gap-2 rounded-2xl border border-white/10 bg-[rgba(10,16,12,0.72)] px-4 text-sm font-medium text-zinc-100 transition duration-200 hover:-translate-y-0.5 hover:border-emerald-300/18 hover:bg-emerald-300/10 hover:text-emerald-100 hover:shadow-[0_12px_28px_rgba(16,185,129,0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/30"
+                >
+                  <RiCustomerService2Line className="size-4" />
+                  <span>{workspaceHeaderLinks.contacts}</span>
+                </Link>
+              </div>
+              <div className="flex min-w-[210px] flex-1 items-center gap-3 rounded-2xl border border-white/10 bg-[rgba(10,16,12,0.72)] px-3 pr-4">
                 <div className="flex size-9 shrink-0 items-center justify-center rounded-full border border-white/8 bg-white/[0.05] text-sm font-semibold text-white">
                   {(user?.display_name ?? overview.user.display_name).slice(0, 1).toUpperCase()}
                 </div>
@@ -3005,11 +3068,17 @@ export function FinanceWorkspace({
               </div>
             </div>
           </div>
-          <div className="mt-5 flex flex-wrap gap-2">
+          <div className="mt-5 rounded-[1.6rem] border border-white/10 bg-[linear-gradient(180deg,rgba(10,14,14,0.76)_0%,rgba(8,10,12,0.88)_100%)] p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+            <div className="mb-2 flex items-center justify-between gap-3 px-1.5">
+              <p className="text-[0.68rem] uppercase tracking-[0.22em] text-zinc-500">{content.sections.nextSteps}</p>
+              <span className="text-xs text-zinc-500">{activeNavigationItem.label}</span>
+            </div>
+            <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
             <QuickActionRow
               compact
               label={content.actions.addTransaction}
               icon={RiAddLine}
+              variant="primary"
               onClick={openTransactionDialog}
             />
             <QuickActionRow
@@ -3030,12 +3099,13 @@ export function FinanceWorkspace({
               icon={RiBookletLine}
               onClick={openCategoryDialog}
             />
+            </div>
           </div>
         </header>
 
         <div className="mt-6 grid auto-rows-fr gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,1.35fr)_repeat(4,minmax(0,1fr))]">
           <Card
-            className="group surface-panel h-full cursor-pointer rounded-[1.8rem] border-white/8 bg-[linear-gradient(180deg,rgba(8,18,24,0.9)_0%,rgba(7,12,19,0.98)_100%)] py-0 transition duration-200 hover:-translate-y-0.5 hover:border-sky-300/18 hover:shadow-[0_24px_60px_rgba(56,189,248,0.16)] md:col-span-2 xl:col-span-1"
+            className="group surface-panel relative h-full cursor-pointer overflow-hidden rounded-[1.8rem] border-sky-300/12 bg-[linear-gradient(180deg,rgba(9,12,16,0.96)_0%,rgba(6,8,11,0.99)_100%)] py-0 backdrop-blur-xl transition duration-200 hover:-translate-y-0.5 hover:border-sky-300/22 hover:shadow-[0_24px_60px_rgba(56,189,248,0.14)] md:col-span-2 xl:col-span-1"
             onClick={() => setAccountsSnapshotOpen(true)}
             onKeyDown={(event) => {
               if (event.key === "Enter" || event.key === " ") {
@@ -3046,14 +3116,17 @@ export function FinanceWorkspace({
             role="button"
             tabIndex={0}
           >
-            <CardHeader className="flex h-full flex-1 flex-col p-5">
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(56,189,248,0.16),transparent_24%),radial-gradient(circle_at_82%_14%,rgba(59,130,246,0.08),transparent_28%)]" />
+            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.055)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:26px_26px] opacity-20" />
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/28 to-transparent" />
+            <CardHeader className="relative z-10 flex h-full flex-1 flex-col p-5">
               <div className="flex flex-1 flex-col gap-4 sm:flex-row sm:items-stretch sm:justify-between">
                 <div className="flex min-w-0 flex-1 flex-col">
-                  <div className="mb-3 inline-flex size-11 items-center justify-center rounded-2xl border border-sky-300/16 bg-sky-300/10 text-sky-100">
-                    <RiSafe2Line className="size-5" />
+                  <div className="mb-3 inline-flex size-11 items-center justify-center rounded-2xl border border-sky-300/12 bg-sky-300/[0.07] text-sky-100">
+                    <RiWallet3Line className="size-5" />
                   </div>
                   <CardDescription className="text-zinc-400">{ui.totalByRates}</CardDescription>
-                  <CardTitle className="mt-2 break-words text-[1.125rem] text-white sm:text-[1.35rem]">
+                  <CardTitle className="mt-2 break-words text-[1.125rem] text-zinc-50 sm:text-[1.35rem]">
                     {accountBalanceSnapshot.convertedTotal
                       ? formatMoney(
                           String(accountBalanceSnapshot.convertedTotal.amount),
@@ -3067,7 +3140,7 @@ export function FinanceWorkspace({
                       : workspaceSummaryCurrency}
                   </p>
                   <div className="mt-auto pt-4">
-                    <div className="inline-flex max-w-full items-center overflow-hidden rounded-full border border-sky-300/18 bg-sky-300/10 px-3 py-1.5 text-xs font-medium text-sky-100 transition group-hover:bg-sky-300/14">
+                    <div className="inline-flex max-w-full items-center overflow-hidden rounded-full border border-sky-300/14 bg-sky-300/[0.07] px-3 py-1.5 text-xs font-medium text-sky-100 transition group-hover:bg-sky-300/[0.09]">
                       <span className="min-w-0 truncate">{ui.openDetails}</span>
                       <span className="ml-2 inline-flex size-6 shrink-0 items-center justify-center rounded-full border border-sky-300/18 bg-black/20 transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
                         <RiArrowRightUpLine className="size-3.5" />
@@ -3079,7 +3152,7 @@ export function FinanceWorkspace({
             </CardHeader>
           </Card>
           <MetricCard
-            icon={RiArrowRightUpLine}
+            icon={RiCoinsLine}
             label={content.summary.income}
             value={formatMoney(String(monthlyIncomeTotal), workspaceSummaryCurrency)}
             actionLabel={ui.openDetails}
@@ -3119,7 +3192,7 @@ export function FinanceWorkspace({
             }
           />
           <MetricCard
-            icon={RiArrowRightUpLine}
+            icon={RiExchangeDollarLine}
             label={ui.cashFlowLabel}
             value={formatMoney(String(monthlyCashFlow), workspaceSummaryCurrency)}
             actionLabel={ui.openDetails}
@@ -3128,7 +3201,7 @@ export function FinanceWorkspace({
             moreLabel={ui.currenciesMore}
             collapseLabel={ui.showLessCategories}
             className="h-full"
-            tone={monthlyCashFlowTone}
+            tone="sky"
             onOpenBreakdown={() =>
               setSummaryBreakdownModal({
                 title: ui.cashFlowLabel,
@@ -3139,7 +3212,7 @@ export function FinanceWorkspace({
             }
           />
           <MetricCard
-            icon={RiCoinsLine}
+            icon={RiDonutChartLine}
             label={content.summary.savingsRate}
             value={`${overview.summary.savings_rate}%`}
             progressValue={Math.max(0, Math.min(100, overview.summary.savings_rate))}
@@ -3171,6 +3244,7 @@ export function FinanceWorkspace({
                 customCategoriesCount={customCategoriesCount}
                 onOpenQuickExpenseDialog={openQuickExpenseDialog}
                 onOpenBudgetDialog={openBudgetDialog}
+                onOpenAccountEditDialog={openAccountEditDialog}
                 onOpenTransactionEditDialog={openTransactionEditDialog}
                 onOpenTransactionsSection={() => router.push(getLocalizedPath(locale, "/workspace/transactions"))}
                 onOpenBudgetsSection={() => router.push(getLocalizedPath(locale, "/workspace/budgets"))}
@@ -3248,6 +3322,15 @@ export function FinanceWorkspace({
                 ratesSearchQuery={ratesSearchQuery}
                 onRatesSearchChange={setRatesSearchQuery}
                 onOpenPremiumDialog={openPremiumDialog}
+              />
+            ) : null}
+
+            {displaySection === "markets" ? (
+              <WorkspaceMarketsSection
+                locale={locale}
+                defaultFiatQuote={workspaceSummaryCurrency}
+                cryptoProvider={storedWorkspacePreferences.crypto_market_provider}
+                onCryptoProviderChange={handleCryptoMarketProviderChange}
               />
             ) : null}
 
@@ -3893,7 +3976,7 @@ export function FinanceWorkspace({
                 </Field>
               </div>
             </div>
-            <DialogFooter className="border-white/8 bg-white/[0.03]">
+            <div className="flex flex-wrap items-center justify-end gap-3 px-6 pb-6 pt-4">
               {editingAccount ? (
                 <Button
                   type="button"
@@ -3922,39 +4005,58 @@ export function FinanceWorkspace({
               >
                 {editingAccount ? ui.save : ui.create}
               </Button>
-            </DialogFooter>
+            </div>
           </form>
         </DialogContent>
       </Dialog>
 
       <Dialog open={accountsSnapshotOpen} onOpenChange={setAccountsSnapshotOpen}>
-        <DialogContent className="flex h-[min(88vh,56rem)] w-[min(96vw,64rem)] max-w-none flex-col overflow-hidden rounded-[2rem] border-white/10 bg-[#07110c] p-0 text-zinc-100 sm:max-w-none">
-          <DialogHeader className="shrink-0 p-8 pb-0">
+        <DialogContent className="relative flex h-[min(88vh,56rem)] w-[min(96vw,64rem)] max-w-none flex-col overflow-hidden rounded-[2rem] border-white/10 bg-[linear-gradient(180deg,rgba(8,24,18,0.96)_0%,rgba(6,14,11,0.99)_100%)] p-0 text-zinc-100 backdrop-blur-xl sm:max-w-none">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_12%,rgba(52,211,153,0.18),transparent_24%),radial-gradient(circle_at_82%_14%,rgba(56,189,248,0.12),transparent_24%)]" />
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:28px_28px] opacity-20" />
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/28 to-transparent" />
+          <DialogHeader className="relative z-10 shrink-0 p-8 pb-0">
             <DialogTitle>{ui.allAccountsLabel}</DialogTitle>
             <DialogDescription>{ui.balancesByCurrency}</DialogDescription>
           </DialogHeader>
-          <div className="min-h-0 flex-1 overflow-y-auto px-8 pb-8 pt-6">
+          <div className="relative z-10 min-h-0 flex-1 overflow-y-auto px-8 pb-8 pt-6">
             <div className="grid gap-4">
             {accountBalanceSnapshot.convertedTotal ? (
-              <div className="rounded-[1.6rem] border border-white/8 bg-black/18 px-5 py-5">
-                <p className="text-xs uppercase tracking-[0.18em] text-zinc-500">{ui.totalByRates}</p>
-                <p className="mt-3 text-3xl font-semibold text-white">
-                  {formatMoney(
-                    String(accountBalanceSnapshot.convertedTotal.amount),
-                    accountBalanceSnapshot.convertedTotal.currency,
-                  )}
-                </p>
-                {!accountBalanceSnapshot.convertedTotal.hasAllRates ? (
-                  <p className="mt-2 text-sm text-amber-200">
-                    {ui.ratesMissing.replace(
-                      "{currencies}",
-                      accountBalanceSnapshot.convertedTotal.missingCurrencies.join(", "),
-                    )}
-                  </p>
-                ) : null}
+              <div className="relative overflow-hidden rounded-[1.8rem] border border-emerald-300/14 bg-[linear-gradient(180deg,rgba(11,24,18,0.82)_0%,rgba(7,14,11,0.94)_100%)] px-5 py-5 shadow-[0_24px_60px_rgba(16,185,129,0.08)]">
+                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_18%,rgba(52,211,153,0.16),transparent_24%),radial-gradient(circle_at_84%_18%,rgba(56,189,248,0.08),transparent_26%)]" />
+                <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/24 to-transparent" />
+                <div className="relative flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <div className="inline-flex size-11 items-center justify-center rounded-2xl border border-emerald-300/16 bg-emerald-300/10 text-emerald-100">
+                      <RiSafe2Line className="size-5" />
+                    </div>
+                    <p className="mt-4 text-xs uppercase tracking-[0.18em] text-zinc-500">{ui.totalByRates}</p>
+                    <p className="mt-3 break-words text-[1.75rem] font-semibold leading-none text-emerald-50 sm:text-[2rem]">
+                      {formatMoney(
+                        String(accountBalanceSnapshot.convertedTotal.amount),
+                        accountBalanceSnapshot.convertedTotal.currency,
+                      )}
+                    </p>
+                    <p className="mt-2 text-sm text-zinc-500">
+                      {ui.totalApproximate} · {accountBalanceSnapshot.convertedTotal.currency}
+                    </p>
+                    {!accountBalanceSnapshot.convertedTotal.hasAllRates ? (
+                      <p className="mt-3 inline-flex rounded-full border border-sky-300/18 bg-sky-300/10 px-3 py-1.5 text-sm text-sky-100">
+                        {ui.ratesMissing.replace(
+                          "{currencies}",
+                          accountBalanceSnapshot.convertedTotal.missingCurrencies.join(", "),
+                        )}
+                      </p>
+                    ) : null}
+                  </div>
+                  <div className="inline-flex items-center rounded-full border border-emerald-300/18 bg-emerald-300/10 px-3 py-1.5 text-xs font-medium text-emerald-100">
+                    {ui.openAccountsSnapshot}
+                  </div>
+                </div>
               </div>
             ) : null}
 
+            <div className="rounded-[1.8rem] border border-white/8 bg-black/14 p-3 sm:p-4">
             <div className="grid gap-3 md:grid-cols-2">
               {accounts.map((account) => (
                 <AccountCard
@@ -3969,6 +4071,7 @@ export function FinanceWorkspace({
               ))}
             </div>
             </div>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
@@ -3981,7 +4084,7 @@ export function FinanceWorkspace({
         onEdit={(account) => {
           setActiveAccount(null);
           setAccountsSnapshotOpen(false);
-          handleOpenAccountEditDialog(account);
+          openAccountEditDialog(account);
         }}
       />
 
@@ -4144,7 +4247,7 @@ export function FinanceWorkspace({
                 ui={ui}
               />
             </div>
-            <DialogFooter className="border-white/8 bg-white/[0.03]">
+            <div className="flex flex-wrap items-center justify-end gap-3 px-6 pb-6 pt-4">
               {editingTransaction ? (
                 <Button
                   type="button"
@@ -4173,7 +4276,7 @@ export function FinanceWorkspace({
               >
                 {editingTransaction ? ui.save : ui.create}
               </Button>
-            </DialogFooter>
+            </div>
           </form>
         </DialogContent>
       </Dialog>
@@ -4455,7 +4558,7 @@ export function FinanceWorkspace({
                 </div>
               </div>
             </div>
-            <DialogFooter className="border-white/8 bg-white/[0.03]">
+            <div className="flex flex-wrap items-center justify-end gap-3 px-6 pb-6 pt-4">
               {editingTransactionTemplate ? (
                 <Button
                   type="button"
@@ -4484,7 +4587,7 @@ export function FinanceWorkspace({
               >
                 {editingTransactionTemplate ? ui.save : ui.create}
               </Button>
-            </DialogFooter>
+            </div>
           </form>
         </DialogContent>
       </Dialog>
@@ -4651,7 +4754,7 @@ export function FinanceWorkspace({
                 </Field>
               </div>
             </div>
-            <DialogFooter className="border-white/8 bg-white/[0.03]">
+            <div className="flex flex-wrap items-center justify-end gap-3 px-6 pb-6 pt-4">
               {editingBudget ? (
                 <Button
                   type="button"
@@ -4673,7 +4776,7 @@ export function FinanceWorkspace({
               >
                 {editingBudget ? ui.save : ui.create}
               </Button>
-            </DialogFooter>
+            </div>
           </form>
         </DialogContent>
       </Dialog>
@@ -4770,7 +4873,7 @@ export function FinanceWorkspace({
                 </Field>
               </div>
             </div>
-            <DialogFooter className="border-white/8 bg-white/[0.03]">
+            <div className="flex flex-wrap items-center justify-end gap-3 px-6 pb-6 pt-4">
               {editingCategory && !editingCategory.is_system ? (
                 <Button
                   type="button"
@@ -4792,7 +4895,7 @@ export function FinanceWorkspace({
               >
                 {editingCategory ? ui.save : ui.create}
               </Button>
-            </DialogFooter>
+            </div>
           </form>
         </DialogContent>
       </Dialog>
@@ -4986,11 +5089,15 @@ export function FinanceWorkspace({
         <WorkspaceDialogShell
           title={summaryBreakdownModal?.title}
           description={ui.cashFlowLabel}
-          contentClassName="h-[min(92vh,64rem)] w-[min(96vw,72rem)]"
+          variant="analytics"
+          contentClassName="h-[min(92vh,64rem)] w-[min(96vw,72rem)] border-white/12"
           bodyClassName="px-8 pb-8 pt-6"
           className="grid gap-5"
         >
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="relative overflow-hidden rounded-[1.8rem] border border-emerald-300/10 bg-[linear-gradient(135deg,rgba(10,24,19,0.9),rgba(7,14,11,0.96))] p-5">
+                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_20%,rgba(52,211,153,0.16),transparent_24%),radial-gradient(circle_at_82%_18%,rgba(16,185,129,0.12),transparent_26%)]" />
+                <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[size:24px_24px] opacity-25" />
+                <div className="relative z-10 grid gap-4 md:grid-cols-2">
                 <Field>
                   <FieldLabel>{ui.startDate}</FieldLabel>
                   <DateInput
@@ -5028,6 +5135,7 @@ export function FinanceWorkspace({
                   />
                 </Field>
               </div>
+              </div>
 
               <div className="grid gap-4 lg:grid-cols-4">
                 <PriorityPill
@@ -5052,17 +5160,41 @@ export function FinanceWorkspace({
                 <div className="space-y-3">
                   <p className="text-xs uppercase tracking-[0.18em] text-zinc-500">{ui.currencyBreakdown}</p>
                   {summaryDetailBreakdown.length > 0 ? (
-                    summaryDetailBreakdown.map((entry) => (
+                    summaryDetailBreakdown.map((entry, index) => {
+                      const share = summaryDetailBreakdownTotalAbs > 0
+                        ? (Math.abs(entry.amount) / summaryDetailBreakdownTotalAbs) * 100
+                        : 0;
+                      const accentClassName = index % 3 === 0
+                        ? "from-emerald-400/80 via-green-300/70 to-transparent"
+                        : index % 3 === 1
+                          ? "from-lime-300/80 via-emerald-300/70 to-transparent"
+                          : "from-teal-300/80 via-cyan-300/60 to-transparent";
+
+                      return (
                       <div
                         key={`${summaryBreakdownModal?.title}-${entry.currency}`}
-                        className="flex items-center justify-between rounded-[1.2rem] border border-white/8 bg-black/18 px-4 py-4"
+                        className="rounded-[1.3rem] border border-emerald-300/10 bg-[linear-gradient(180deg,rgba(11,24,18,0.74),rgba(7,14,11,0.9))] px-4 py-4"
                       >
-                        <span className="text-sm font-medium text-zinc-200">{entry.currency}</span>
-                        <span className="text-base font-semibold text-white">
-                          {formatMoney(String(entry.amount), entry.currency)}
-                        </span>
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <span className="text-sm font-medium text-zinc-100">{entry.currency}</span>
+                            <p className="mt-1 text-xs uppercase tracking-[0.16em] text-zinc-500">
+                              {share.toFixed(1)}%
+                            </p>
+                          </div>
+                          <span className="text-base font-semibold text-white">
+                            {formatMoney(String(entry.amount), entry.currency)}
+                          </span>
+                        </div>
+                        <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/6">
+                          <div
+                            className={`h-full rounded-full bg-gradient-to-r ${accentClassName}`}
+                            style={{ width: `${Math.max(share, 6)}%` }}
+                          />
+                        </div>
                       </div>
-                    ))
+                      );
+                    })
                   ) : (
                     <EmptyState text={ui.emptyTransactions} />
                   )}
@@ -5073,19 +5205,38 @@ export function FinanceWorkspace({
                     <p className="mb-3 text-xs uppercase tracking-[0.18em] text-zinc-500">{ui.categories}</p>
                     <div className="grid gap-3">
                       {summaryDetailCategoryTotals.length > 0 ? (
-                        summaryDetailCategoryTotals.map((entry) => (
-                          <div key={`${entry.name}-${entry.count}`} className="rounded-[1.2rem] border border-white/8 bg-black/18 px-4 py-4">
+                        summaryDetailCategoryTotals.map((entry, index) => {
+                          const share = summaryDetailCategoryTotalAbs > 0
+                            ? (Math.abs(entry.amount) / summaryDetailCategoryTotalAbs) * 100
+                            : 0;
+                          const accentToneClassName = entry.amount >= 0
+                            ? "bg-emerald-300/90"
+                            : index % 2 === 0
+                              ? "bg-rose-300/90"
+                              : "bg-orange-300/90";
+
+                          return (
+                          <div key={`${entry.name}-${entry.count}`} className="rounded-[1.2rem] border border-emerald-300/10 bg-[linear-gradient(180deg,rgba(11,24,18,0.74),rgba(7,14,11,0.9))] px-4 py-4">
                             <div className="flex items-start justify-between gap-4">
-                              <div>
+                              <div className="min-w-0">
                                 <p className="text-sm font-medium text-white">{entry.name}</p>
-                                <p className="mt-1 text-xs text-zinc-500">{entry.count}</p>
+                                <p className="mt-1 text-xs text-zinc-500">
+                                  {entry.count} · {share.toFixed(1)}%
+                                </p>
                               </div>
                               <p className="text-sm font-semibold text-zinc-100">
                                 {formatMoney(String(entry.amount), workspaceSummaryCurrency)}
                               </p>
                             </div>
+                            <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/6">
+                              <div
+                                className={`h-full rounded-full ${accentToneClassName}`}
+                                style={{ width: `${Math.max(share, 6)}%` }}
+                              />
+                            </div>
                           </div>
-                        ))
+                          );
+                        })
                       ) : (
                         <EmptyState text={ui.emptyCategories} />
                       )}
@@ -5105,7 +5256,10 @@ export function FinanceWorkspace({
                                 : transaction.amount;
 
                           return (
-                            <div key={`summary-transaction-${transaction.id}`} className="rounded-[1.2rem] border border-white/8 bg-black/18 px-4 py-4">
+                            <div
+                              key={`summary-transaction-${transaction.id}`}
+                              className="rounded-[1.2rem] border border-emerald-300/10 bg-[linear-gradient(180deg,rgba(11,24,18,0.74),rgba(7,14,11,0.9))] px-4 py-4"
+                            >
                               <div className="flex items-start justify-between gap-4">
                                 <div className="min-w-0">
                                   <p className="truncate text-sm font-medium text-white">
@@ -5136,6 +5290,7 @@ export function FinanceWorkspace({
         <WorkspaceDialogShell
           title={ui.marketRates}
           description={ui.allRatesDescription}
+          variant="markets"
           contentClassName="h-[min(88vh,920px)] w-[min(96vw,78rem)]"
           bodyClassName="px-6 pb-6 pt-5"
         >

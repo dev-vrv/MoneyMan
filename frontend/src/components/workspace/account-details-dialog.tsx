@@ -1,7 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { RiCloseLine, RiPencilLine } from "react-icons/ri";
 
+import { resolveAccountAppearance } from "@/components/workspace/account-appearance-picker";
 import type { UiCopy } from "@/components/workspace/finance-workspace.types";
 import { EmptyState, WorkspaceSelect } from "@/components/workspace/finance-workspace-ui";
 import {
@@ -19,7 +21,7 @@ import { WorkspaceDialogShell } from "@/components/workspace/workspace-dialog-sh
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DateInput } from "@/components/ui/date-input";
-import { Dialog, DialogFooter } from "@/components/ui/dialog";
+import { Dialog } from "@/components/ui/dialog";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
@@ -72,6 +74,7 @@ export function AccountDetailsDialog({
   const socialFundModeLabel = activeTaxProfile?.manual_social_fund_amount
     ? ui.socialFundModeFixed
     : ui.socialFundModePercent;
+  const accountAppearance = useMemo(() => resolveAccountAppearance(account?.color), [account?.color]);
 
   const accountTransactions = useMemo(() => {
     if (!account) {
@@ -187,25 +190,47 @@ export function AccountDetailsDialog({
       <WorkspaceDialogShell
         title={account?.name ?? ui.accountDetailsTitle}
         description={ui.accountDetailsDescription}
+        variant="account"
+        accentAppearance={accountAppearance}
         contentClassName="h-[min(92vh,64rem)] w-[min(96vw,78rem)]"
         bodyClassName="p-6"
-        footer={
-          account ? (
-            <DialogFooter className="border-white/8 bg-white/[0.03]">
-              {onEdit ? (
-                <Button type="button" variant="outline" onClick={() => onEdit(account)}>
-                  {ui.editLabel}
-                </Button>
-              ) : null}
-              <Button type="button" variant="outline" onClick={onClose}>
-                {ui.cancel}
-              </Button>
-            </DialogFooter>
-          ) : null
-        }
       >
         {account ? (
           <>
+              <div className="rounded-[1.4rem] border border-white/8 bg-[linear-gradient(180deg,rgba(10,14,15,0.84)_0%,rgba(8,10,12,0.94)_100%)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.18em] text-zinc-500">{ui.accountDetailsTitle}</p>
+                    <p className="mt-1 text-sm text-zinc-300">{accountKindLabel(account.kind, ui)} · {account.currency}</p>
+                  </div>
+                  <div className="flex flex-wrap gap-3">
+                    {onEdit ? (
+                      <Button
+                        type="button"
+                        className="h-11 rounded-2xl px-5 text-slate-950"
+                        style={{
+                          backgroundColor: accountAppearance.border,
+                          boxShadow: `0 14px 30px -18px ${accountAppearance.glow}`,
+                          color: "#020617",
+                        }}
+                        onClick={() => onEdit(account)}
+                      >
+                        <RiPencilLine className="size-4" />
+                        {ui.editLabel}
+                      </Button>
+                    ) : null}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="h-11 rounded-2xl border-white/10 bg-white/5 px-5 text-zinc-100 hover:border-white/16 hover:bg-white/[0.08]"
+                      onClick={onClose}
+                    >
+                      <RiCloseLine className="size-4" />
+                      {ui.cancel}
+                    </Button>
+                  </div>
+                </div>
+              </div>
               <div className="grid gap-4 xl:grid-cols-[minmax(0,1.25fr)_320px]">
                 <div className="space-y-4">
                   <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -331,7 +356,18 @@ export function AccountDetailsDialog({
                   </div>
 
                   <div className="grid gap-3">
-                    {accountTransactions.length === 0 ? <EmptyState text={ui.emptyTransactions} /> : null}
+                    {accountTransactions.length === 0 ? (
+                      <div
+                        className="w-full rounded-[1.6rem] border px-5 py-10 text-center text-sm text-zinc-300"
+                        style={{
+                          borderColor: accountAppearance.glow,
+                          background: `linear-gradient(180deg, rgba(10, 12, 14, 0.9) 0%, rgba(7, 8, 10, 0.96) 100%), radial-gradient(circle at 18% 18%, ${accountAppearance.orb}, transparent 28%)`,
+                          boxShadow: `inset 0 1px 0 rgba(255,255,255,0.04), 0 0 0 1px ${accountAppearance.glow}`,
+                        }}
+                      >
+                        {ui.emptyTransactions}
+                      </div>
+                    ) : null}
                     {accountTransactions.map((item) => (
                       <div key={item.transaction.id} className="rounded-[1.3rem] border border-white/8 bg-black/18 p-4">
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">

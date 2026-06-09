@@ -32,6 +32,7 @@ type WorkspaceOverviewSectionProps = {
   customCategoriesCount: number;
   onOpenQuickExpenseDialog: () => void;
   onOpenBudgetDialog: () => void;
+  onOpenAccountEditDialog: (account: AccountRecord) => void;
   onOpenTransactionEditDialog: (transaction: TransactionRecord) => void;
   onOpenTransactionsSection: () => void;
   onOpenBudgetsSection: () => void;
@@ -49,6 +50,7 @@ export function WorkspaceOverviewSection({
   customCategoriesCount,
   onOpenQuickExpenseDialog,
   onOpenBudgetDialog,
+  onOpenAccountEditDialog,
   onOpenTransactionEditDialog,
   onOpenTransactionsSection,
   onOpenBudgetsSection,
@@ -141,7 +143,7 @@ export function WorkspaceOverviewSection({
             <CardTitle className="text-white">{content.sections.accounts}</CardTitle>
             <CardDescription className="text-zinc-400">{content.sections.accountsDescription}</CardDescription>
           </CardHeader>
-          <CardContent className="max-h-[34rem] space-y-3 overflow-y-auto p-6 pt-0 pr-4">
+          <CardContent className="max-h-[34rem] space-y-3 overflow-x-hidden overflow-y-auto p-6 pt-2 pr-5">
             {accounts.map((account) => (
               <AccountCard key={account.id} account={account} ui={ui} onOpen={(nextAccount) => setActiveAccount(nextAccount)} />
             ))}
@@ -245,6 +247,7 @@ export function WorkspaceOverviewSection({
         transactions={transactions}
         ui={ui}
         onClose={() => setActiveAccount(null)}
+        onEdit={onOpenAccountEditDialog}
       />
     </>
   );

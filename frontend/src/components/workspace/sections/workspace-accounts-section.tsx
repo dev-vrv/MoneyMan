@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DateInput } from "@/components/ui/date-input";
-import { Dialog, DialogFooter } from "@/components/ui/dialog";
+import { Dialog } from "@/components/ui/dialog";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -316,22 +316,9 @@ export function WorkspaceAccountsSection({
         <WorkspaceDialogShell
           title={ui.createTaxPayment}
           description={ui.createTaxPaymentDescription}
+          variant="tax"
           contentClassName="h-[min(88vh,56rem)] w-[min(96vw,72rem)]"
           bodyClassName="p-6"
-          footer={(
-            <DialogFooter className="border-t border-white/8 bg-black/10 p-6 pt-4">
-              <Button variant="ghost" className="rounded-2xl" onClick={() => setActiveObligation(null)}>
-                {ui.cancel}
-              </Button>
-              <Button
-                className="rounded-2xl bg-emerald-300 text-slate-950 hover:bg-emerald-200"
-                disabled={createTaxTransactionsPending}
-                onClick={handleCreateTaxTransactions}
-              >
-                {ui.createTaxPayment}
-              </Button>
-            </DialogFooter>
-          )}
         >
           {activeObligation ? (
             <div className="grid gap-4">
@@ -485,6 +472,18 @@ export function WorkspaceAccountsSection({
                 />
               </Field>
               <p className="text-xs text-zinc-500">{ui.createLinkedTransactionsLabel}</p>
+              <div className="flex flex-wrap justify-end gap-3 pt-2">
+                <Button variant="ghost" className="rounded-2xl" onClick={() => setActiveObligation(null)}>
+                  {ui.cancel}
+                </Button>
+                <Button
+                  className="rounded-2xl bg-emerald-300 text-slate-950 hover:bg-emerald-200"
+                  disabled={createTaxTransactionsPending}
+                  onClick={handleCreateTaxTransactions}
+                >
+                  {ui.createTaxPayment}
+                </Button>
+              </div>
             </div>
           ) : null}
         </WorkspaceDialogShell>

@@ -90,6 +90,16 @@ class CryptoMarketSnapshot:
     fetched_at: str
 
 
+@dataclass(frozen=True)
+class CryptoMarketChart:
+    provider: str
+    symbol: str
+    quote_currency: str
+    range_key: str
+    points: list[dict[str, Any]]
+    fetched_at: str
+
+
 def _market_timeout() -> int | float:
     return getattr(settings, "CRYPTO_MARKET_API_TIMEOUT", 6)
 
@@ -99,6 +109,33 @@ def normalize_crypto_market_provider(provider: str | None) -> str:
     if normalized in CRYPTO_MARKET_PROVIDERS:
         return normalized
     return CRYPTO_MARKET_PROVIDER_BINANCE
+
+
+CRYPTO_MARKET_CHART_RANGE_24H = "24h"
+CRYPTO_MARKET_CHART_RANGE_7D = "7d"
+CRYPTO_MARKET_CHART_RANGE_30D = "30d"
+CRYPTO_MARKET_CHART_RANGE_90D = "90d"
+CRYPTO_MARKET_CHART_RANGES = {
+    CRYPTO_MARKET_CHART_RANGE_24H,
+    CRYPTO_MARKET_CHART_RANGE_7D,
+    CRYPTO_MARKET_CHART_RANGE_30D,
+    CRYPTO_MARKET_CHART_RANGE_90D,
+}
+CRYPTO_MARKET_SYMBOLS = {str(asset["symbol"]).upper() for asset in CRYPTO_MARKET_ASSETS}
+
+
+def normalize_crypto_market_symbol(symbol: str | None) -> str:
+    normalized = (symbol or "").strip().upper()
+    if normalized in CRYPTO_MARKET_SYMBOLS:
+        return normalized
+    return "BTC"
+
+
+def normalize_crypto_market_chart_range(range_key: str | None) -> str:
+    normalized = (range_key or "").strip().lower()
+    if normalized in CRYPTO_MARKET_CHART_RANGES:
+        return normalized
+    return CRYPTO_MARKET_CHART_RANGE_7D
 
 
 def _decimal_to_string(value: Decimal, precision: str) -> str:
@@ -116,6 +153,286 @@ def _calculate_change_percent(last_price: Decimal, open_price: Decimal) -> Decim
     if open_price == 0:
         return Decimal("0")
     return ((last_price - open_price) / open_price) * Decimal("100")
+
+
+def _build_chart_point(
+    *,
+    timestamp_ms: int,
+    open_price: Any,
+    high_price: Any,
+    low_price: Any,
+    close_price: Any,
+    volume: Any,
+) -> dict[str, Any]:
+    return {
+        "timestamp": timestamp_ms,
+        "open": _decimal_to_string(_parse_decimal(open_price, field_name="open"), "0.00000001"),
+        "high": _decimal_to_string(_parse_decimal(high_price, field_name="high"), "0.00000001"),
+        "low": _decimal_to_string(_parse_decimal(low_price, field_name="low"), "0.00000001"),
+        "close": _decimal_to_string(_parse_decimal(close_price, field_name="close"), "0.00000001"),
+        "volume": _decimal_to_string(_parse_decimal(volume, field_name="volume"), "0.00000001"),
+    }
+
+
+def _chart_range_config(provider: str, range_key: str) -> dict[str, Any]:
+    configs: dict[str, dict[str, dict[str, Any]]] = {
+        CRYPTO_MARKET_PROVIDER_BINANCE: {
+            CRYPTO_MARKET_CHART_RANGE_24H: {"interval": "1h", "limit": 24, "quote_currency": "USDT"},
+            CRYPTO_MARKET_CHART_RANGE_7D: {"interval": "4h", "limit": 42, "quote_currency": "USDT"},
+            CRYPTO_MARKET_CHART_RANGE_30D: {"interval": "1d", "limit": 30, "quote_currency": "USDT"},
+            CRYPTO_MARKET_CHART_RANGE_90D: {"interval": "1d", "limit": 90, "quote_currency": "USDT"},
+        },
+        CRYPTO_MARKET_PROVIDER_OKX: {
+            CRYPTO_MARKET_CHART_RANGE_24H: {"bar": "1H", "limit": 24, "quote_currency": "USDT"},
+            CRYPTO_MARKET_CHART_RANGE_7D: {"bar": "4H", "limit": 42, "quote_currency": "USDT"},
+            CRYPTO_MARKET_CHART_RANGE_30D: {"bar": "1D", "limit": 30, "quote_currency": "USDT"},
+            CRYPTO_MARKET_CHART_RANGE_90D: {"bar": "1D", "limit": 90, "quote_currency": "USDT"},
+        },
+        CRYPTO_MARKET_PROVIDER_BYBIT: {
+            CRYPTO_MARKET_CHART_RANGE_24H: {"interval": "60", "limit": 24, "quote_currency": "USDT"},
+            CRYPTO_MARKET_CHART_RANGE_7D: {"interval": "240", "limit": 42, "quote_currency": "USDT"},
+            CRYPTO_MARKET_CHART_RANGE_30D: {"interval": "D", "limit": 30, "quote_currency": "USDT"},
+            CRYPTO_MARKET_CHART_RANGE_90D: {"interval": "D", "limit": 90, "quote_currency": "USDT"},
+        },
+        CRYPTO_MARKET_PROVIDER_KRAKEN: {
+            CRYPTO_MARKET_CHART_RANGE_24H: {"interval": 60, "quote_currency": "USD"},
+            CRYPTO_MARKET_CHART_RANGE_7D: {"interval": 240, "quote_currency": "USD"},
+            CRYPTO_MARKET_CHART_RANGE_30D: {"interval": 1440, "quote_currency": "USD"},
+            CRYPTO_MARKET_CHART_RANGE_90D: {"interval": 1440, "quote_currency": "USD"},
+        },
+    }
+    return configs[provider][range_key]
+
+
+def _binance_chart_symbol(symbol: str) -> str:
+    return f"{symbol}USDT"
+
+
+def _okx_chart_symbol(symbol: str) -> str:
+    return f"{symbol}-USDT"
+
+
+def _bybit_chart_symbol(symbol: str) -> str:
+    return f"{symbol}USDT"
+
+
+def _kraken_chart_symbol(symbol: str) -> str:
+    replacements = {
+        "BTC": "XBT",
+        "DOGE": "XDG",
+    }
+    return f"{replacements.get(symbol, symbol)}USD"
+
+
+def _fetch_binance_chart(symbol: str, range_key: str) -> CryptoMarketChart:
+    config = _chart_range_config(CRYPTO_MARKET_PROVIDER_BINANCE, range_key)
+    response = requests.get(
+        "https://api.binance.com/api/v3/uiKlines",
+        params={
+            "symbol": _binance_chart_symbol(symbol),
+            "interval": config["interval"],
+            "limit": config["limit"],
+        },
+        headers={"Accept": "application/json"},
+        timeout=_market_timeout(),
+    )
+    try:
+        response.raise_for_status()
+    except requests.HTTPError as exc:
+        raise CryptoMarketDataError(f"Binance chart request failed: {exc}") from exc
+
+    payload = response.json()
+    if not isinstance(payload, list):
+        raise CryptoMarketDataError("Binance chart response has unexpected format.")
+
+    points = [
+        _build_chart_point(
+            timestamp_ms=int(item[0]),
+            open_price=item[1],
+            high_price=item[2],
+            low_price=item[3],
+            close_price=item[4],
+            volume=item[5],
+        )
+        for item in payload
+        if isinstance(item, list) and len(item) >= 6
+    ]
+    fetched_at = timezone.now().isoformat()
+    return CryptoMarketChart(
+        provider=CRYPTO_MARKET_PROVIDER_BINANCE,
+        symbol=symbol,
+        quote_currency=config["quote_currency"],
+        range_key=range_key,
+        points=points,
+        fetched_at=fetched_at,
+    )
+
+
+def _fetch_okx_chart(symbol: str, range_key: str) -> CryptoMarketChart:
+    config = _chart_range_config(CRYPTO_MARKET_PROVIDER_OKX, range_key)
+    response = requests.get(
+        "https://www.okx.com/api/v5/market/candles",
+        params={
+            "instId": _okx_chart_symbol(symbol),
+            "bar": config["bar"],
+            "limit": config["limit"],
+        },
+        headers={"Accept": "application/json"},
+        timeout=_market_timeout(),
+    )
+    try:
+        response.raise_for_status()
+    except requests.HTTPError as exc:
+        raise CryptoMarketDataError(f"OKX chart request failed: {exc}") from exc
+
+    payload = response.json()
+    rows = payload.get("data") if isinstance(payload, dict) else None
+    if not isinstance(rows, list):
+        raise CryptoMarketDataError("OKX chart response has unexpected format.")
+
+    points = [
+        _build_chart_point(
+            timestamp_ms=int(item[0]),
+            open_price=item[1],
+            high_price=item[2],
+            low_price=item[3],
+            close_price=item[4],
+            volume=item[5],
+        )
+        for item in rows
+        if isinstance(item, list) and len(item) >= 6
+    ]
+    points.sort(key=lambda item: item["timestamp"])
+    fetched_at = timezone.now().isoformat()
+    return CryptoMarketChart(
+        provider=CRYPTO_MARKET_PROVIDER_OKX,
+        symbol=symbol,
+        quote_currency=config["quote_currency"],
+        range_key=range_key,
+        points=points,
+        fetched_at=fetched_at,
+    )
+
+
+def _fetch_bybit_chart(symbol: str, range_key: str) -> CryptoMarketChart:
+    config = _chart_range_config(CRYPTO_MARKET_PROVIDER_BYBIT, range_key)
+    response = requests.get(
+        "https://api.bybit.com/v5/market/kline",
+        params={
+            "category": "spot",
+            "symbol": _bybit_chart_symbol(symbol),
+            "interval": config["interval"],
+            "limit": config["limit"],
+        },
+        headers={"Accept": "application/json"},
+        timeout=_market_timeout(),
+    )
+    try:
+        response.raise_for_status()
+    except requests.HTTPError as exc:
+        raise CryptoMarketDataError(f"Bybit chart request failed: {exc}") from exc
+
+    payload = response.json()
+    if not isinstance(payload, dict) or payload.get("retCode") != 0:
+        raise CryptoMarketDataError("Bybit chart response has unexpected format.")
+
+    result = payload.get("result")
+    rows = result.get("list") if isinstance(result, dict) else None
+    if not isinstance(rows, list):
+        raise CryptoMarketDataError("Bybit chart response has unexpected format.")
+
+    points = [
+        _build_chart_point(
+            timestamp_ms=int(item[0]),
+            open_price=item[1],
+            high_price=item[2],
+            low_price=item[3],
+            close_price=item[4],
+            volume=item[5],
+        )
+        for item in rows
+        if isinstance(item, list) and len(item) >= 6
+    ]
+    points.sort(key=lambda item: item["timestamp"])
+    fetched_at = timezone.now().isoformat()
+    return CryptoMarketChart(
+        provider=CRYPTO_MARKET_PROVIDER_BYBIT,
+        symbol=symbol,
+        quote_currency=config["quote_currency"],
+        range_key=range_key,
+        points=points,
+        fetched_at=fetched_at,
+    )
+
+
+def _fetch_kraken_chart(symbol: str, range_key: str) -> CryptoMarketChart:
+    config = _chart_range_config(CRYPTO_MARKET_PROVIDER_KRAKEN, range_key)
+    response = requests.get(
+        "https://api.kraken.com/0/public/OHLC",
+        params={
+            "pair": _kraken_chart_symbol(symbol),
+            "interval": config["interval"],
+        },
+        headers={"Accept": "application/json"},
+        timeout=_market_timeout(),
+    )
+    try:
+        response.raise_for_status()
+    except requests.HTTPError as exc:
+        raise CryptoMarketDataError(f"Kraken chart request failed: {exc}") from exc
+
+    payload = response.json()
+    if not isinstance(payload, dict):
+        raise CryptoMarketDataError("Kraken chart response has unexpected format.")
+    errors = payload.get("error")
+    if isinstance(errors, list) and errors:
+        raise CryptoMarketDataError(f"Kraken chart request failed: {'; '.join(str(item) for item in errors)}")
+
+    rows_by_pair = payload.get("result")
+    if not isinstance(rows_by_pair, dict):
+        raise CryptoMarketDataError("Kraken chart response has unexpected format.")
+
+    rows = next(
+        (
+            value
+            for key, value in rows_by_pair.items()
+            if key != "last" and isinstance(value, list)
+        ),
+        None,
+    )
+    if not isinstance(rows, list):
+        raise CryptoMarketDataError("Kraken chart response has unexpected format.")
+
+    if range_key == CRYPTO_MARKET_CHART_RANGE_24H:
+        rows = rows[-24:]
+    elif range_key == CRYPTO_MARKET_CHART_RANGE_7D:
+        rows = rows[-42:]
+    elif range_key == CRYPTO_MARKET_CHART_RANGE_30D:
+        rows = rows[-30:]
+    else:
+        rows = rows[-90:]
+
+    points = [
+        _build_chart_point(
+            timestamp_ms=int(item[0]) * 1000,
+            open_price=item[1],
+            high_price=item[2],
+            low_price=item[3],
+            close_price=item[4],
+            volume=item[6],
+        )
+        for item in rows
+        if isinstance(item, list) and len(item) >= 7
+    ]
+    fetched_at = timezone.now().isoformat()
+    return CryptoMarketChart(
+        provider=CRYPTO_MARKET_PROVIDER_KRAKEN,
+        symbol=symbol,
+        quote_currency=config["quote_currency"],
+        range_key=range_key,
+        points=points,
+        fetched_at=fetched_at,
+    )
 
 
 def _fetch_binance_snapshot() -> CryptoMarketSnapshot:

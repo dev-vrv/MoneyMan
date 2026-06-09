@@ -19,7 +19,7 @@ function shouldHideFooter(pathname: string) {
   const offset = first && isLocale(first) ? 1 : 0;
   const page = segments[offset] ?? "";
 
-  return page === "auth" || page === "login" || page === "forgot-password";
+  return page === "auth" || page === "login" || page === "forgot-password" || page === "workspace";
 }
 
 export function SiteFooterShell({

@@ -23,7 +23,7 @@ import { locales, type Locale } from "@/lib/i18n/config";
 type ProfileFormState = ReturnType<typeof createProfileForm>;
 
 const premiumCtaClassName =
-  "relative overflow-hidden rounded-2xl border border-cyan-300/28 bg-[linear-gradient(135deg,rgba(34,211,238,0.2)_0%,rgba(56,189,248,0.14)_35%,rgba(129,140,248,0.18)_100%)] text-cyan-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_0_1px_rgba(56,189,248,0.08),0_10px_30px_rgba(14,165,233,0.18),0_0_36px_rgba(59,130,246,0.12)] transition-all duration-300 before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_left_center,rgba(255,255,255,0.2),transparent_42%)] before:opacity-70 before:content-[''] hover:border-cyan-200/44 hover:text-cyan-50 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_0_0_1px_rgba(103,232,249,0.14),0_16px_42px_rgba(14,165,233,0.24),0_0_52px_rgba(99,102,241,0.18)]";
+  "relative overflow-hidden rounded-2xl border border-emerald-300/24 bg-[linear-gradient(135deg,rgba(16,185,129,0.18)_0%,rgba(52,211,153,0.12)_42%,rgba(163,230,53,0.14)_100%)] text-emerald-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_0_1px_rgba(52,211,153,0.08),0_10px_30px_rgba(6,95,70,0.2),0_0_36px_rgba(16,185,129,0.1)] transition-all duration-300 before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_left_center,rgba(255,255,255,0.16),transparent_42%)] before:opacity-70 before:content-[''] hover:border-emerald-200/40 hover:text-emerald-50 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_0_0_1px_rgba(110,231,183,0.14),0_16px_42px_rgba(6,95,70,0.26),0_0_52px_rgba(16,185,129,0.16)]";
 
 type WorkspaceSettingsSectionProps = {
   ui: UiCopy;
@@ -105,8 +105,8 @@ export function WorkspaceSettingsSection({
 
   return (
     <div className="space-y-6">
-      <Card className="surface-panel relative rounded-[2rem] border-white/8 bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.12),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.045)_0%,rgba(255,255,255,0.02)_100%)] py-0">
-        <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(103,232,249,0.4),transparent)]" />
+      <Card className="surface-panel relative rounded-[2rem] border-white/8 bg-[radial-gradient(circle_at_top_left,rgba(110,231,183,0.1),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.04)_0%,rgba(255,255,255,0.018)_100%)] py-0">
+        <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(110,231,183,0.34),transparent)]" />
         <CardHeader className="gap-5 p-7 lg:p-8">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="inline-flex w-fit items-center gap-2 rounded-full border border-amber-300/18 bg-amber-300/10 px-3 py-1 text-xs font-medium text-amber-100">
@@ -177,13 +177,13 @@ export function WorkspaceSettingsSection({
               )}
             </div>
           </div>
-          <div className="flex h-full flex-col gap-5 rounded-[1.7rem] border border-cyan-300/12 bg-[linear-gradient(180deg,rgba(34,211,238,0.08)_0%,rgba(8,16,22,0.72)_100%)] p-6">
+          <div className="flex h-full flex-col gap-5 rounded-[1.7rem] border border-emerald-300/12 bg-[linear-gradient(180deg,rgba(16,185,129,0.08)_0%,rgba(8,16,12,0.72)_100%)] p-6">
             <div className="space-y-3">
-              <p className="text-xs uppercase tracking-[0.22em] text-cyan-100/70">{selectedSubscriptionPlan?.name ?? ui.premiumBadge}</p>
-              <p className="text-lg font-semibold leading-tight text-cyan-50">
+              <p className="text-xs uppercase tracking-[0.22em] text-emerald-100/70">{selectedSubscriptionPlan?.name ?? ui.premiumBadge}</p>
+              <p className="text-lg font-semibold leading-tight text-emerald-50">
                 {isPremium ? ui.premiumManage : ui.premiumUpgrade}
               </p>
-              <p className="text-sm leading-7 text-cyan-100/70">
+              <p className="text-sm leading-7 text-emerald-100/70">
                 {selectedSubscriptionPlan
                   ? `${selectedSubscriptionPlan.display_price_label} · ${selectedSubscriptionPlan.duration_label}`
                   : ui.premiumCheckoutNote}
@@ -204,7 +204,7 @@ export function WorkspaceSettingsSection({
       </Card>
 
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(19rem,0.72fr)_minmax(0,1.28fr)]">
-        <Card className="surface-panel sticky top-6 rounded-[2rem] border-white/8 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.1),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.04)_0%,rgba(255,255,255,0.02)_100%)] py-0">
+        <Card className="surface-panel sticky top-6 rounded-[2rem] border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(52,211,153,0.08),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(163,230,53,0.06),transparent_24%),linear-gradient(180deg,rgba(14,20,16,0.88)_0%,rgba(8,13,10,0.94)_100%)] py-0">
           <CardHeader className="space-y-5 p-6">
             <div className="space-y-3">
               <CardTitle className="text-white">{ui.operationsCenter}</CardTitle>
@@ -214,7 +214,7 @@ export function WorkspaceSettingsSection({
               <PriorityPill label={ui.systemLabel} value={ui.systemCategoriesValue.replace("{count}", String(systemCategoriesCount))} />
               <PriorityPill label={ui.customLabel} value={ui.customCategoriesValue.replace("{count}", String(customCategoriesCount))} />
             </div>
-            <div className="rounded-[1.4rem] border border-white/8 bg-black/18 p-4">
+            <div className="rounded-[1.4rem] border border-white/10 bg-[rgba(12,18,26,0.76)] p-4">
               <p className="max-w-sm text-sm leading-6 text-zinc-400">{ui.manageCategories}</p>
               <Button
                 className="mt-4 h-auto min-h-11 w-full whitespace-normal rounded-2xl bg-emerald-300 px-4 py-3 text-center text-slate-950"
@@ -373,6 +373,7 @@ export function WorkspaceSettingsSection({
         <WorkspaceDialogShell
           title={ui.operationsCenter}
           description={ui.operationsDescription}
+          variant="operations"
           contentClassName="h-[min(90vh,58rem)] w-[min(96vw,78rem)]"
           bodyClassName="px-6 pb-6 pt-5 sm:px-7 sm:pb-7"
           className="space-y-5"

@@ -6,7 +6,7 @@ import type { UiCopy } from "@/components/workspace/finance-workspace.types";
 import { WorkspaceDialogShell } from "@/components/workspace/workspace-dialog-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogFooter } from "@/components/ui/dialog";
+import { Dialog } from "@/components/ui/dialog";
 import type { SubscriptionPlanRecord } from "@/lib/api/finance";
 
 type DisplaySubscriptionPlan = SubscriptionPlanRecord & {
@@ -49,28 +49,13 @@ export function PremiumUpgradeDialog({
       <WorkspaceDialogShell
         title={ui.premiumDialogTitle}
         description={ui.premiumDialogBody}
+        variant="premium"
         contentClassName="h-[min(90vh,56rem)] w-[min(96vw,52rem)]"
         bodyClassName="px-6 pb-6 pt-5 sm:px-8"
         headerAddon={(
           <div className="inline-flex w-fit items-center gap-2 rounded-full border border-amber-300/18 bg-amber-300/10 px-3 py-1 text-xs font-medium text-amber-100">
             {ui.premiumBadge}
           </div>
-        )}
-        footer={(
-          <DialogFooter className="border-white/8 bg-white/[0.03]">
-            <Button
-              type="button"
-              variant="outline"
-              className="rounded-2xl border-white/10 bg-white/5 text-zinc-100"
-              onClick={() => onOpenChange(false)}
-            >
-              {ui.cancel}
-            </Button>
-            <Button type="button" className={ctaClassName} onClick={onCheckout}>
-              <RiFlashlightLine className="relative z-10 size-4" />
-              <span className="relative z-10">{ui.premiumCheckoutAction}</span>
-            </Button>
-          </DialogFooter>
         )}
       >
         {plans.length > 0 ? (
@@ -127,6 +112,21 @@ export function PremiumUpgradeDialog({
                   ? `${selectedPlan.display_price_label} · ${selectedPlan.duration_label}`
                   : ui.premiumCheckoutNote}
               </p>
+            </div>
+
+            <div className="flex flex-wrap justify-end gap-3 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="rounded-2xl border-white/10 bg-white/5 text-zinc-100"
+                onClick={() => onOpenChange(false)}
+              >
+                {ui.cancel}
+              </Button>
+              <Button type="button" className={ctaClassName} onClick={onCheckout}>
+                <RiFlashlightLine className="relative z-10 size-4" />
+                <span className="relative z-10">{ui.premiumCheckoutAction}</span>
+              </Button>
             </div>
           </>
         ) : (
